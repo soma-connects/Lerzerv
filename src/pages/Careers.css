@@ -1,47 +1,223 @@
+/* ============================================
+   CAREERS PAGE STYLES — LEZERV
+   ============================================ */
+
+/* ------------------------------------------
+   HERO SECTION
+   ------------------------------------------ */
 .careers-hero {
+  padding: var(--spacing-2xl) 0;
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-container-lowest) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.careers-hero::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--color-primary-container) 0%, transparent 70%);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.careers-hero .container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl);
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 769px) {
+  .careers-hero .container {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+  }
+}
+
+.hero-content {
   text-align: center;
 }
 
+@media (min-width: 769px) {
+  .hero-content {
+    text-align: left;
+  }
+}
+
+.careers-label {
+  display: inline-block;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--spacing-sm);
+}
+
 .careers-hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-surface);
+  line-height: 1.2;
   margin-bottom: var(--spacing-md);
+}
+
+.careers-hero h1 br {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .careers-hero h1 br {
+    display: block;
+  }
 }
 
 .careers-hero p {
   font-size: var(--font-size-body-lg);
   color: var(--color-on-surface-variant);
+  line-height: 1.6;
   margin-bottom: var(--spacing-xl);
+  max-width: 540px;
 }
 
-.hero-banner {
-  height: 25rem;
-  width: 100%;
-  border-radius: var(--radius-xl);
+/* Hero Stats */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid rgba(114, 120, 126, 0.15);
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.stat-number {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
+/* Hero Visual */
+.hero-visual {
+  position: relative;
+}
+
+.hero-image-wrapper {
+  position: relative;
+  border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-xl);
 }
 
-.hero-banner img {
+.hero-image-wrapper img {
   width: 100%;
-  height: 100%;
+  height: 28rem;
   object-fit: cover;
+  display: block;
 }
 
-.roles-grid {
+.hero-image-badge {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  left: var(--spacing-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ------------------------------------------
+   TAB SWITCHER
+   ------------------------------------------ */
+.roles-section {
+  padding: var(--spacing-2xl) 0;
+}
+
+.tab-switcher {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--color-surface-container-high);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--color-on-surface);
+  background-color: var(--color-surface-container);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ------------------------------------------
+   ARTISAN VIEW
+   ------------------------------------------ */
+.artisan-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--spacing-2xl);
+  gap: var(--spacing-xl);
 }
 
 @media (min-width: 992px) {
-  .roles-grid {
-    grid-template-columns: 1fr 1fr;
+  .artisan-layout {
+    grid-template-columns: 2fr 1fr;
+    gap: var(--spacing-2xl);
   }
 }
 
-.roles-column h2 {
+.artisan-roles h2,
+.corporate-header h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--color-on-surface);
+  margin-bottom: var(--spacing-xs);
+}
+
+.section-desc {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body);
   margin-bottom: var(--spacing-xl);
-  border-bottom: 1px solid var(--color-surface-variant);
-  padding-bottom: var(--spacing-sm);
 }
 
 .roles-list {
@@ -54,37 +230,265 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-outline-variant);
   padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: var(--transition-normal);
+  transition: all 0.25s ease;
+  gap: var(--spacing-md);
 }
 
-.role-card:hover {
+.role-card:hover,
+.role-card:focus-visible {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-md);
   transform: translateX(4px);
+  outline: none;
 }
 
-.role-card h3 {
-  font-size: var(--font-size-body-md);
-  color: var(--color-primary);
+.role-card:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.role-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.role-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.role-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.role-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-xs);
 }
 
-.role-card p {
+.role-header h3 {
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-on-surface);
+}
+
+.demand-badge {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.demand-badge.very-high {
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.demand-badge.high {
+  background-color: var(--color-tertiary-container);
+  color: var(--color-on-tertiary-container);
+}
+
+.demand-badge.urgent {
+  background-color: var(--color-error);
+  color: var(--color-on-error);
+}
+
+.role-location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   font-size: var(--font-size-body-sm);
   color: var(--color-on-surface-variant);
 }
 
-.role-arrow {
-  color: var(--color-outline);
-  transition: var(--transition-fast);
+.role-action {
+  flex-shrink: 0;
 }
 
-.role-card:hover .role-arrow {
+.role-arrow {
+  color: var(--color-outline);
+  transition: all 0.2s ease;
+}
+
+.role-arrow.active {
   color: var(--color-primary);
   transform: translateX(4px);
+}
+
+/* Artisan Benefits Sidebar */
+.artisan-benefits {
+  background: linear-gradient(180deg, var(--color-primary-container) 0%, var(--color-surface-container-lowest) 100%);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-2xl);
+  position: sticky;
+  top: var(--spacing-xl);
+  height: fit-content;
+}
+
+.artisan-benefits h3 {
+  font-size: var(--font-size-h4);
+  color: var(--color-on-primary-container);
+  margin-bottom: var(--spacing-lg);
+}
+
+.benefits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-xl) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.benefits-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-body);
+  color: var(--color-on-surface-variant);
+}
+
+.benefit-check {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefits-note {
+  text-align: center;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+  margin-top: var(--spacing-md);
+  opacity: 0.8;
+}
+
+/* ------------------------------------------
+   CORPORATE VIEW
+   ------------------------------------------ */
+.corporate-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 640px) {
+  .corporate-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.corporate-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  transition: all 0.3s ease;
+}
+
+.corporate-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+.corporate-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.job-type {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.job-location {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.corporate-card h3 {
+  font-size: var(--font-size-h4);
+  color: var(--color-on-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+.job-dept {
+  font-size: var(--font-size-body);
+  color: var(--color-on-surface-variant);
+  margin-bottom: auto;
+}
+
+.corporate-card-footer {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-surface-container-high);
+}
+
+/* ------------------------------------------
+   BOTTOM CTA
+   ------------------------------------------ */
+.careers-cta {
+  padding: var(--spacing-2xl) 0;
+  background-color: var(--color-surface-container-lowest);
+}
+
+.cta-content {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cta-content h2 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: var(--color-on-surface);
+  margin-bottom: var(--spacing-md);
+}
+
+.cta-content p {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* ------------------------------------------
+   ACCESSIBILITY
+   ------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+
+  .role-card,
+  .corporate-card,
+  .tab-btn {
+    transition: none !important;
+    transform: none !important;
+  }
 }

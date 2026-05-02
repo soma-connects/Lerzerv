@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import BookingFlow from '../components/booking/BookingFlow';
 import './Services.css';
 
@@ -17,6 +17,8 @@ interface Category {
   id: string;
   title: string;
   description: string;
+  icon: React.ReactNode;
+  color: string;
   tiers: ServiceTier[];
 }
 
@@ -25,10 +27,12 @@ const SERVICE_CATEGORIES: Category[] = [
     id: 'cleaning',
     title: 'Professional Cleaning',
     description: 'Expert cleaning solutions for Nigerian homes, apartments, and estates.',
+    icon: <Sparkles size={28} />,
+    color: 'var(--color-primary)',
     tiers: [
       {
         name: 'Standard Home Clean',
-        price: 'From ₦15,000',
+        price: '₦15,000',
         description: 'Perfect for regular upkeep of your flat or duplex.',
         features: [
           'Detailed Floor Mopping',
@@ -40,7 +44,7 @@ const SERVICE_CATEGORIES: Category[] = [
       },
       {
         name: 'Post-Construction / Move-in',
-        price: 'From ₦45,000',
+        price: '₦45,000',
         description: 'Comprehensive deep cleaning for new or renovated properties.',
         features: [
           'Paint & Cement Stain Removal',
@@ -58,10 +62,12 @@ const SERVICE_CATEGORIES: Category[] = [
     id: 'power-water',
     title: 'Power & Water Utilities',
     description: 'Specialized maintenance for the essential systems that keep your home running.',
+    icon: <Zap size={28} />,
+    color: 'var(--color-tertiary)',
     tiers: [
       {
         name: 'Generator Servicing',
-        price: 'From ₦10,000',
+        price: '₦10,000',
         description: 'Routine maintenance for your Mikano, Perkins, or small portable sets.',
         features: [
           'Oil & Filter Change',
@@ -73,7 +79,7 @@ const SERVICE_CATEGORIES: Category[] = [
       },
       {
         name: 'Borehole & Plumbing',
-        price: 'From ₦25,000',
+        price: '₦25,000',
         description: 'Pump repairs, tank cleaning, and full plumbing diagnostics.',
         features: [
           'Submersible Pump Repair',
@@ -89,10 +95,12 @@ const SERVICE_CATEGORIES: Category[] = [
     id: 'artisan-work',
     title: 'Expert Artisans',
     description: 'Verified professionals for structural repairs and technical installations.',
+    icon: <Wrench size={28} />,
+    color: 'var(--color-secondary)',
     tiers: [
       {
         name: 'Technical Repairs',
-        price: 'From ₦12,000',
+        price: '₦12,000',
         description: 'AC servicing, electrical faults, and carpentry fixes.',
         features: [
           'AC Gas Refilling & Cleaning',
@@ -123,87 +131,130 @@ const Services: React.FC = () => {
   const [selectedService, setSelectedService] = useState('');
 
   const handleBook = (categoryTitle: string, tierName: string) => {
-    setSelectedService(`${categoryTitle} - ${tierName}`);
+    setSelectedService(`${categoryTitle} — ${tierName}`);
     setIsBookingOpen(true);
   };
 
   return (
-    <motion.div 
-      className="services-page container"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <header className="services-header">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          Premium Home Services
-        </motion.h1>
-        <p>Reliable artisans and cleaning professionals at your doorstep. Transparent pricing, no hidden fees.</p>
-      </header>
-
-      {SERVICE_CATEGORIES.map((category, idx) => (
-        <section key={category.id} className="service-category-section">
-          <motion.div 
-            className="category-info"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.15 }}
+    <div className="services-page">
+      {/* Hero Header */}
+      <section className="services-hero">
+        <div className="container">
+          <motion.div
+            className="services-header"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <h2>{category.title}</h2>
-            <p>{category.description}</p>
+            <span className="services-label">Our Services</span>
+            <h1>Premium Home Services</h1>
+            <p>Reliable artisans and cleaning professionals at your doorstep. Transparent pricing, no hidden fees.</p>
+
+            <div className="trust-pills">
+              <span className="trust-pill"><Shield size={16} /> Verified Artisans</span>
+              <span className="trust-pill"><Clock size={16} /> Same-Day Available</span>
+              <span className="trust-pill"><Star size={16} /> 4.9/5 Rating</span>
+            </div>
           </motion.div>
-          
-          <div className="tiers-grid">
-            {category.tiers.map((tier, tIdx) => (
-              <motion.div 
-                key={tier.name}
-                className={`tier-card ${tier.recommended ? 'tier-recommended' : ''}`}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  delay: (idx * 0.2) + (tIdx * 0.1),
-                  type: "spring",
-                  stiffness: 100
-                }}
-              >
-                {tier.recommended && <div className="recommendation-badge">Most Popular</div>}
-                <h3>{tier.name}</h3>
-                <div className="tier-price">{tier.price}</div>
-                <p className="tier-desc">{tier.description}</p>
-                
-                <ul className="tier-features">
-                  {tier.features.map(f => (
-                    <li key={f}>
-                      <Check size={18} color="var(--color-secondary)" /> 
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+        </div>
+      </section>
 
-                <Button 
-                  variant={tier.recommended ? 'primary' : 'outline'} 
-                  fullWidth
-                  rightIcon={<ArrowRight size={18} />}
-                  onClick={() => handleBook(category.title, tier.name)}
+      {/* Categories */}
+      <div className="container">
+        {SERVICE_CATEGORIES.map((category, idx) => (
+          <motion.section
+            key={category.id}
+            className="service-category-section"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5, delay: idx * 0.1 }}
+          >
+            <div className="category-header">
+              <div className="category-icon" style={{ color: category.color }}>
+                {category.icon}
+              </div>
+              <div className="category-info">
+                <h2>{category.title}</h2>
+                <p>{category.description}</p>
+              </div>
+            </div>
+
+            <div className="tiers-grid">
+              {category.tiers.map((tier, tIdx) => (
+                <motion.div
+                  key={tier.name}
+                  className={`tier-card ${tier.recommended ? 'tier-recommended' : ''}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{
+                    delay: tIdx * 0.1,
+                    type: "spring",
+                    stiffness: 100
+                  }}
+                  whileHover={{ y: -8 }}
                 >
-                  Book This Service
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      ))}
+                  {tier.recommended && (
+                    <div className="recommendation-badge">
+                      <Star size={14} fill="currentColor" /> Most Popular
+                    </div>
+                  )}
 
-      <BookingFlow 
-        isOpen={isBookingOpen} 
-        onClose={() => setIsBookingOpen(false)} 
-        serviceName={selectedService} 
+                  <div className="tier-header">
+                    <h3>{tier.name}</h3>
+                    <div className="tier-price">
+                      <span className="price-label">From</span>
+                      <span className="price-amount">{tier.price}</span>
+                    </div>
+                  </div>
+
+                  <p className="tier-desc">{tier.description}</p>
+
+                  <ul className="tier-features">
+                    {tier.features.map(f => (
+                      <li key={f}>
+                        <div className="feature-check">
+                          <Check size={16} strokeWidth={3} />
+                        </div>
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    variant={tier.recommended ? 'primary' : 'outline'}
+                    fullWidth
+                    size="lg"
+                    rightIcon={<ArrowRight size={18} />}
+                    onClick={() => handleBook(category.title, tier.name)}
+                  >
+                    Book This Service
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        ))}
+      </div>
+
+      {/* Bottom CTA */}
+      <section className="services-cta">
+        <div className="container">
+          <div className="cta-card">
+            <h2>Need something else?</h2>
+            <p>We handle custom jobs too. Describe your problem and we will match you with the right expert.</p>
+            <Button variant="secondary" size="lg">Request Custom Quote</Button>
+          </div>
+        </div>
+      </section>
+
+      <BookingFlow
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        serviceName={selectedService}
       />
-    </motion.div>
+    </div>
   );
 };
 
