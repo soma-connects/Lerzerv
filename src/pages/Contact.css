@@ -166,14 +166,15 @@
   margin-bottom: var(--spacing-md);
 }
 
-.map-placeholder {
-  height: 15rem;
+.map-container {
+  height: 20rem;
   background-color: var(--color-surface-container-high);
+  width: 100%;
 }
 
-.map-placeholder img {
+.map-container iframe {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0.8;
+  border: 0;
+  display: block;
 }

@@ -158,8 +158,8 @@ const Contact: React.FC = () => {
               </div>
               <div>
                 <h4>Call Us</h4>
-                <p><a href="tel:+234800LEZERV">+234 (0) 800 LEZERV</a></p>
-                <p><a href="tel:+23412345678">+234 (1) 234 5678</a></p>
+                <p><a href="tel:+2349046367604">09046367604</a></p>
+                <p>Support available 24/7</p>
               </div>
             </div>
 
@@ -190,12 +190,17 @@ const Contact: React.FC = () => {
           <div className="contact-map-card">
             <h3>Our Headquarters</h3>
             <p><MapPin size={18} /> 123 Artisan Plaza, Victoria Island, Lagos</p>
-            <div className="map-placeholder">
-              <img 
-                src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=1000" 
-                alt="Lezerv Office Location Map" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+            <div className="map-container">
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3964.728551475147!2d3.4173!3d6.4281!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x103bf53280e4953f%3A0x8cd935ad44930527!2sVictoria%20Island%2C%20Lagos!5e0!3m2!1sen!2sng!4v1714650000000!5m2!1sen!2sng" 
+                width="100%" 
+                height="100%" 
+                style={{ border: 0 }} 
+                allowFullScreen={true} 
+                loading="lazy" 
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Lezerv Office Location"
+              ></iframe>
             </div>
           </div>
         </aside>
