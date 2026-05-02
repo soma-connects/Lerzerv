@@ -1,0 +1,139 @@
+.services-page {
+  padding-top: var(--spacing-2xl);
+  padding-bottom: var(--spacing-2xl);
+}
+
+.services-header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.services-header h1 {
+  font-size: var(--font-size-h1);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.services-header p {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-on-surface-variant);
+}
+
+.service-category-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.category-info {
+  margin-bottom: var(--spacing-lg);
+  border-left: 4px solid var(--color-secondary);
+  padding-left: var(--spacing-md);
+}
+
+.category-info h2 {
+  font-size: var(--font-size-h2);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.category-info p {
+  color: var(--color-on-surface-variant);
+}
+
+.tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  align-items: stretch;
+}
+
+.tier-card {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: var(--transition-normal);
+  overflow: hidden;
+}
+
+.tier-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-secondary);
+}
+
+.tier-recommended {
+  border: 2px solid var(--color-secondary);
+  box-shadow: var(--shadow-md);
+}
+
+.recommendation-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--color-secondary);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  border-bottom-left-radius: var(--radius-lg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tier-card h3 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.tier-price {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.tier-desc {
+  font-size: var(--font-size-body-md);
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-lg);
+  min-height: 3rem;
+}
+
+.tier-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-xl) 0;
+  flex-grow: 1;
+}
+
+.tier-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface);
+}
+
+.tier-features li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .services-header h1 {
+    font-size: var(--font-size-h2);
+  }
+  
+  .tiers-grid {
+    grid-template-columns: 1fr;
+  }
+}

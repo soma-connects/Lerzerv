@@ -1,0 +1,28 @@
+.legal-page {
+  max-width: 800px;
+}
+
+.legal-page h1 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.legal-page .last-updated {
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-body-sm);
+}
+
+.legal-page section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.legal-page h2 {
+  font-size: var(--font-size-h3);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary);
+}
+
+.legal-page p {
+  color: var(--color-on-surface-variant);
+  line-height: 1.7;
+}
