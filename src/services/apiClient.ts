@@ -11,7 +11,7 @@ export const apiClient = async <T>(
   options: RequestInit = {}
 ): Promise<T> => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -32,7 +32,7 @@ export const apiClient = async <T>(
 
   try {
     const response = await fetch(url, { ...options, headers });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || 'API request failed');

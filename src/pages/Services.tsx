@@ -32,7 +32,7 @@ const SERVICE_CATEGORIES: Category[] = [
     tiers: [
       {
         name: 'Standard Home Clean',
-        price: '₦15,000',
+        price: '₦5,000 - ₦10,000',
         description: 'Perfect for regular upkeep of your flat or duplex.',
         features: [
           'Detailed Floor Mopping',
@@ -43,8 +43,8 @@ const SERVICE_CATEGORIES: Category[] = [
         ]
       },
       {
-        name: 'Post-Construction / Move-in',
-        price: '₦45,000',
+        name: 'Premium Service',
+        price: '₦10,000 - ₦20,000',
         description: 'Comprehensive deep cleaning for new or renovated properties.',
         features: [
           'Paint & Cement Stain Removal',
@@ -112,7 +112,7 @@ const SERVICE_CATEGORIES: Category[] = [
       },
       {
         name: 'Full Estate Maintenance',
-        price: 'Custom Quote',
+        price: 'Negotiable',
         description: 'End-to-end maintenance for property owners and estate managers.',
         features: [
           'Interlocking Tile Repair',

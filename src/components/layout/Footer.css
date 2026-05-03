@@ -22,11 +22,14 @@
 }
 
 .footer-logo {
-  font-size: 1.25rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary-container);
+  display: inline-block;
   margin-bottom: var(--spacing-xs);
-  display: block;
+}
+
+.footer-logo-img {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
 }
 
 .footer-tagline {

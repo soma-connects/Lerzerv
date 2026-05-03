@@ -29,7 +29,7 @@ export const Header: React.FC = () => {
     <header className={`header ${isScrolled ? 'header-scrolled' : ''}`}>
       <div className="container header-container">
         <Link to="/" className="logo">
-          Lezerv
+          <img src="/logo.png" alt="Lezerv Logo" className="logo-img" />
         </Link>
 
         <nav className="nav-desktop">

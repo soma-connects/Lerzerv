@@ -10,7 +10,7 @@ export const Footer: React.FC = () => {
       <div className="container footer-container">
         <div className="footer-brand">
           <Link to="/" className="footer-logo">
-            Lezerv
+            <img src="/logo.png" alt="Lezerv Logo" className="footer-logo-img" />
           </Link>
           <p className="footer-tagline">Reliable services to make your life easier every day.</p>
           <div className="footer-locations">
