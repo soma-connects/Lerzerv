@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import BookingFlow from '../components/booking/BookingFlow';
+import { supabase } from '../lib/supabase';
 import './Services.css';
 
 interface ServiceTier {
@@ -22,7 +23,7 @@ interface Category {
   tiers: ServiceTier[];
 }
 
-const SERVICE_CATEGORIES: Category[] = [
+const STATIC_SERVICE_CATEGORIES: Category[] = [
   {
     id: 'cleaning',
     title: 'Professional Cleaning',
@@ -129,6 +130,47 @@ const SERVICE_CATEGORIES: Category[] = [
 const Services: React.FC = () => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data, error } = await supabase.from('services').select('*');
+        
+        if (!error && data && data.length > 0) {
+          const grouped = data.reduce((acc: any, service: any) => {
+            if (!acc[service.category]) {
+              acc[service.category] = {
+                id: service.category.toLowerCase(),
+                title: service.category,
+                description: 'Professional ' + service.category + ' services.',
+                icon: <Sparkles size={28} />,
+                color: 'var(--color-primary)',
+                tiers: []
+              };
+            }
+            acc[service.category].tiers.push({
+              name: service.title,
+              price: service.price,
+              description: service.description,
+              features: service.features || [],
+              recommended: service.recommended
+            });
+            return acc;
+          }, {});
+          setCategories(Object.values(grouped));
+        } else {
+          setCategories(STATIC_SERVICE_CATEGORIES);
+        }
+      } catch (err) {
+        setCategories(STATIC_SERVICE_CATEGORIES);
+      } finally {
+        // Done
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const handleBook = (categoryTitle: string, tierName: string) => {
     setSelectedService(`${categoryTitle} — ${tierName}`);
@@ -161,7 +203,7 @@ const Services: React.FC = () => {
 
       {/* Categories */}
       <div className="container">
-        {SERVICE_CATEGORIES.map((category, idx) => (
+        {categories.map((category, idx) => (
           <motion.section
             key={category.id}
             className="service-category-section"

@@ -1,0 +1,65 @@
+.admin-tabs {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.admin-tabs button {
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.admin-tabs button:hover {
+  color: var(--color-primary);
+}
+
+.admin-tabs button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.settings-form {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+}
+
+.settings-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-form label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-on-surface);
+}
+
+.settings-form input, .settings-form textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+}
+
+.settings-form input:focus, .settings-form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.p-4 { padding: 2rem; }
+.mb-4 { margin-bottom: 1rem; }
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+}

@@ -42,6 +42,12 @@
   gap: var(--spacing-xl);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .nav-list {
   display: flex;
   gap: var(--spacing-lg);

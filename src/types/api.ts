@@ -36,6 +36,13 @@ export interface IBookingRequest {
   };
 }
 
+export interface IStoredBooking extends IBookingRequest {
+  id: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt: string;
+  orderNumber: string;
+}
+
 export interface IServiceCategory {
   id: string;
   name: string;

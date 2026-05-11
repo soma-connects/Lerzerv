@@ -1,0 +1,165 @@
+.payment-page {
+  padding: var(--spacing-2xl) 0;
+  background-color: var(--color-background);
+  min-height: 90vh;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-size: var(--font-size-body-sm);
+  margin-bottom: var(--spacing-xl);
+  width: fit-content;
+}
+
+.back-link:hover {
+  color: var(--color-primary);
+}
+
+.payment-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.payment-card {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-surface-variant);
+  position: relative;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.payment-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--color-primary-fixed);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-md);
+}
+
+.payment-header h1 {
+  font-size: var(--font-size-h2);
+  color: var(--color-on-surface);
+  margin-bottom: 0.5rem;
+}
+
+.payment-header p {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-sm);
+}
+
+.payment-summary {
+  background: var(--color-surface-container-low);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: var(--font-size-body-sm);
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-outline-variant);
+  font-weight: var(--font-weight-bold);
+}
+
+.total-price {
+  color: var(--color-primary);
+  font-size: var(--font-size-h3);
+}
+
+.bank-details-box {
+  display: grid;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.bank-detail label {
+  display: block;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 4px;
+}
+
+.detail-value-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--color-surface-container);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.account-number {
+  font-family: monospace;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}
+
+.detail-value-row button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.detail-value-row button:hover {
+  background: var(--color-primary-fixed);
+}
+
+.payment-instructions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-body-sm);
+}
+
+.copy-toast {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--color-primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-label);
+  box-shadow: var(--shadow-md);
+}
+
+.payment-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-weight: var(--font-weight-medium);
+}

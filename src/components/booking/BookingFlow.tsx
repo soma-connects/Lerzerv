@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { X, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import './BookingFlow.css';
@@ -15,9 +16,11 @@ interface BookingFlowProps {
 type Step = 'details' | 'schedule' | 'info' | 'review' | 'success';
 
 const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName }) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedBooking, setSavedBooking] = useState<any>(null);
   const [formData, setFormData] = useState({
     details: '',
     date: '',
@@ -66,6 +69,7 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
     try {
       const response = await bookingService.submitBooking(request);
       if (response.success) {
+        setSavedBooking(response.data);
         setCurrentStep('success');
       } else {
         setError(response.error?.message || 'Failed to submit booking. Please try again.');
@@ -302,12 +306,48 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
                 <h3 style={{ fontSize: '1.5rem', color: 'var(--color-primary)', marginBottom: 'var(--spacing-md)' }}>
                   Booking Request Sent!
                 </h3>
+
+                <div 
+                  className="order-number-display" 
+                  onClick={() => {
+                    onClose();
+                    navigate(`/track?order=${savedBooking?.order_number}`);
+                  }}
+                  style={{ 
+                    background: 'var(--color-surface-container)', 
+                    padding: '1rem', 
+                    borderRadius: 'var(--radius-lg)',
+                    margin: '1.5rem 0',
+                    border: '1px dashed var(--color-primary)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <span style={{ fontSize: 'var(--font-size-label)', color: 'var(--color-on-surface-variant)', display: 'block', marginBottom: '0.25rem' }}>Your Tracking Number</span>
+                  <strong style={{ fontSize: '1.5rem', letterSpacing: '2px', color: 'var(--color-primary)', fontFamily: 'monospace' }}>
+                    {savedBooking?.order_number || 'LZ-PROCESSING'}
+                  </strong>
+                  <span style={{ fontSize: '10px', color: 'var(--color-secondary)', display: 'block', marginTop: '0.5rem', fontWeight: 'bold' }}>
+                    Click to track instantly
+                  </span>
+                </div>
+
                 <p style={{ color: 'var(--color-on-surface-variant)', marginBottom: 'var(--spacing-xl)' }}>
-                  We've received your request for {serviceName}. A verified professional will call you shortly to confirm the appointment.
+                  Please save this number to <strong>Track your Order</strong> without an account. A verified professional will call you shortly to confirm the appointment.
                 </p>
-                <Button variant="primary" onClick={onClose} fullWidth>
-                  Return to Home
-                </Button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                  <Button variant="primary" onClick={() => {
+                    onClose();
+                    navigate('/profile');
+                  }} fullWidth>
+                    View in Profile
+                  </Button>
+                  <Button variant="outline" onClick={onClose} fullWidth>
+                    Return to Home
+                  </Button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

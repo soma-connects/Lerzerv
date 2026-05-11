@@ -18,15 +18,21 @@ export const apiClient = async <T>(
   };
 
   // For initial implementation, we simulate the API call
-  if (import.meta.env.DEV) {
+  // This helps prevent network errors when a real backend isn't connected yet
+  const isMockMode = import.meta.env.DEV || url.includes('api.lezerv.com');
+
+  if (isMockMode) {
     console.log(`[Mock API] Requesting ${url}`, options);
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           success: true,
-          data: { message: 'Success (Mocked)' }
+          data: { 
+            message: 'Success (Mocked)',
+            timestamp: new Date().toISOString()
+          }
         } as any);
-      }, 1500);
+      }, 1000);
     });
   }
 
