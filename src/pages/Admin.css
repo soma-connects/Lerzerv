@@ -177,3 +177,13 @@
 .action-menu:hover {
   background: var(--color-surface-container);
 }
+
+.empty-table-cell {
+  text-align: center;
+  padding: 4rem 2rem !important;
+  color: var(--color-on-surface-variant);
+}
+
+.empty-table-cell p {
+  font-weight: var(--font-weight-medium);
+}

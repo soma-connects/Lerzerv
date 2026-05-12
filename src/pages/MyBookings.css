@@ -212,16 +212,17 @@
   border: 2px dashed var(--color-outline-variant);
 }
 
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  background: var(--color-surface-container);
-  border-radius: 50%;
+.empty-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto var(--spacing-lg);
-  color: var(--color-outline);
+  color: var(--color-primary-fixed-dim);
+  border: 1px solid var(--color-outline-variant);
 }
 
 .empty-state h2 {

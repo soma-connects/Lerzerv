@@ -194,10 +194,13 @@ const TrackOrder: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {!booking && !isLoading && (
-            <div className="track-illustration">
-              <Package size={64} strokeWidth={1} />
-              <p>Your order number was sent to your email after booking.</p>
+          {!booking && !isLoading && !error && (
+            <div className="track-empty-state">
+              <div className="empty-icon-circle">
+                <Package size={48} strokeWidth={1.5} />
+              </div>
+              <h3>Ready to track your order?</h3>
+              <p>Enter the order number (e.g., LZ-123456) sent to your email to see real-time updates on your service request.</p>
             </div>
           )}
         </div>

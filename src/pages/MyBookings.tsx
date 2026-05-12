@@ -141,12 +141,16 @@ const MyBookings: React.FC = () => {
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">
-              <Clock size={48} />
+            <div className="empty-icon-wrapper">
+              <Clock size={64} strokeWidth={1.5} />
             </div>
             <h2>No bookings found</h2>
-            <p>You haven't made any service requests yet or none match your filters.</p>
-            <Button variant="outline">Explore Services</Button>
+            <p>You haven't made any service requests yet or none match your search criteria.</p>
+            <div className="empty-actions">
+              <Link to="/services">
+                <Button variant="primary" size="lg">Explore Our Services</Button>
+              </Link>
+            </div>
           </div>
         )}
       </div>

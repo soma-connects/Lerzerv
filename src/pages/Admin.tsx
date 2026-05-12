@@ -107,32 +107,41 @@ const Admin: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {bookings.map((booking) => (
-                      <tr key={booking.id}>
-                        <td>{booking.order_number}</td>
-                        <td>{booking.service_name}</td>
-                        <td>{booking.customer.name}</td>
-                        <td><span className={`status-pill status-${booking.status}`}>{booking.status}</span></td>
-                        <td className="table-actions">
-                          {booking.status === 'pending' && (
-                            <Button size="sm" onClick={() => {
-                              const amount = prompt('Enter the final price for this service (e.g. ₦12,500):');
-                              if (amount) updateBookingStatus(booking.id, 'approved', amount);
-                            }}>Approve & Price</Button>
-                          )}
-                          {booking.status === 'awaiting_confirmation' && (
-                            <Button size="sm" variant="secondary" onClick={async () => {
-                              const { error } = await supabase
-                                .from('bookings')
-                                .update({ status: 'confirmed', payment_status: 'paid' })
-                                .eq('id', booking.id);
-                              if (!error) fetchData();
-                            }}>Confirm Payment</Button>
-                          )}
-                          <Button variant="text" size="sm"><MoreHorizontal size={18} /></Button>
+                    {bookings.length > 0 ? (
+                      bookings.map((booking) => (
+                        <tr key={booking.id}>
+                          <td>{booking.order_number}</td>
+                          <td>{booking.service_name}</td>
+                          <td>{booking.customer.name}</td>
+                          <td><span className={`status-pill status-${booking.status}`}>{booking.status}</span></td>
+                          <td className="table-actions">
+                            {booking.status === 'pending' && (
+                              <Button size="sm" onClick={() => {
+                                const amount = prompt('Enter the final price for this service (e.g. ₦12,500):');
+                                if (amount) updateBookingStatus(booking.id, 'approved', amount);
+                              }}>Approve & Price</Button>
+                            )}
+                            {booking.status === 'awaiting_confirmation' && (
+                              <Button size="sm" variant="secondary" onClick={async () => {
+                                const { error } = await supabase
+                                  .from('bookings')
+                                  .update({ status: 'confirmed', payment_status: 'paid' })
+                                  .eq('id', booking.id);
+                                if (!error) fetchData();
+                              }}>Confirm Payment</Button>
+                            )}
+                            <Button variant="text" size="sm"><MoreHorizontal size={18} /></Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="empty-table-cell">
+                          <ShoppingBag size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
+                          <p>No service requests found in the system.</p>
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -157,14 +166,23 @@ const Admin: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {services.map((service) => (
-                    <tr key={service.id}>
-                      <td>{service.title}</td>
-                      <td>{service.category}</td>
-                      <td>{service.price}</td>
-                      <td><Button variant="outline" size="sm">Edit Price</Button></td>
+                  {services.length > 0 ? (
+                    services.map((service) => (
+                      <tr key={service.id}>
+                        <td>{service.title}</td>
+                        <td>{service.category}</td>
+                        <td>{service.price}</td>
+                        <td><Button variant="outline" size="sm">Edit Price</Button></td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="empty-table-cell">
+                        <Plus size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
+                        <p>No services defined in the database.</p>
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
