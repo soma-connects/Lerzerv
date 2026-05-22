@@ -165,7 +165,7 @@ const About: React.FC = () => {
               <div className={`story-image-wrapper ${!imagesLoaded['story1'] ? 'loading' : ''}`}>
                 {!imagesLoaded['story1'] && <div className="image-skeleton" aria-hidden="true" />}
                 <img
-                  src="/images/laundry-delivery.png"
+                  src="https://images.unsplash.com/photo-1607756882482-0638bb851ee6?auto=format&fit=crop&w=800&q=80"
                   alt="Lezerv laundry delivery service in Abuja"
                   onLoad={() => handleImageLoad('story1')}
                   style={{ opacity: imagesLoaded['story1'] ? 1 : 0 }}

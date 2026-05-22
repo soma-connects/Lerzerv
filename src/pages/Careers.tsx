@@ -16,7 +16,7 @@ interface ArtisanRole {
   title: string;
   location: string;
   icon: React.ReactNode;
-  tag: 'Needed' | 'Apply for this role';
+  tag: 'Apply for this role';
 }
 
 const corporateRoles: CorporateRole[] = [
@@ -51,7 +51,7 @@ const artisanRoles: ArtisanRole[] = [
     title: "Certified Electrician",
     location: "Lagos (Lekki, Ikeja, Yaba)",
     icon: <Zap size={20} />,
-    tag: "Needed"
+    tag: "Apply for this role"
   },
   {
     title: "Master Plumber",
@@ -63,7 +63,7 @@ const artisanRoles: ArtisanRole[] = [
     title: "Generator Technician",
     location: "Lagos (Ikorodu, Maryland, Festac)",
     icon: <Wrench size={20} />,
-    tag: "Needed"
+    tag: "Apply for this role"
   },
   {
     title: "AC & Cooling Expert",
@@ -75,7 +75,7 @@ const artisanRoles: ArtisanRole[] = [
     title: "Carpenter & Woodwork",
     location: "Lagos (Ikoyi, Ajah, Yaba)",
     icon: <Hammer size={20} />,
-    tag: "Needed"
+    tag: "Apply for this role"
   }
 ];
 
@@ -202,7 +202,7 @@ const Careers: React.FC = () => {
           >
             <div className="hero-image-wrapper">
               <img
-                src="https://images.unsplash.com/photo-1545180136-156a63753768?auto=format&fit=crop&w=800&q=80"
+                src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=1200&q=80"
                 alt="Professional laundry artisan folding fresh linens"
                 loading="eager"
               />
