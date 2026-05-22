@@ -9,13 +9,27 @@ import {
   X,
   Mail,
   Phone,
-  Briefcase
+  Briefcase,
+  Landmark,
+  Hash,
+  User,
+  FileText,
+  Check,
+  Trash2,
+  Edit2,
+  Database
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { pricingService } from '../services/pricingService';
+import type { 
+  TService, 
+  TNewService, 
+  TPaymentSettings 
+} from '../services/pricingService';
 import './Admin.css';
 
 type TBooking = {
@@ -31,13 +45,6 @@ type TBooking = {
   };
   created_at: string;
   payment_status?: string;
-};
-
-type TService = {
-  id: string;
-  title: string;
-  category: string;
-  price: string;
 };
 
 type TApplication = {
@@ -58,13 +65,6 @@ type TToast = {
   message: string;
 };
 
-type TPaymentSettings = {
-  bank_name: string;
-  account_number: string;
-  account_name: string;
-  instructions: string;
-};
-
 const Admin: React.FC = () => {
   const { isAdmin, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings' | 'applications'>('bookings');
@@ -73,18 +73,43 @@ const Admin: React.FC = () => {
   const [applications, setApplications] = useState<TApplication[]>([]);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
+  
+  // Settings tab states
   const [paymentSettings, setPaymentSettings] = useState<TPaymentSettings>({
     bank_name: '',
     account_number: '',
     account_name: '',
     instructions: ''
   });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Pricing tab states
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState('');
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [featuresInput, setFeaturesInput] = useState('');
+  const [newService, setNewService] = useState<TNewService>({
+    title: '',
+    category: 'Professional Cleaning',
+    price: '',
+    description: '',
+    features: [],
+    recommended: false
+  });
+
+  const triggerToast = (title: string, message: string) => {
+    const toastId = Date.now().toString();
+    setNotifications((prev) => [...prev, { id: toastId, title, message }]);
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== toastId));
+    }, 5000);
+  };
 
   useEffect(() => {
     if (isAdmin) {
       fetchData();
 
-      // Subscribe to real-time updates for job applications
       const channel = supabase
         .channel('realtime_admin_job_applications')
         .on(
@@ -92,26 +117,9 @@ const Admin: React.FC = () => {
           { event: 'INSERT', schema: 'public', table: 'job_applications' },
           (payload: { new: TApplication }) => {
             const newApp = payload.new;
-            setApplications((prev: TApplication[]) => [newApp, ...prev]);
-            
-            // Show custom in-app glassmorphic notification toast
-            const toastId = Date.now().toString();
-            setNotifications((prev: TToast[]) => [
-              ...prev,
-              {
-                id: toastId,
-                title: 'New Career Application!',
-                message: `${newApp.name} applied as ${newApp.role_title}`
-              }
-            ]);
-
-            // Auto-dismiss toast after 6 seconds
-            setTimeout(() => {
-              setNotifications((prev: TToast[]) => prev.filter((n: TToast) => n.id !== toastId));
-            }, 6000);
-
-            // Increment unread count if we are not actively viewing the applications tab
-            setUnreadApplicationsCount((prev: number) => prev + 1);
+            setApplications((prev) => [newApp, ...prev]);
+            triggerToast('New Career Application!', `${newApp.name} applied as ${newApp.role_title}`);
+            setUnreadApplicationsCount((prev) => prev + 1);
           }
         )
         .subscribe();
@@ -132,14 +140,14 @@ const Admin: React.FC = () => {
     try {
       const [bookingsRes, servicesRes, settingsRes, applicationsRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
-        supabase.from('services').select('*').order('category'),
-        supabase.from('settings').select('*').eq('key', 'payment_details').single(),
+        pricingService.fetchServices(),
+        pricingService.fetchPaymentSettings(),
         supabase.from('job_applications').select('*').order('created_at', { ascending: false })
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
-      if (servicesRes.data) setServices(servicesRes.data as TService[]);
-      if (settingsRes.data) setPaymentSettings(settingsRes.data.value as TPaymentSettings);
+      if (servicesRes.success && servicesRes.data) setServices(servicesRes.data);
+      if (settingsRes.success && settingsRes.data) setPaymentSettings(settingsRes.data);
       if (applicationsRes.data) setApplications(applicationsRes.data as TApplication[]);
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -155,10 +163,85 @@ const Admin: React.FC = () => {
   };
 
   const saveSettings = async () => {
-    const { error } = await supabase
-      .from('settings')
-      .upsert({ key: 'payment_details', value: paymentSettings });
-    if (!error) alert('Settings saved successfully!');
+    setIsSavingSettings(true);
+    const res = await pricingService.savePaymentSettings(paymentSettings);
+    setIsSavingSettings(false);
+    
+    if (res.success) {
+      triggerToast('Settings Saved', 'Bank transfer details updated successfully.');
+    } else {
+      triggerToast('Save Failed', res.error?.message || 'Could not save payment details.');
+    }
+  };
+
+  const startEditingPrice = (id: string, currentPrice: string) => {
+    setEditingServiceId(id);
+    setEditingPrice(currentPrice);
+  };
+
+  const cancelEditingPrice = () => {
+    setEditingServiceId(null);
+    setEditingPrice('');
+  };
+
+  const saveServicePrice = async (id: string) => {
+    const res = await pricingService.updateServicePrice(id, editingPrice);
+    if (res.success) {
+      setEditingServiceId(null);
+      triggerToast('Price Updated', 'The service price has been updated in real-time.');
+      fetchData();
+    } else {
+      triggerToast('Update Failed', res.error?.message || 'Could not update price.');
+    }
+  };
+
+  const handleDeleteService = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete the service "${title}"?`)) {
+      const res = await pricingService.deleteService(id);
+      if (res.success) {
+        triggerToast('Service Deleted', `"${title}" has been successfully removed.`);
+        fetchData();
+      } else {
+        triggerToast('Delete Failed', res.error?.message || 'Could not delete service.');
+      }
+    }
+  };
+
+  const handleSeedServices = async () => {
+    setIsSeeding(true);
+    const res = await pricingService.seedDefaultServices();
+    setIsSeeding(false);
+    
+    if (res.success) {
+      triggerToast('Database Seeded', 'Default services have been populated.');
+      fetchData();
+    } else {
+      triggerToast('Seeding Failed', res.error?.message || 'Could not seed default services.');
+    }
+  };
+
+  const handleAddServiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const featuresList = featuresInput.split('\n').map(f => f.trim()).filter(Boolean);
+    const payload = { ...newService, features: featuresList };
+
+    const res = await pricingService.addService(payload);
+    if (res.success) {
+      setIsAddModalOpen(false);
+      triggerToast('Service Created', `"${newService.title}" is now active.`);
+      setNewService({
+        title: '',
+        category: 'Professional Cleaning',
+        price: '',
+        description: '',
+        features: [],
+        recommended: false
+      });
+      setFeaturesInput('');
+      fetchData();
+    } else {
+      triggerToast('Creation Failed', res.error?.message || 'Could not create new service.');
+    }
   };
 
   if (loading) return <div>Loading...</div>;
@@ -256,65 +339,181 @@ const Admin: React.FC = () => {
         {activeTab === 'services' && (
           <div className="admin-content-card">
             <div className="card-header">
-              <h2>Service Pricing</h2>
-              <Button size="sm" leftIcon={<Plus size={16} />}>Add Service</Button>
+              <div>
+                <h2>Service Pricing</h2>
+                <p className="card-desc">Control public service tiers and adjust prices real-time.</p>
+              </div>
+              <Button size="sm" leftIcon={<Plus size={16} />} onClick={() => setIsAddModalOpen(true)}>Add Service</Button>
             </div>
             <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Service Title</th>
-                    <th>Category</th>
-                    <th>Current Price</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {services.length > 0 ? (
-                    services.map((service: TService) => (
-                      <tr key={service.id}>
-                        <td>{service.title}</td>
-                        <td>{service.category}</td>
-                        <td>{service.price}</td>
-                        <td><Button variant="outline" size="sm">Edit Price</Button></td>
-                      </tr>
-                    ))
-                  ) : (
+              {services.length > 0 ? (
+                <table className="admin-table">
+                  <thead>
                     <tr>
-                      <td colSpan={4} className="empty-table-cell">
-                        <Plus size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
-                        <p>No services defined in the database.</p>
-                      </td>
+                      <th>Service Title</th>
+                      <th>Category</th>
+                      <th>Current Price</th>
+                      <th>Actions</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {services.map((service: TService) => (
+                      <tr key={service.id}>
+                        <td className="font-semibold">{service.title}</td>
+                        <td>
+                          <span className={`status-pill status-${service.category.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}>
+                            {service.category}
+                          </span>
+                        </td>
+                        <td>
+                          {editingServiceId === service.id ? (
+                            <div className="inline-price-edit-container" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                className="inline-price-input"
+                                value={editingPrice}
+                                onChange={(e) => setEditingPrice(e.target.value)}
+                                autoFocus
+                              />
+                              <button 
+                                className="inline-price-btn btn-save" 
+                                onClick={() => saveServicePrice(service.id)}
+                                title="Save Price"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button 
+                                className="inline-price-btn btn-cancel" 
+                                onClick={cancelEditingPrice}
+                                title="Cancel"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="price-tag">{service.price}</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="table-row-actions">
+                            <button 
+                              className="btn-icon-action edit-action"
+                              onClick={() => startEditingPrice(service.id, service.price)}
+                              title="Edit Price"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              className="btn-icon-action delete-action"
+                              onClick={() => handleDeleteService(service.id, service.title)}
+                              title="Delete Service"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="seeding-dashboard-card">
+                  <div className="seeding-dashboard-card-icon">
+                    <Database size={32} />
+                  </div>
+                  <h3>Pricing Database is Empty</h3>
+                  <p>Populate your database with the default Nigerian premium cleaning and utility artisan services in a single click.</p>
+                  <button 
+                    className="seeding-btn" 
+                    onClick={handleSeedServices}
+                    disabled={isSeeding}
+                  >
+                    {isSeeding ? (
+                      <>Seeding database...</>
+                    ) : (
+                      <>
+                        <Database size={16} />
+                        Seed Default Services
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'settings' && (
           <div className="admin-content-card p-4">
-            <h2>Bank Transfer Details</h2>
-            <p className="mb-4">These details will be shown to users when their service is approved.</p>
-            <div className="settings-form">
-              <div className="form-group">
-                <label>Bank Name</label>
-                <input type="text" value={paymentSettings.bank_name} onChange={e => setPaymentSettings({...paymentSettings, bank_name: e.target.value})} />
+            <div className="settings-form-container">
+              <div className="settings-header-banner">
+                <div className="settings-header-banner-icon">
+                  <Landmark size={22} />
+                </div>
+                <div className="settings-header-banner-text">
+                  <h3>Bank Transfer Settings</h3>
+                  <p>Credentials and payment instructions are rendered automatically in client billing interfaces once orders are approved.</p>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Account Number</label>
-                <input type="text" value={paymentSettings.account_number} onChange={e => setPaymentSettings({...paymentSettings, account_number: e.target.value})} />
+              <div className="settings-form">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Bank Name</label>
+                    <div className="admin-input-wrapper">
+                      <input 
+                        type="text" 
+                        placeholder="Zenith Bank"
+                        value={paymentSettings.bank_name} 
+                        onChange={e => setPaymentSettings({...paymentSettings, bank_name: e.target.value})} 
+                      />
+                      <Landmark size={18} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Account Number</label>
+                    <div className="admin-input-wrapper">
+                      <input 
+                        type="text" 
+                        placeholder="1234567890"
+                        value={paymentSettings.account_number} 
+                        onChange={e => setPaymentSettings({...paymentSettings, account_number: e.target.value})} 
+                      />
+                      <Hash size={18} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Account Name</label>
+                    <div className="admin-input-wrapper">
+                      <input 
+                        type="text" 
+                        placeholder="Lezerv Limited"
+                        value={paymentSettings.account_name} 
+                        onChange={e => setPaymentSettings({...paymentSettings, account_name: e.target.value})} 
+                      />
+                      <User size={18} />
+                    </div>
+                  </div>
+                  <div className="form-group form-group-full">
+                    <label>Payment Instructions</label>
+                    <div className="admin-input-wrapper">
+                      <textarea 
+                        rows={4} 
+                        placeholder="Please use your Order Number as the transfer description."
+                        value={paymentSettings.instructions} 
+                        onChange={e => setPaymentSettings({...paymentSettings, instructions: e.target.value})} 
+                      />
+                      <FileText size={18} />
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  onClick={saveSettings} 
+                  leftIcon={<Save size={18} />}
+                  disabled={isSavingSettings}
+                >
+                  {isSavingSettings ? 'Saving Details...' : 'Save Payment Details'}
+                </Button>
               </div>
-              <div className="form-group">
-                <label>Account Name</label>
-                <input type="text" value={paymentSettings.account_name} onChange={e => setPaymentSettings({...paymentSettings, account_name: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Payment Instructions</label>
-                <textarea rows={3} value={paymentSettings.instructions} onChange={e => setPaymentSettings({...paymentSettings, instructions: e.target.value})} />
-              </div>
-              <Button onClick={saveSettings} leftIcon={<Save size={18} />}>Save Payment Details</Button>
             </div>
           </div>
         )}
@@ -393,6 +592,116 @@ const Admin: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Sliding Add Service Drawer Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="add-service-overlay" onClick={() => setIsAddModalOpen(false)}>
+            <motion.div 
+              className="add-service-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="drawer-header">
+                <h3>Add New Service</h3>
+                <button className="btn-close-drawer" onClick={() => setIsAddModalOpen(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form className="drawer-form" onSubmit={handleAddServiceSubmit}>
+                <div className="form-group">
+                  <label>Service Title</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Standard Home Clean"
+                      value={newService.title}
+                      onChange={e => setNewService({...newService, title: e.target.value})}
+                    />
+                    <Sparkles size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Category</label>
+                  <div className="admin-input-wrapper">
+                    <select
+                      value={newService.category}
+                      onChange={e => setNewService({...newService, category: e.target.value})}
+                    >
+                      <option value="Professional Cleaning">Professional Cleaning</option>
+                      <option value="Power & Water Utilities">Power & Water Utilities</option>
+                      <option value="Expert Artisans">Expert Artisans</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Current Price Description</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. ₦10,000 or Negotiable"
+                      value={newService.price}
+                      onChange={e => setNewService({...newService, price: e.target.value})}
+                    />
+                    <Hash size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Service Description</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={3} 
+                      required 
+                      placeholder="Enter details on what the service covers..."
+                      value={newService.description}
+                      onChange={e => setNewService({...newService, description: e.target.value})}
+                    />
+                    <FileText size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Service Features (one per line)</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={4} 
+                      placeholder="Floor Mopping&#10;Sanitization&#10;Trash Disposal"
+                      value={featuresInput}
+                      onChange={e => setFeaturesInput(e.target.value)}
+                    />
+                    <Plus size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={newService.recommended}
+                      onChange={e => setNewService({...newService, recommended: e.target.checked})}
+                    />
+                    Mark as Recommended Service
+                  </label>
+                </div>
+
+                <div className="drawer-footer">
+                  <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                  <Button type="submit">Create Service</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Realtime glassmorphic notifications */}
       <div className="admin-toast-container">
