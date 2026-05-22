@@ -516,7 +516,7 @@
    ------------------------------------------ */
 .price-tag {
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-primary-fixed);
   background: var(--color-primary-container);
   padding: 4px 10px;
   border-radius: var(--radius-full);
