@@ -43,9 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(false);
       return;
     }
-    // For this demo, we'll assume certain emails are admins
-    // In production, you'd check a 'profiles' table or use custom claims
-    const adminEmails = ['Lezervlimited@gmail.com', 'admin@lezerv.com'];
+    const adminEmails = ['Lezervlimited@gmail.com', 'admin@lezerv.com', 'pauljizy@gmail.com'];
     setIsAdmin(adminEmails.includes(user.email ?? ''));
   };
 
