@@ -5,6 +5,7 @@ import {
   MessageSquare, CheckCircle2, AlertCircle, Loader2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { contactService } from '../services/contactService';
 import './Contact.css';
 
 interface FormData {
@@ -36,6 +37,7 @@ const Contact: React.FC = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -91,13 +93,26 @@ const Contact: React.FC = () => {
     if (!isFormValid()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await contactService.submitInquiry({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        subject: formData.subject,
+        message: formData.message
+      });
+
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to submit your message.');
+      }
+
       setIsSubmitted(true);
       setFormData(INITIAL_DATA);
       setTouched({});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
+      setSubmitError(error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -105,6 +120,7 @@ const Contact: React.FC = () => {
 
   const handleReset = () => {
     setIsSubmitted(false);
+    setSubmitError(null);
     setFormData(INITIAL_DATA);
     setTouched({});
   };
@@ -187,6 +203,12 @@ const Contact: React.FC = () => {
                     </div>
 
                     <form className="contact-form" onSubmit={handleSubmit} noValidate>
+                      {submitError && (
+                        <div className="submit-error-banner">
+                          <AlertCircle size={18} />
+                          <span>{submitError}</span>
+                        </div>
+                      )}
                       <div className="form-row">
                         <div className={`form-group ${getFieldError('name') ? 'has-error' : ''} ${focusedField === 'name' ? 'is-focused' : ''}`}>
                           <label htmlFor="name">
