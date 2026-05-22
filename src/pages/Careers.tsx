@@ -1,81 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, MapPin, Briefcase, HardHat, Wrench, Zap, Droplets, Hammer, CheckCircle2, X, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { applicationService } from '../services/applicationService';
+import { jobService } from '../services/jobService';
+import type { TJob } from '../services/jobService';
 import './Careers.css';
 
-interface CorporateRole {
-  title: string;
-  dept: string;
-  location: string;
-  type: string;
-}
-
-interface ArtisanRole {
-  title: string;
-  location: string;
-  icon: React.ReactNode;
-  tag: 'Apply for this role';
-}
-
-const corporateRoles: CorporateRole[] = [
+const fallbackJobs: TJob[] = [
   {
+    id: 'fallback-1',
     title: "Operations Manager",
-    dept: "Logistics",
+    department: "Logistics",
     location: "Lagos, Nigeria",
-    type: "Full-time"
+    type: "Full-time",
+    role_type: "corporate"
   },
   {
+    id: 'fallback-2',
     title: "Frontend Engineer (React)",
-    dept: "Engineering",
+    department: "Engineering",
     location: "Remote",
-    type: "Full-time"
+    type: "Full-time",
+    role_type: "corporate"
   },
   {
+    id: 'fallback-3',
     title: "Growth Specialist",
-    dept: "Marketing",
+    department: "Marketing",
     location: "Abuja, Nigeria",
-    type: "Full-time"
+    type: "Full-time",
+    role_type: "corporate"
   },
   {
+    id: 'fallback-4',
     title: "Customer Success Lead",
-    dept: "Operations",
+    department: "Operations",
     location: "Lagos, Nigeria",
-    type: "Full-time"
-  }
-];
-
-const artisanRoles: ArtisanRole[] = [
+    type: "Full-time",
+    role_type: "corporate"
+  },
   {
+    id: 'fallback-5',
     title: "Certified Electrician",
+    department: "Electrical Services",
     location: "Lagos (Lekki, Ikeja, Yaba)",
-    icon: <Zap size={20} />,
-    tag: "Apply for this role"
+    type: "Apply for this role",
+    role_type: "artisan"
   },
   {
+    id: 'fallback-6',
     title: "Master Plumber",
+    department: "Plumbing Services",
     location: "Lagos (Gbagada, Surulere, Victoria Island)",
-    icon: <Droplets size={20} />,
-    tag: "Apply for this role"
+    type: "Apply for this role",
+    role_type: "artisan"
   },
   {
+    id: 'fallback-7',
     title: "Generator Technician",
+    department: "Power Generator Maintenance",
     location: "Lagos (Ikorodu, Maryland, Festac)",
-    icon: <Wrench size={20} />,
-    tag: "Apply for this role"
+    type: "Apply for this role",
+    role_type: "artisan"
   },
   {
+    id: 'fallback-8',
     title: "AC & Cooling Expert",
+    department: "HVAC Maintenance",
     location: "Lagos (Island & Mainland)",
-    icon: <HardHat size={20} />,
-    tag: "Apply for this role"
+    type: "Apply for this role",
+    role_type: "artisan"
   },
   {
+    id: 'fallback-9',
     title: "Carpenter & Woodwork",
+    department: "Woodwork & Furniture",
     location: "Lagos (Ikoyi, Ajah, Yaba)",
-    icon: <Hammer size={20} />,
-    tag: "Apply for this role"
+    type: "Apply for this role",
+    role_type: "artisan"
   }
 ];
 
@@ -90,6 +93,8 @@ const benefits = [
 const Careers: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'artisan' | 'corporate'>('artisan');
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
+  const [jobs, setJobs] = useState<TJob[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,6 +110,49 @@ const Careers: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setIsLoadingJobs(true);
+        const res = await jobService.fetchJobs();
+        if (res.success && res.data && res.data.length > 0) {
+          setJobs(res.data);
+        } else {
+          setJobs(fallbackJobs);
+        }
+      } catch (err) {
+        console.error('Failed to load job positions, using fallback:', err);
+        setJobs(fallbackJobs);
+      } finally {
+        setIsLoadingJobs(false);
+      }
+    };
+    loadJobs();
+  }, []);
+
+  const getArtisanIcon = (title: string, department: string) => {
+    const text = `${title} ${department}`.toLowerCase();
+    if (text.includes('electr') || text.includes('power') || text.includes('zap')) {
+      return <Zap size={20} />;
+    }
+    if (text.includes('plumb') || text.includes('water') || text.includes('droplet')) {
+      return <Droplets size={20} />;
+    }
+    if (text.includes('generator') || text.includes('wrench') || text.includes('tech')) {
+      return <Wrench size={20} />;
+    }
+    if (text.includes('ac ') || text.includes('cooling') || text.includes('hvac') || text.includes('air')) {
+      return <HardHat size={20} />;
+    }
+    if (text.includes('carpenter') || text.includes('wood') || text.includes('hammer') || text.includes('furniture')) {
+      return <Hammer size={20} />;
+    }
+    return <Wrench size={20} />;
+  };
+
+  const artisanJobs = jobs.filter(j => j.role_type === 'artisan');
+  const corporateJobs = jobs.filter(j => j.role_type === 'corporate');
 
   const getFieldError = (field: string): string | null => {
     if (!touched[field]) return null;
@@ -249,50 +297,59 @@ const Careers: React.FC = () => {
                   <p className="section-desc">High-demand roles in your city. Apply today and start earning within 48 hours.</p>
 
                   <div className="roles-list">
-                    {artisanRoles.map((role, i) => (
-                      <motion.div
-                        key={i}
-                        className="role-card"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        onMouseEnter={() => setHoveredRole(i)}
-                        onMouseLeave={() => setHoveredRole(null)}
-                        onClick={() => {
-                          setSelectedRole({ title: role.title, type: 'artisan' });
-                          setIsModalOpen(true);
-                        }}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <div className="role-main">
-                          <div className="role-icon" style={{
-                            backgroundColor: 'var(--color-primary-container)',
-                            color: 'var(--color-on-primary-container)'
-                          }}>
-                            {role.icon}
-                          </div>
-                          <div className="role-info">
-                            <div className="role-header">
-                              <h3>{role.title}</h3>
-                              <span className={`demand-badge ${role.tag.toLowerCase().replace(/\s+/g, '-')}`}>
-                                {role.tag}
-                              </span>
+                    {isLoadingJobs ? (
+                      <div className="loading-jobs-spinner">
+                        <Loader2 size={32} className="spin" />
+                        <p>Loading open vacancies...</p>
+                      </div>
+                    ) : artisanJobs.length > 0 ? (
+                      artisanJobs.map((role, i) => (
+                        <motion.div
+                          key={role.id}
+                          className="role-card"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          onMouseEnter={() => setHoveredRole(i)}
+                          onMouseLeave={() => setHoveredRole(null)}
+                          onClick={() => {
+                            setSelectedRole({ title: role.title, type: 'artisan' });
+                            setIsModalOpen(true);
+                          }}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="role-main">
+                            <div className="role-icon" style={{
+                              backgroundColor: 'var(--color-primary-container)',
+                              color: 'var(--color-on-primary-container)'
+                            }}>
+                              {getArtisanIcon(role.title, role.department)}
                             </div>
-                            <p className="role-location">
-                              <MapPin size={14} />
-                              {role.location}
-                            </p>
+                            <div className="role-info">
+                              <div className="role-header">
+                                <h3>{role.title}</h3>
+                                <span className={`demand-badge ${role.type.toLowerCase().replace(/\s+/g, '-')}`}>
+                                  {role.type}
+                                </span>
+                              </div>
+                              <p className="role-location">
+                                <MapPin size={14} />
+                                {role.location}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="role-action">
-                          <ArrowRight
-                            size={20}
-                            className={`role-arrow ${hoveredRole === i ? 'active' : ''}`}
-                          />
-                        </div>
-                      </motion.div>
-                    ))}
+                          <div className="role-action">
+                            <ArrowRight
+                              size={20}
+                              className={`role-arrow ${hoveredRole === i ? 'active' : ''}`}
+                            />
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className="no-roles-message">No active artisan positions at the moment.</p>
+                    )}
                   </div>
                 </div>
 
@@ -337,39 +394,48 @@ const Careers: React.FC = () => {
               </div>
 
               <div className="corporate-grid">
-                {corporateRoles.map((role, i) => (
-                  <motion.div
-                    key={i}
-                    className="corporate-card"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ y: -4 }}
-                  >
-                    <div className="corporate-card-header">
-                      <span className="job-type">{role.type}</span>
-                      <span className="job-location">
-                        <MapPin size={14} />
-                        {role.location}
-                      </span>
-                    </div>
-                    <h3>{role.title}</h3>
-                    <p className="job-dept">{role.dept}</p>
-                    <div className="corporate-card-footer">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        rightIcon={<ArrowRight size={16} />}
-                        onClick={() => {
-                          setSelectedRole({ title: role.title, type: 'corporate' });
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        View Role
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
+                {isLoadingJobs ? (
+                  <div className="loading-jobs-spinner-full">
+                    <Loader2 size={32} className="spin" />
+                    <p>Loading open vacancies...</p>
+                  </div>
+                ) : corporateJobs.length > 0 ? (
+                  corporateJobs.map((role, i) => (
+                    <motion.div
+                      key={role.id}
+                      className="corporate-card"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      whileHover={{ y: -4 }}
+                    >
+                      <div className="corporate-card-header">
+                        <span className="job-type">{role.type}</span>
+                        <span className="job-location">
+                          <MapPin size={14} />
+                          {role.location}
+                        </span>
+                      </div>
+                      <h3>{role.title}</h3>
+                      <p className="job-dept">{role.department}</p>
+                      <div className="corporate-card-footer">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          rightIcon={<ArrowRight size={16} />}
+                          onClick={() => {
+                            setSelectedRole({ title: role.title, type: 'corporate' });
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          View Role
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="no-roles-message-full">No active corporate positions at the moment.</p>
+                )}
               </div>
             </motion.div>
           )}

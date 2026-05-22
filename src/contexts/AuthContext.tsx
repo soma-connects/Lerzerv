@@ -19,32 +19,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      checkAdminStatus(session?.user ?? null);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        await checkAdminStatus(session?.user ?? null);
+      } catch (err) {
+        console.error('Error initializing auth session:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      checkAdminStatus(session?.user ?? null);
+      await checkAdminStatus(session?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminStatus = (user: User | null) => {
+  const checkAdminStatus = async (user: User | null) => {
     if (!user) {
       setIsAdmin(false);
       return;
     }
-    const adminEmails = ['Lezervlimited@gmail.com', 'admin@lezerv.com', 'pauljizy@gmail.com'];
-    setIsAdmin(adminEmails.includes(user.email ?? ''));
+    
+    // 1. Hardcoded admin emails
+    const adminEmails = [
+      'Lezervlimited@gmail.com', 
+      'admin@lezerv.com', 
+      'pauljizy@gmail.com', 
+      'preciouspeter3173@gmail.com'
+    ];
+    const isHardcodedAdmin = adminEmails.includes(user.email ?? '');
+    
+    if (isHardcodedAdmin) {
+      setIsAdmin(true);
+      return;
+    }
+
+    // 2. Dynamic database check (gracefully falls back if table doesn't exist yet)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data && data.role === 'admin') {
+        setIsAdmin(true);
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not verify admin role from database profiles, falling back:', err);
+    }
+
+    setIsAdmin(false);
   };
 
   const signOut = async () => {

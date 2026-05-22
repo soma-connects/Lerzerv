@@ -30,6 +30,10 @@ import type {
   TNewService, 
   TPaymentSettings 
 } from '../services/pricingService';
+import { jobService } from '../services/jobService';
+import type { TJob, TNewJob } from '../services/jobService';
+import { userService } from '../services/userService';
+import type { TUserProfile } from '../services/userService';
 import './Admin.css';
 
 type TBooking = {
@@ -66,11 +70,13 @@ type TToast = {
 };
 
 const Admin: React.FC = () => {
-  const { isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'settings' | 'applications'>('bookings');
+  const { user, isAdmin, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
+  const [jobs, setJobs] = useState<TJob[]>([]);
+  const [users, setUsers] = useState<TUserProfile[]>([]);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
   
@@ -96,6 +102,17 @@ const Admin: React.FC = () => {
     description: '',
     features: [],
     recommended: false
+  });
+
+  // Jobs tab states
+  const [isSeedingJobs, setIsSeedingJobs] = useState(false);
+  const [isAddJobDrawerOpen, setIsAddJobDrawerOpen] = useState(false);
+  const [newJob, setNewJob] = useState<TNewJob>({
+    title: '',
+    department: '',
+    location: '',
+    type: 'Apply for this role',
+    role_type: 'artisan'
   });
 
   const triggerToast = (title: string, message: string) => {
@@ -138,17 +155,21 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
-        supabase.from('job_applications').select('*').order('created_at', { ascending: false })
+        supabase.from('job_applications').select('*').order('created_at', { ascending: false }),
+        jobService.fetchJobs(),
+        userService.fetchUsers()
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
       if (servicesRes.success && servicesRes.data) setServices(servicesRes.data);
       if (settingsRes.success && settingsRes.data) setPaymentSettings(settingsRes.data);
       if (applicationsRes.data) setApplications(applicationsRes.data as TApplication[]);
+      if (jobsRes.success && jobsRes.data) setJobs(jobsRes.data);
+      if (usersRes.success && usersRes.data) setUsers(usersRes.data);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -244,6 +265,76 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleDeleteJob = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete the job position "${title}"?`)) {
+      const res = await jobService.deleteJob(id);
+      if (res.success) {
+        triggerToast('Job Deleted', `"${title}" has been successfully removed.`);
+        fetchData();
+      } else {
+        triggerToast('Delete Failed', res.error?.message || 'Could not delete job.');
+      }
+    }
+  };
+
+  const handleSeedJobs = async () => {
+    setIsSeedingJobs(true);
+    const res = await jobService.seedDefaultJobs();
+    setIsSeedingJobs(false);
+    
+    if (res.success) {
+      triggerToast('Jobs Seeded', 'Default job positions have been populated.');
+      fetchData();
+    } else {
+      triggerToast('Seeding Failed', res.error?.message || 'Could not seed default jobs.');
+    }
+  };
+
+  const handleAddJobSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await jobService.addJob(newJob);
+    if (res.success) {
+      setIsAddJobDrawerOpen(false);
+      triggerToast('Job Created', `"${newJob.title}" is now active.`);
+      setNewJob({
+        title: '',
+        department: '',
+        location: '',
+        type: 'Apply for this role',
+        role_type: 'artisan'
+      });
+      fetchData();
+    } else {
+      triggerToast('Creation Failed', res.error?.message || 'Could not create new job.');
+    }
+  };
+
+  const handleUpdateUserRole = async (id: string, currentRole: 'user' | 'admin') => {
+    const newRole = currentRole === 'user' ? 'admin' : 'user';
+    const confirmMsg = `Are you sure you want to ${newRole === 'admin' ? 'PROMOTE' : 'DEMOTE'} this user to ${newRole}?`;
+    if (window.confirm(confirmMsg)) {
+      const res = await userService.updateUserRole(id, newRole);
+      if (res.success) {
+        triggerToast('User Role Updated', `User role successfully changed to ${newRole}.`);
+        fetchData();
+      } else {
+        triggerToast('Update Failed', res.error?.message || 'Could not update user role.');
+      }
+    }
+  };
+
+  const handleDeleteUserProfile = async (id: string, email: string) => {
+    if (window.confirm(`Are you sure you want to remove the profile for user "${email}"?`)) {
+      const res = await userService.deleteUser(id);
+      if (res.success) {
+        triggerToast('User Removed', `User profile "${email}" has been deleted.`);
+        fetchData();
+      } else {
+        triggerToast('Removal Failed', res.error?.message || 'Could not remove user.');
+      }
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (!isAdmin) return <Navigate to="/login" replace />;
 
@@ -258,6 +349,8 @@ const Admin: React.FC = () => {
           <nav className="admin-tabs">
             <button className={activeTab === 'bookings' ? 'active' : ''} onClick={() => setActiveTab('bookings')}>Bookings</button>
             <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Pricing</button>
+            <button className={activeTab === 'jobs' ? 'active' : ''} onClick={() => setActiveTab('jobs')}>Jobs</button>
+            <button className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>Users</button>
             <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>Payment Details</button>
             <button className={activeTab === 'applications' ? 'active' : ''} onClick={() => setActiveTab('applications')}>
               Applications
@@ -439,6 +532,165 @@ const Admin: React.FC = () => {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'jobs' && (
+          <div className="admin-content-card">
+            <div className="card-header">
+              <div>
+                <h2>Open Vacancies</h2>
+                <p className="card-desc">Add new corporate roles or artisan partner contracts dynamically.</p>
+              </div>
+              <Button size="sm" leftIcon={<Plus size={16} />} onClick={() => setIsAddJobDrawerOpen(true)}>Add Job Position</Button>
+            </div>
+            <div className="admin-table-container">
+              {jobs.length > 0 ? (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Job Title</th>
+                      <th>Department / Category</th>
+                      <th>Location</th>
+                      <th>Role Type</th>
+                      <th>Tag / Type</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobs.map((job: TJob) => (
+                      <tr key={job.id}>
+                        <td className="font-semibold">{job.title}</td>
+                        <td>
+                          <span className={`status-pill status-${job.department.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}>
+                            {job.department}
+                          </span>
+                        </td>
+                        <td>{job.location}</td>
+                        <td>
+                          <span className={`status-pill status-${job.role_type}`}>
+                            {job.role_type === 'artisan' ? 'Artisan' : 'Corporate'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="price-tag">{job.type}</span>
+                        </td>
+                        <td>
+                          <div className="table-row-actions">
+                            <button 
+                              className="btn-icon-action delete-action"
+                              onClick={() => handleDeleteJob(job.id, job.title)}
+                              title="Delete Job"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="seeding-dashboard-card">
+                  <div className="seeding-dashboard-card-icon">
+                    <Database size={32} />
+                  </div>
+                  <h3>Jobs Database is Empty</h3>
+                  <p>Populate your database with the default corporate positions and artisan cleaning categories in a single click.</p>
+                  <button 
+                    className="seeding-btn" 
+                    onClick={handleSeedJobs}
+                    disabled={isSeedingJobs}
+                  >
+                    {isSeedingJobs ? (
+                      <>Seeding vacancies...</>
+                    ) : (
+                      <>
+                        <Database size={16} />
+                        Seed Default Jobs
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div className="admin-content-card">
+            <div className="card-header">
+              <div>
+                <h2>Registered Users</h2>
+                <p className="card-desc">Monitor accounts, manage roles, and toggle administrator credentials.</p>
+              </div>
+            </div>
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Joined Date</th>
+                    <th>Email Address</th>
+                    <th>Full Name</th>
+                    <th>Current Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(users.length > 0 ? users : (user ? [{
+                    id: user.id,
+                    email: user.email || '',
+                    full_name: user.user_metadata.full_name || 'System Admin',
+                    role: 'admin' as const,
+                    created_at: user.created_at
+                  }] : [])).map((u) => (
+                    <tr key={u.id}>
+                      <td className="whitespace-nowrap text-sm">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        }) : '—'}
+                      </td>
+                      <td className="font-semibold">{u.email}</td>
+                      <td>{u.full_name || 'User'}</td>
+                      <td>
+                        <span className={`status-pill status-${u.role}`}>
+                          {u.role === 'admin' ? 'Administrator' : 'User'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="table-row-actions">
+                          {/* Cannot demote yourself */}
+                          {user && user.id !== u.id && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant={u.role === 'admin' ? 'secondary' : 'primary'}
+                                onClick={() => handleUpdateUserRole(u.id, u.role)}
+                              >
+                                {u.role === 'admin' ? 'Demote to User' : 'Make Admin'}
+                              </Button>
+                              <button 
+                                className="btn-icon-action delete-action"
+                                onClick={() => handleDeleteUserProfile(u.id, u.email)}
+                                title="Delete User Profile"
+                                style={{ marginLeft: 'var(--spacing-sm)' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                          {user && user.id === u.id && (
+                            <span className="text-sm text-slate-400 italic">Logged In (Self)</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -696,6 +948,112 @@ const Admin: React.FC = () => {
                 <div className="drawer-footer">
                   <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
                   <Button type="submit">Create Service</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Sliding Add Job Drawer Modal */}
+      <AnimatePresence>
+        {isAddJobDrawerOpen && (
+          <div className="add-service-overlay" onClick={() => setIsAddJobDrawerOpen(false)}>
+            <motion.div 
+              className="add-service-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="drawer-header">
+                <h3>Add Job Vacancy</h3>
+                <button className="btn-close-drawer" onClick={() => setIsAddJobDrawerOpen(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form className="drawer-form" onSubmit={handleAddJobSubmit}>
+                <div className="form-group">
+                  <label>Job Title</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Certified Electrician or Accountant"
+                      value={newJob.title}
+                      onChange={e => setNewJob({...newJob, title: e.target.value})}
+                    />
+                    <Briefcase size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Role Type</label>
+                  <div className="admin-input-wrapper">
+                    <select
+                      value={newJob.role_type}
+                      onChange={e => {
+                        const val = e.target.value as 'artisan' | 'corporate';
+                        setNewJob({
+                          ...newJob, 
+                          role_type: val,
+                          type: val === 'artisan' ? 'Apply for this role' : 'Full-time'
+                        });
+                      }}
+                    >
+                      <option value="artisan">Artisan (Contract/Gig-based)</option>
+                      <option value="corporate">Corporate (Office-based)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Department / Category</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Engineering, Logistics, Plumbing Services"
+                      value={newJob.department}
+                      onChange={e => setNewJob({...newJob, department: e.target.value})}
+                    />
+                    <Sparkles size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Job Location</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Remote, Abuja, or Lagos (Ikeja, Yaba)"
+                      value={newJob.location}
+                      onChange={e => setNewJob({...newJob, location: e.target.value})}
+                    />
+                    <FileText size={16} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Employment Type / Tag</label>
+                  <div className="admin-input-wrapper">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Full-time, Contract, or Apply for this role"
+                      value={newJob.type}
+                      onChange={e => setNewJob({...newJob, type: e.target.value})}
+                    />
+                    <Hash size={16} />
+                  </div>
+                </div>
+
+                <div className="drawer-footer">
+                  <Button type="button" variant="outline" onClick={() => setIsAddJobDrawerOpen(false)}>Cancel</Button>
+                  <Button type="submit">Publish Position</Button>
                 </div>
               </form>
             </motion.div>
