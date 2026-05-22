@@ -298,19 +298,14 @@
   letter-spacing: 0.03em;
 }
 
-.demand-badge.very-high {
-  background-color: var(--color-error-container);
-  color: var(--color-on-error-container);
-}
-
-.demand-badge.high {
+.demand-badge.needed {
   background-color: var(--color-tertiary-container);
   color: var(--color-on-tertiary-container);
 }
 
-.demand-badge.urgent {
-  background-color: var(--color-error);
-  color: var(--color-on-error);
+.demand-badge.apply-for-this-role {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
 }
 
 .role-location {

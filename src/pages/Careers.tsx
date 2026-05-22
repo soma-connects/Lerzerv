@@ -16,7 +16,7 @@ interface ArtisanRole {
   title: string;
   location: string;
   icon: React.ReactNode;
-  demand: 'High' | 'Very High' | 'Urgent';
+  tag: 'Needed' | 'Apply for this role';
 }
 
 const corporateRoles: CorporateRole[] = [
@@ -51,31 +51,31 @@ const artisanRoles: ArtisanRole[] = [
     title: "Certified Electrician",
     location: "Lagos (Lekki, Ikeja, Yaba)",
     icon: <Zap size={20} />,
-    demand: "Very High"
+    tag: "Needed"
   },
   {
     title: "Master Plumber",
-    location: "Abuja (Gwarinpa, Maitama, Wuse)",
+    location: "Lagos (Gbagada, Surulere, Victoria Island)",
     icon: <Droplets size={20} />,
-    demand: "High"
+    tag: "Apply for this role"
   },
   {
     title: "Generator Technician",
-    location: "Port Harcourt & Aba",
+    location: "Lagos (Ikorodu, Maryland, Festac)",
     icon: <Wrench size={20} />,
-    demand: "Urgent"
+    tag: "Needed"
   },
   {
     title: "AC & Cooling Expert",
-    location: "Lagos / Abuja",
+    location: "Lagos (Island & Mainland)",
     icon: <HardHat size={20} />,
-    demand: "Very High"
+    tag: "Apply for this role"
   },
   {
     title: "Carpenter & Woodwork",
-    location: "Lagos (Island & Mainland)",
+    location: "Lagos (Ikoyi, Ajah, Yaba)",
     icon: <Hammer size={20} />,
-    demand: "High"
+    tag: "Needed"
   }
 ];
 
@@ -202,7 +202,7 @@ const Careers: React.FC = () => {
           >
             <div className="hero-image-wrapper">
               <img
-                src="/images/laundry-hero.png"
+                src="https://images.unsplash.com/photo-1545180136-156a63753768?auto=format&fit=crop&w=800&q=80"
                 alt="Professional laundry artisan folding fresh linens"
                 loading="eager"
               />
@@ -267,16 +267,16 @@ const Careers: React.FC = () => {
                       >
                         <div className="role-main">
                           <div className="role-icon" style={{
-                            backgroundColor: role.demand === 'Urgent' ? 'var(--color-error-container)' : 'var(--color-primary-container)',
-                            color: role.demand === 'Urgent' ? 'var(--color-on-error-container)' : 'var(--color-on-primary-container)'
+                            backgroundColor: 'var(--color-primary-container)',
+                            color: 'var(--color-on-primary-container)'
                           }}>
                             {role.icon}
                           </div>
                           <div className="role-info">
                             <div className="role-header">
                               <h3>{role.title}</h3>
-                              <span className={`demand-badge ${role.demand.toLowerCase().replace(' ', '-')}`}>
-                                {role.demand} Demand
+                              <span className={`demand-badge ${role.tag.toLowerCase().replace(/\s+/g, '-')}`}>
+                                {role.tag}
                               </span>
                             </div>
                             <p className="role-location">

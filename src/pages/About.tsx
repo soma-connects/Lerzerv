@@ -79,7 +79,7 @@ const About: React.FC = () => {
               <div className={`image-wrapper ${!imagesLoaded['hero'] ? 'loading' : ''}`}>
                 {!imagesLoaded['hero'] && <div className="image-skeleton" aria-hidden="true" />}
                 <img
-                  src="/images/cleaning-hero.png"
+                  src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80"
                   alt="Professional cleaner in a modern Lagos home"
                   onLoad={() => handleImageLoad('hero')}
                   style={{ opacity: imagesLoaded['hero'] ? 1 : 0 }}
@@ -175,7 +175,7 @@ const About: React.FC = () => {
               <div className={`story-image-wrapper offset ${!imagesLoaded['story2'] ? 'loading' : ''}`}>
                 {!imagesLoaded['story2'] && <div className="image-skeleton" aria-hidden="true" />}
                 <img
-                  src="https://kimi-web-img.moonshot.cn/img/anyservice.ng/38fb145a8722deb7b758559071968eeb5de4d43e.jpg"
+                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80"
                   alt="Nigerian plumber installing pipes on construction site"
                   onLoad={() => handleImageLoad('story2')}
                   style={{ opacity: imagesLoaded['story2'] ? 1 : 0 }}
