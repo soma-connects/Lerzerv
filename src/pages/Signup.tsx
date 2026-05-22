@@ -61,7 +61,7 @@ const Signup: React.FC = () => {
         <form onSubmit={handleSignup} className="login-form">
           <div className="form-group">
             <label htmlFor="fullName">Full Name</label>
-            <div className="input-with-icon">
+            <div className={`input-with-icon ${fullName ? 'has-value' : ''}`}>
               <User size={18} className="input-icon" />
               <input 
                 id="fullName"
@@ -76,7 +76,7 @@ const Signup: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <div className="input-with-icon">
+            <div className={`input-with-icon ${email ? 'has-value' : ''}`}>
               <Mail size={18} className="input-icon" />
               <input 
                 id="email"
@@ -91,7 +91,7 @@ const Signup: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <div className="input-with-icon">
+            <div className={`input-with-icon ${password ? 'has-value' : ''}`}>
               <Lock size={18} className="input-icon" />
               <input 
                 id="password"

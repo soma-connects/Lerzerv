@@ -47,7 +47,7 @@ const Login: React.FC = () => {
         <form onSubmit={handleLogin} className="login-form">
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <div className="input-with-icon">
+            <div className={`input-with-icon ${email ? 'has-value' : ''}`}>
               <Mail size={18} className="input-icon" />
               <input 
                 id="email"
@@ -65,7 +65,7 @@ const Login: React.FC = () => {
               <label htmlFor="password">Password</label>
               <Link to="/forgot-password" title="Forgot password?">Forgot?</Link>
             </div>
-            <div className="input-with-icon">
+            <div className={`input-with-icon ${password ? 'has-value' : ''}`}>
               <Lock size={18} className="input-icon" />
               <input 
                 id="password"

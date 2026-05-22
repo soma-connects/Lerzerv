@@ -77,6 +77,13 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-outline);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+  pointer-events: none;
+}
+
+.input-with-icon.has-value .input-icon {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.7);
 }
 
 .input-with-icon input {
@@ -87,6 +94,10 @@
   font-family: inherit;
   font-size: var(--font-size-body-md);
   transition: all var(--transition-fast);
+}
+
+.input-with-icon.has-value input {
+  padding-left: 1rem;
 }
 
 .input-with-icon input:focus {
