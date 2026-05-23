@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import BookingFlow from '../components/booking/BookingFlow';
 import './Services.css';
 
 interface ServiceTier {
@@ -127,6 +128,8 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
 ];
 
 const Services: React.FC = () => {
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -170,8 +173,8 @@ const Services: React.FC = () => {
   }, []);
 
   const handleBook = (categoryTitle: string, tierName: string) => {
-    const text = encodeURIComponent(`Hello Lezerv, I would like to book the service: ${categoryTitle} (${tierName}).`);
-    window.open(`https://wa.me/2349046367604?text=${text}`, '_blank', 'noopener,noreferrer');
+    setSelectedService(`${categoryTitle} - ${tierName}`);
+    setIsBookingOpen(true);
   };
 
   return (
@@ -261,15 +264,25 @@ const Services: React.FC = () => {
                     ))}
                   </ul>
 
-                  <Button
-                    variant={tier.recommended ? 'primary' : 'outline'}
-                    fullWidth
-                    size="lg"
-                    rightIcon={<ArrowRight size={18} />}
-                    onClick={() => handleBook(category.title, tier.name)}
-                  >
-                    Book This Service
-                  </Button>
+                  <div className="tier-card-footer-layout">
+                    <Button
+                      variant={tier.recommended ? 'primary' : 'outline'}
+                      fullWidth
+                      size="lg"
+                      rightIcon={<ArrowRight size={18} />}
+                      onClick={() => handleBook(category.title, tier.name)}
+                    >
+                      Book This Service
+                    </Button>
+                    <a 
+                      href={`https://wa.me/2349046367604?text=${encodeURIComponent(`Hello Lezerv, I would like to book the service: ${category.title} (${tier.name}).`)}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="whatsapp-direct-link"
+                    >
+                      Or book directly via WhatsApp
+                    </a>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -287,6 +300,12 @@ const Services: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <BookingFlow 
+        isOpen={isBookingOpen} 
+        onClose={() => setIsBookingOpen(false)} 
+        serviceName={selectedService} 
+      />
     </div>
   );
 };

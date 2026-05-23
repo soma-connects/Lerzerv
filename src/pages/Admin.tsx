@@ -1118,22 +1118,23 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Role Type</label>
+                  <label>Role Type (artisan or corporate)</label>
                   <div className="admin-input-wrapper">
-                    <select
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. artisan or corporate"
                       value={newJob.role_type}
                       onChange={e => {
-                        const val = e.target.value as 'artisan' | 'corporate';
+                        const val = e.target.value.toLowerCase().trim() as 'artisan' | 'corporate';
                         setNewJob({
                           ...newJob, 
                           role_type: val,
-                          type: val === 'artisan' ? 'Apply for this role' : 'Full-time'
+                          type: val === 'artisan' ? 'Apply for this role' : 'Full-Time'
                         });
                       }}
-                    >
-                      <option value="artisan">Artisan (Contract/Gig-based)</option>
-                      <option value="corporate">Corporate (Office-based)</option>
-                    </select>
+                    />
+                    <Sparkles size={16} />
                   </div>
                 </div>
 

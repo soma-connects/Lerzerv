@@ -323,3 +323,34 @@
     transform: none !important;
   }
 }
+
+/* ------------------------------------------
+   WHATSAPP & FOOTER LAYOUT
+   ------------------------------------------ */
+.tier-card-footer-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.whatsapp-direct-link {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-bold);
+  color: #16a34a; /* WhatsApp Green */
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.whatsapp-direct-link:hover {
+  color: #15803d; /* Darker green */
+  text-decoration: underline;
+  transform: translateY(-0.5px);
+}

@@ -78,6 +78,36 @@ const benefits = [
   "Training & certification support"
 ];
 
+const getJobDetailsFallback = (job: TJob | null) => {
+  if (!job) return { description: '', responsibilities: '', requirements: '', benefits: '' };
+  const title = job.title.toLowerCase();
+  
+  const details = {
+    description: job.description || "Join Lezerv, the premier registered platform in Nigeria connecting professional service partners with high-value residential and commercial customers. We are expanding our certified artisan network and corporate teams to deliver unmatched home repair, maintenance, and support services across Lagos and other major cities.",
+    responsibilities: job.responsibilities || "Execute high-quality technical or administrative services matching Lezerv standard specifications.\nMaintain reliable communication with customers and provide professional guidance.\nEnsure strict compliance with health, safety, and operational protocols.\nReport job completions and status updates via our mobile partner portals.",
+    requirements: job.requirements || "Proven hands-on experience and professional expertise in the relevant trade or business area.\nOwnership of technical tools, devices, or assets required for the position.\nReliable smartphone with continuous internet and WhatsApp access.\nStrong customer relation skills and dedication to excellent workmanship.",
+    benefits: job.benefits || "Guaranteed stream of high-paying customer bookings in your preferred locations.\nInstant secure payouts directly into your bank account.\nVerified partner badge, profile boost, and tools insurance coverage.\nFlexible working hours and absolute control over your gig schedules."
+  };
+  
+  // Custom templates for highly specific roles if they are null in DB
+  if (title.includes('electrician')) {
+    details.description = job.description || "Lezerv is expanding its verified electrician network in Lagos! Join our platform as an Electrical Services Partner and get instant access to residential and commercial wiring, faulted distribution boards, and lighting contracts.";
+    details.responsibilities = job.responsibilities || "Perform conduit and surface wiring installations.\nTroubleshoot electrical shorts, breaker faults, and distribution board errors.\nInstall residential and commercial power sockets, light fixtures, and appliances.\nMaintain rigid electrical safety standards on all active gig locations.";
+    details.requirements = job.requirements || "Strong technical knowledge of residential house wiring and electrical diagnostics.\nTechnical degree, vocational certificate, or proven local apprenticeship.\nOwnership of basic multimeter, testers, screwdrivers, and insulation gears.\nActive smartphone with WhatsApp.";
+  } else if (title.includes('plumber')) {
+    details.description = job.description || "Become a verified Plumbing Services Partner on Lezerv! Enjoy continuous high-demand plumbing bookings, from standard faucet leak detections to complex water pump and tank installations.";
+    details.responsibilities = job.responsibilities || "Install and repair pipes, fittings, valves, and residential fixtures.\nDiagnose water blockages, leaks, and overhead water tank malfunctions.\nTroubleshoot and fix residential pressure water pumps and water treatment units.\nPrepare material lists and cost estimations for pipe configurations.";
+  } else if (title.includes('carpenter') || title.includes('woodwork')) {
+    details.description = job.description || "Join Lezerv as a Carpentry & Woodwork Partner! Connect with premium homeowners needing custom furniture installations, door repairs, kitchen cabinet fittings, and direct upholstery maintenance.";
+    details.responsibilities = job.responsibilities || "Assemble, repair, and install wooden structures, door locks, and door frames.\nRepair broken cabinets, drawers, tables, chairs, and household fittings.\nConduct woodwork finishings, varnishing, and structural remodeling.\nTake precise measurements and cut materials with standard safety tools.";
+  } else if (title.includes('generator') || title.includes('technician')) {
+    details.description = job.description || "Join Lezerv as a Power Generator Technician! Service diesel and petrol generators for high-end residential estates and corporate offices across Lagos, Abuja, and major cities.";
+    details.responsibilities = job.responsibilities || "Perform routine generator servicing, oil replacement, and filter changes.\nDiagnose mechanical failures, starter issues, and radiator faults.\nMaintain diesel and petrol engines, injectors, and control modules.\nEnsure safe fuel lines and exhaust piping structures on all sites.";
+  }
+  
+  return details;
+};
+
 const Careers: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'artisan' | 'corporate'>('artisan');
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
@@ -653,72 +683,79 @@ const Careers: React.FC = () => {
                 <X size={20} />
               </button>
 
-              <div className="job-details-header">
-                <div className="job-details-meta">
-                  <span className="job-details-dept">{selectedJobDetail.department}</span>
-                  <span className="job-details-dot">•</span>
-                  <span className="job-details-location">
-                    <MapPin size={14} />
-                    {selectedJobDetail.location}
-                  </span>
-                </div>
-                <h2>{selectedJobDetail.title}</h2>
-                <div className="job-details-tags">
-                  <span className={`job-tag role-${selectedJobDetail.role_type}`}>
-                    {selectedJobDetail.role_type === 'artisan' ? 'Artisan Partnership' : 'Corporate Role'}
-                  </span>
-                  <span className="job-tag employment-type">{selectedJobDetail.type}</span>
-                </div>
-              </div>
+              {(() => {
+                const jobDetails = getJobDetailsFallback(selectedJobDetail);
+                return (
+                  <>
+                    <div className="job-details-header">
+                      <div className="job-details-meta">
+                        <span className="job-details-dept">{selectedJobDetail.department}</span>
+                        <span className="job-details-dot">•</span>
+                        <span className="job-details-location">
+                          <MapPin size={14} />
+                          {selectedJobDetail.location}
+                        </span>
+                      </div>
+                      <h2>{selectedJobDetail.title}</h2>
+                      <div className="job-details-tags">
+                        <span className={`job-tag role-${selectedJobDetail.role_type}`}>
+                          {selectedJobDetail.role_type === 'artisan' ? 'Artisan Partnership' : 'Corporate Role'}
+                        </span>
+                        <span className="job-tag employment-type">{selectedJobDetail.type}</span>
+                      </div>
+                    </div>
 
-              <div className="job-details-body">
-                <div className="job-details-section">
-                  <h3>About Lezerv</h3>
-                  <p>
-                    Lezerv is a <strong>registered company in Nigeria</strong> that connects customers with trusted home service providers for services such as cleaning, repairs, maintenance, laundry, cooking, and other household needs. Our mission is to make accessing reliable home services simple, convenient, and efficient.
-                  </p>
-                </div>
+                    <div className="job-details-body">
+                      <div className="job-details-section">
+                        <h3>About Lezerv</h3>
+                        <p>
+                          Lezerv is a <strong>registered company in Nigeria</strong> that connects customers with trusted home service providers for services such as cleaning, repairs, maintenance, laundry, cooking, and other household needs. Our mission is to make accessing reliable home services simple, convenient, and efficient.
+                        </p>
+                      </div>
 
-                {selectedJobDetail.description && (
-                  <div className="job-details-section">
-                    <h3>Job Summary</h3>
-                    <p>{selectedJobDetail.description}</p>
-                  </div>
-                )}
+                      {jobDetails.description && (
+                        <div className="job-details-section">
+                          <h3>Job Summary</h3>
+                          <p>{jobDetails.description}</p>
+                        </div>
+                      )}
 
-                {selectedJobDetail.responsibilities && (
-                  <div className="job-details-section">
-                    <h3>Key Responsibilities</h3>
-                    <ul className="details-bullet-list">
-                      {selectedJobDetail.responsibilities.split('\n').filter(r => r.trim()).map((resp, i) => (
-                        <li key={i}>{resp.replace(/^[\s*\-]+/, '').trim()}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                      {jobDetails.responsibilities && (
+                        <div className="job-details-section">
+                          <h3>Key Responsibilities</h3>
+                          <ul className="details-bullet-list">
+                            {jobDetails.responsibilities.split('\n').filter(r => r.trim()).map((resp, i) => (
+                              <li key={i}>{resp.replace(/^[\s*\-]+/, '').trim()}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                {selectedJobDetail.requirements && (
-                  <div className="job-details-section">
-                    <h3>Requirements</h3>
-                    <ul className="details-bullet-list">
-                      {selectedJobDetail.requirements.split('\n').filter(r => r.trim()).map((req, i) => (
-                        <li key={i}>{req.replace(/^[\s*\-]+/, '').trim()}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                      {jobDetails.requirements && (
+                        <div className="job-details-section">
+                          <h3>Requirements</h3>
+                          <ul className="details-bullet-list">
+                            {jobDetails.requirements.split('\n').filter(r => r.trim()).map((req, i) => (
+                              <li key={i}>{req.replace(/^[\s*\-]+/, '').trim()}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                {selectedJobDetail.benefits && (
-                  <div className="job-details-section">
-                    <h3>Benefits & Commission</h3>
-                    <ul className="details-bullet-list">
-                      {selectedJobDetail.benefits.split('\n').filter(r => r.trim()).map((ben, i) => (
-                        <li key={i}>{ben.replace(/^[\s*\-]+/, '').trim()}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                      {jobDetails.benefits && (
+                        <div className="job-details-section">
+                          <h3>Benefits & Commission</h3>
+                          <ul className="details-bullet-list">
+                            {jobDetails.benefits.split('\n').filter(r => r.trim()).map((ben, i) => (
+                              <li key={i}>{ben.replace(/^[\s*\-]+/, '').trim()}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="job-details-footer">
                 <Button 
