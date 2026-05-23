@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, 
   Clock, 
-  MoreHorizontal,
   Save,
   Plus,
   Sparkles,
@@ -116,6 +115,11 @@ const Admin: React.FC = () => {
     role_type: 'artisan'
   });
 
+  // Price Review Custom Modal States
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [selectedBookingForPrice, setSelectedBookingForPrice] = useState<TBooking | null>(null);
+  const [inputPrice, setInputPrice] = useState('');
+
   const triggerToast = (title: string, message: string) => {
     const toastId = Date.now().toString();
     setNotifications((prev) => [...prev, { id: toastId, title, message }]);
@@ -190,6 +194,31 @@ const Admin: React.FC = () => {
     } else {
       triggerToast('Update Failed', error.message);
     }
+  };
+
+  const openApproveModal = (booking: TBooking) => {
+    setSelectedBookingForPrice(booking);
+    setInputPrice(booking.amount_due ? booking.amount_due.replace(/₦/g, '').replace(/,/g, '') : '');
+    setIsPriceModalOpen(true);
+  };
+
+  const handleApproveWithPriceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBookingForPrice) return;
+    
+    let formattedPrice = inputPrice.trim();
+    if (formattedPrice) {
+      // Add thousands separator if not already present
+      const cleanVal = formattedPrice.replace(/[^0-9.]/g, '');
+      const parts = cleanVal.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      formattedPrice = `₦${parts.join('.')}`;
+    }
+    
+    updateBookingStatus(selectedBookingForPrice.id, 'approved', formattedPrice || undefined);
+    setIsPriceModalOpen(false);
+    setSelectedBookingForPrice(null);
+    setInputPrice('');
   };
 
   const saveSettings = async () => {
@@ -414,27 +443,38 @@ const Admin: React.FC = () => {
                           <td className="table-actions">
                             {(booking.status === 'pending' || booking.status === 'on hold/queue') && (
                               <>
-                                <Button size="sm" variant="primary" onClick={() => {
-                                  const amount = prompt('Enter the final price for this service (e.g. ₦12,500):');
-                                  if (amount) updateBookingStatus(booking.id, 'approved', amount);
-                                }}>Approve</Button>
+                                <Button size="sm" variant="primary" onClick={() => openApproveModal(booking)}>
+                                  Approve
+                                </Button>
                                 
-                                <Button size="sm" variant="secondary" style={{ color: 'var(--color-error)', borderColor: 'var(--color-error-container)' }} onClick={() => {
-                                  if (window.confirm(`Are you sure you want to decline booking ${booking.order_number}?`)) {
-                                    updateBookingStatus(booking.id, 'declined');
-                                  }
-                                }}>Decline</Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="btn-decline"
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to decline booking ${booking.order_number}?`)) {
+                                      updateBookingStatus(booking.id, 'declined');
+                                    }
+                                  }}
+                                >
+                                  Decline
+                                </Button>
                               </>
                             )}
                             
                             {booking.status === 'pending' && (
-                              <Button size="sm" variant="secondary" onClick={() => {
-                                updateBookingStatus(booking.id, 'on hold/queue');
-                              }}>Hold / Queue</Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="btn-hold"
+                                onClick={() => updateBookingStatus(booking.id, 'on hold/queue')}
+                              >
+                                Hold / Queue
+                              </Button>
                             )}
 
                             {booking.status === 'awaiting_confirmation' && (
-                              <Button size="sm" variant="secondary" onClick={async () => {
+                              <Button size="sm" variant="primary" onClick={async () => {
                                 const { error } = await supabase
                                   .from('bookings')
                                   .update({ status: 'confirmed', payment_status: 'paid' })
@@ -445,7 +485,6 @@ const Admin: React.FC = () => {
                                 }
                               }}>Confirm Payment</Button>
                             )}
-                            <Button variant="text" size="sm"><MoreHorizontal size={18} /></Button>
                           </td>
                         </tr>
                       ))
@@ -1115,6 +1154,67 @@ const Admin: React.FC = () => {
                 <div className="drawer-footer">
                   <Button type="button" variant="outline" onClick={() => setIsAddJobDrawerOpen(false)}>Cancel</Button>
                   <Button type="submit">Publish Position</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Price Review & Approval Modal */}
+      <AnimatePresence>
+        {isPriceModalOpen && selectedBookingForPrice && (
+          <div className="modal-overlay" onClick={() => setIsPriceModalOpen(false)}>
+            <motion.div 
+              className="custom-price-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>Price Review & Approve</h2>
+                <button className="btn-close-modal" onClick={() => setIsPriceModalOpen(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleApproveWithPriceSubmit} className="modal-form">
+                <div className="modal-info-box">
+                  <div className="info-item">
+                    <span className="info-label">Order</span>
+                    <strong>{selectedBookingForPrice.order_number}</strong>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Service</span>
+                    <strong title={selectedBookingForPrice.service_name}>{selectedBookingForPrice.service_name}</strong>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Customer</span>
+                    <strong title={selectedBookingForPrice.customer.name}>{selectedBookingForPrice.customer.name}</strong>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="quote-price">Set Final Quote / Price <span className="required">*</span></label>
+                  <div className="price-input-wrapper">
+                    <span className="currency-prefix">₦</span>
+                    <input 
+                      type="text" 
+                      id="quote-price"
+                      required
+                      placeholder="e.g. 12,500"
+                      value={inputPrice}
+                      onChange={e => setInputPrice(e.target.value.replace(/[^0-9.]/g, ''))}
+                      autoFocus
+                    />
+                  </div>
+                  <p className="field-hint">Enter the final price. Once approved, the customer will receive a "Pay Now" notification to choose their payment method.</p>
+                </div>
+
+                <div className="modal-footer">
+                  <Button type="button" variant="outline" onClick={() => setIsPriceModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary">Approve & Price</Button>
                 </div>
               </form>
             </motion.div>

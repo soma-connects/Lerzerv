@@ -800,4 +800,187 @@
   cursor: pointer;
 }
 
+/* Custom spacing and styles for Booking actions */
+.table-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.75rem !important;
+  align-items: center !important;
+}
+
+.table-actions button {
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Bright Outline Decline and Hold button overrides */
+.btn-decline {
+  color: #ef4444 !important;
+  border-color: #fecaca !important;
+  background: transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-decline:hover {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+
+.btn-hold {
+  color: #d97706 !important;
+  border-color: #fde68a !important;
+  background: transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-hold:hover {
+  background-color: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #92400e !important;
+}
+
+/* Custom Price Review Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.custom-price-modal {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--color-surface-variant);
+  box-shadow: var(--shadow-xl), 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.modal-header h2 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  color: var(--color-outline);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-close-modal:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.modal-form {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.modal-info-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  background: var(--color-surface-container-low);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0.5px;
+}
+
+.info-item strong {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-prefix {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-outline);
+  font-weight: var(--font-weight-bold);
+  font-size: 1.25rem;
+}
+
+.price-input-wrapper input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.25rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  font-size: 1.2rem;
+  font-weight: var(--font-weight-medium);
+  outline: none;
+  background: white;
+}
+
+.price-input-wrapper input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-fixed);
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+  margin-top: var(--spacing-xs);
+  margin-bottom: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
 
