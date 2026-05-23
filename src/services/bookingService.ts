@@ -30,7 +30,8 @@ export const bookingService = {
           customer: request.customer,
           user_id: userId,
           status: 'pending',
-          order_number: orderNo
+          order_number: orderNo,
+          payment_status: 'unpaid'
         }])
         .select()
         .single();
@@ -77,7 +78,8 @@ export const bookingService = {
         customer: b.customer,
         user_id: user.id,
         status: b.status,
-        order_number: (b as any).orderNumber || (b as any).order_number
+        order_number: (b as any).orderNumber || (b as any).order_number,
+        payment_status: (b as any).payment_status || 'unpaid'
       }));
 
       const { error } = await supabase.from('bookings').insert(cloudBookings);

@@ -16,66 +16,66 @@ export type TNewJob = z.infer<typeof JobSchema>;
 
 export const defaultJobs: TNewJob[] = [
   {
+    title: 'Customer Acquisition Representative',
+    department: 'Sales & Marketing',
+    location: 'Remote / Flexible',
+    type: 'Commission-Based',
+    role_type: 'corporate'
+  },
+  {
     title: 'Operations Manager',
     department: 'Logistics',
     location: 'Lagos, Nigeria',
-    type: 'Full-time',
+    type: 'Full-Time',
     role_type: 'corporate'
   },
   {
     title: 'Frontend Engineer (React)',
     department: 'Engineering',
     location: 'Remote',
-    type: 'Full-time',
-    role_type: 'corporate'
-  },
-  {
-    title: 'Growth Specialist',
-    department: 'Marketing',
-    location: 'Abuja, Nigeria',
-    type: 'Full-time',
+    type: 'Full-Time',
     role_type: 'corporate'
   },
   {
     title: 'Customer Success Lead',
     department: 'Operations',
     location: 'Lagos, Nigeria',
-    type: 'Full-time',
+    type: 'Full-Time',
     role_type: 'corporate'
   },
   {
     title: 'Certified Electrician',
     department: 'Electrical Services',
     location: 'Lagos (Lekki, Ikeja, Yaba)',
-    type: 'Apply for this role',
+    type: 'Part-Time',
     role_type: 'artisan'
   },
   {
     title: 'Master Plumber',
     department: 'Plumbing Services',
     location: 'Lagos (Gbagada, Surulere, Victoria Island)',
-    type: 'Apply for this role',
+    type: 'Part-Time',
     role_type: 'artisan'
   },
   {
     title: 'Generator Technician',
     department: 'Power Generator Maintenance',
     location: 'Lagos (Ikorodu, Maryland, Festac)',
-    type: 'Apply for this role',
+    type: 'Part-Time',
     role_type: 'artisan'
   },
   {
     title: 'AC & Cooling Expert',
     department: 'HVAC Maintenance',
     location: 'Lagos (Island & Mainland)',
-    type: 'Apply for this role',
+    type: 'Part-Time',
     role_type: 'artisan'
   },
   {
     title: 'Carpenter & Woodwork',
     department: 'Woodwork & Furniture',
     location: 'Lagos (Ikoyi, Ajah, Yaba)',
-    type: 'Apply for this role',
+    type: 'Part-Time',
     role_type: 'artisan'
   }
 ];

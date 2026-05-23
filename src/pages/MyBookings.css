@@ -167,6 +167,21 @@
   color: var(--color-on-tertiary-fixed);
 }
 
+.status-approved {
+  background-color: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+}
+
+.status-declined {
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.status-on-hold-queue {
+  background-color: var(--color-surface-variant);
+  color: var(--color-on-surface-variant);
+}
+
 .status-confirmed {
   background-color: var(--color-secondary-fixed);
   color: var(--color-on-secondary-fixed);

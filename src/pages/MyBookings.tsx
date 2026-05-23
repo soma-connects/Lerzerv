@@ -41,9 +41,12 @@ const MyBookings: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return <Clock size={16} className="text-tertiary" />;
+      case 'approved': return <CheckCircle2 size={16} className="text-secondary" />;
       case 'confirmed': return <CheckCircle2 size={16} className="text-secondary" />;
       case 'completed': return <CheckCircle2 size={16} className="text-primary" />;
       case 'cancelled': return <XCircle size={16} className="text-error" />;
+      case 'declined': return <XCircle size={16} className="text-error" />;
+      case 'on hold/queue': return <Clock size={16} className="text-tertiary" />;
       default: return <AlertCircle size={16} />;
     }
   };
@@ -128,7 +131,7 @@ const MyBookings: React.FC = () => {
                     </div>
                   </div>
                   <div className="booking-item-actions">
-                    <div className={`status-badge status-${booking.status}`}>
+                    <div className={`status-badge status-${booking.status.replace(/ /g, '-').replace(/\//g, '-')}`}>
                       {getStatusIcon(booking.status)}
                       {getStatusLabel(booking.status)}
                     </div>

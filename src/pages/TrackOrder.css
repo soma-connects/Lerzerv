@@ -231,3 +231,20 @@
     text-align: center;
   }
 }
+
+/* Status Pills colors */
+.status-pill {
+  padding: 0.35rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.status-pending { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
+.status-approved { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); }
+.status-declined { background: var(--color-error-container); color: var(--color-on-error-container); }
+.status-on-hold-queue { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+.status-confirmed { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+.status-completed { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }

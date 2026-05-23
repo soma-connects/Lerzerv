@@ -40,7 +40,7 @@ type TBooking = {
   id: string;
   order_number: string;
   service_name: string;
-  status: 'pending' | 'approved' | 'awaiting_confirmation' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'approved' | 'declined' | 'on hold/queue' | 'awaiting_confirmation' | 'confirmed' | 'completed' | 'cancelled';
   amount_due?: string;
   customer: {
     name: string;
@@ -60,6 +60,7 @@ type TApplication = {
   role_type: 'artisan' | 'corporate';
   experience: string;
   message?: string | null;
+  cv_url?: string | null;
   created_at: string;
 };
 
@@ -111,7 +112,7 @@ const Admin: React.FC = () => {
     title: '',
     department: '',
     location: '',
-    type: 'Apply for this role',
+    type: 'Full-Time',
     role_type: 'artisan'
   });
 
@@ -176,11 +177,19 @@ const Admin: React.FC = () => {
   };
 
   const updateBookingStatus = async (id: string, status: string, amount?: string) => {
-    const updates: { status: string; amount_due?: string } = { status };
+    const updates: { status: string; amount_due?: string; payment_status?: string } = { status };
     if (amount) updates.amount_due = amount;
+    if (status === 'approved') {
+      updates.payment_status = 'unpaid';
+    }
     
     const { error } = await supabase.from('bookings').update(updates).eq('id', id);
-    if (!error) fetchData();
+    if (!error) {
+      triggerToast('Booking Status Updated', `Booking has been set to "${status}" successfully.`);
+      fetchData();
+    } else {
+      triggerToast('Update Failed', error.message);
+    }
   };
 
   const saveSettings = async () => {
@@ -382,6 +391,7 @@ const Admin: React.FC = () => {
                       <th>Order</th>
                       <th>Service</th>
                       <th>Customer</th>
+                      <th>Amount</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -393,21 +403,46 @@ const Admin: React.FC = () => {
                           <td>{booking.order_number}</td>
                           <td>{booking.service_name}</td>
                           <td>{booking.customer.name}</td>
-                          <td><span className={`status-pill status-${booking.status}`}>{booking.status}</span></td>
+                          <td>
+                            <strong className="amount-cell">{booking.amount_due || 'Pending Quote'}</strong>
+                          </td>
+                          <td>
+                            <span className={`status-pill status-${booking.status.replace(/ /g, '-').replace(/\//g, '-')}`}>
+                              {booking.status}
+                            </span>
+                          </td>
                           <td className="table-actions">
-                            {booking.status === 'pending' && (
-                              <Button size="sm" onClick={() => {
-                                const amount = prompt('Enter the final price for this service (e.g. ₦12,500):');
-                                if (amount) updateBookingStatus(booking.id, 'approved', amount);
-                              }}>Approve & Price</Button>
+                            {(booking.status === 'pending' || booking.status === 'on hold/queue') && (
+                              <>
+                                <Button size="sm" variant="primary" onClick={() => {
+                                  const amount = prompt('Enter the final price for this service (e.g. ₦12,500):');
+                                  if (amount) updateBookingStatus(booking.id, 'approved', amount);
+                                }}>Approve</Button>
+                                
+                                <Button size="sm" variant="secondary" style={{ color: 'var(--color-error)', borderColor: 'var(--color-error-container)' }} onClick={() => {
+                                  if (window.confirm(`Are you sure you want to decline booking ${booking.order_number}?`)) {
+                                    updateBookingStatus(booking.id, 'declined');
+                                  }
+                                }}>Decline</Button>
+                              </>
                             )}
+                            
+                            {booking.status === 'pending' && (
+                              <Button size="sm" variant="secondary" onClick={() => {
+                                updateBookingStatus(booking.id, 'on hold/queue');
+                              }}>Hold / Queue</Button>
+                            )}
+
                             {booking.status === 'awaiting_confirmation' && (
                               <Button size="sm" variant="secondary" onClick={async () => {
                                 const { error } = await supabase
                                   .from('bookings')
                                   .update({ status: 'confirmed', payment_status: 'paid' })
                                   .eq('id', booking.id);
-                                if (!error) fetchData();
+                                if (!error) {
+                                  triggerToast('Payment Confirmed', `Order ${booking.order_number} is now marked as confirmed.`);
+                                  fetchData();
+                                }
                               }}>Confirm Payment</Button>
                             )}
                             <Button variant="text" size="sm"><MoreHorizontal size={18} /></Button>
@@ -416,7 +451,7 @@ const Admin: React.FC = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="empty-table-cell">
+                        <td colSpan={6} className="empty-table-cell">
                           <ShoppingBag size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
                           <p>No service requests found in the system.</p>
                         </td>
@@ -786,6 +821,7 @@ const Admin: React.FC = () => {
                     <th>Role Title</th>
                     <th>Role Type</th>
                     <th>Specialty & Experience</th>
+                    <th>CV / Portfolio</th>
                     <th>Cover Note</th>
                   </tr>
                 </thead>
@@ -825,6 +861,29 @@ const Admin: React.FC = () => {
                         <td className="experience-cell text-sm max-w-xs" title={app.experience}>
                           {app.experience}
                         </td>
+                        <td>
+                          {app.cv_url ? (
+                            <a 
+                              href={app.cv_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="cv-link-btn"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: 'var(--color-primary)',
+                                textDecoration: 'underline',
+                                fontWeight: 'bold',
+                                fontSize: '0.8rem'
+                              }}
+                            >
+                              <FileText size={14} /> View CV
+                            </a>
+                          ) : (
+                            <span style={{ color: 'var(--color-outline)' }}>—</span>
+                          )}
+                        </td>
                         <td className="experience-cell text-sm max-w-xs italic" title={app.message || ''}>
                           {app.message || '—'}
                         </td>
@@ -832,7 +891,7 @@ const Admin: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="empty-table-cell">
+                      <td colSpan={7} className="empty-table-cell">
                         <Briefcase size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
                         <p>No job applications found.</p>
                       </td>
@@ -1040,14 +1099,16 @@ const Admin: React.FC = () => {
                 <div className="form-group">
                   <label>Employment Type / Tag</label>
                   <div className="admin-input-wrapper">
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="e.g. Full-time, Contract, or Apply for this role"
+                    <select
                       value={newJob.type}
                       onChange={e => setNewJob({...newJob, type: e.target.value})}
-                    />
-                    <Hash size={16} />
+                      className="admin-select"
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-lg)', background: 'white', border: '1px solid var(--color-outline-variant)' }}
+                    >
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Commission-Based">Commission-Based</option>
+                      <option value="Part-Time">Part-Time</option>
+                    </select>
                   </div>
                 </div>
 

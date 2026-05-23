@@ -104,7 +104,8 @@ const Careers: React.FC = () => {
     email: '',
     phone: '',
     experience: '',
-    message: ''
+    message: '',
+    cvUrl: ''
   });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,6 +166,8 @@ const Careers: React.FC = () => {
         return !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone) ? 'A valid phone number is required (min 10 digits)' : null;
       case 'experience':
         return formData.experience.trim().length < 10 ? 'Please describe your experience in detail (min 10 chars)' : null;
+      case 'cvUrl':
+        return !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(formData.cvUrl) ? 'A valid URL link to your CV/Resume is required (e.g. Google Drive, Dropbox)' : null;
       default:
         return null;
     }
@@ -174,7 +177,8 @@ const Careers: React.FC = () => {
     return formData.name.trim().length >= 2 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
       /^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone) &&
-      formData.experience.trim().length >= 10;
+      formData.experience.trim().length >= 10 &&
+      /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(formData.cvUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,7 +197,8 @@ const Careers: React.FC = () => {
         role_title: selectedRole.title,
         role_type: selectedRole.type,
         experience: formData.experience,
-        message: formData.message || undefined
+        message: formData.message || undefined,
+        cv_url: formData.cvUrl
       });
 
       if (!response.success) {
@@ -201,7 +206,7 @@ const Careers: React.FC = () => {
       }
 
       setIsSubmitted(true);
-      setFormData({ name: '', email: '', phone: '', experience: '', message: '' });
+      setFormData({ name: '', email: '', phone: '', experience: '', message: '', cvUrl: '' });
       setTouched({});
     } catch (err: any) {
       console.error(err);
@@ -224,7 +229,7 @@ const Careers: React.FC = () => {
           >
             <span className="careers-label">Join Lezerv</span>
             <h1>Empower Your Craft,<br />Grow Your Business</h1>
-            <p>Join the largest network of verified artisans and home service professionals in Nigeria. Whether you are a solo technician or a corporate talent, there is a place for you here.</p>
+            <p>Lezerv is a <strong>registered company in Nigeria</strong> that connects customers with trusted home service providers for services such as cleaning, repairs, maintenance, laundry, cooking, and other household needs. Join the largest network of verified artisans and home service professionals in Nigeria. Whether you are a solo technician or a corporate talent, there is a place for you here.</p>
 
             <div className="hero-stats">
               <div className="hero-stat">
@@ -593,6 +598,21 @@ const Careers: React.FC = () => {
                       required
                     />
                     {getFieldError('experience') && <span className="field-error"><AlertCircle size={12} />{getFieldError('experience')}</span>}
+                  </div>
+
+                  <div className={`form-group ${getFieldError('cvUrl') ? 'has-error' : ''}`}>
+                    <label htmlFor="modal-cv">CV / Resume Link <span className="required">*</span></label>
+                    <input
+                      type="url"
+                      id="modal-cv"
+                      name="cvUrl"
+                      placeholder="Paste Google Drive, Dropbox, or PDF link to your CV"
+                      value={formData.cvUrl}
+                      onChange={e => setFormData(prev => ({ ...prev, cvUrl: e.target.value }))}
+                      onBlur={() => setTouched(prev => ({ ...prev, cvUrl: true }))}
+                      required
+                    />
+                    {getFieldError('cvUrl') && <span className="field-error"><AlertCircle size={12} />{getFieldError('cvUrl')}</span>}
                   </div>
 
                   <div className="form-group">

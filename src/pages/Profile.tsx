@@ -117,7 +117,7 @@ const Profile: React.FC = () => {
                               <td><span className="order-badge">{booking.order_number}</span></td>
                               <td>{booking.date} at {booking.time}</td>
                               <td>
-                                <span className={`status-pill status-${booking.status}`}>
+                                <span className={`status-pill status-${booking.status.replace(/ /g, '-').replace(/\//g, '-')}`}>
                                   {booking.status}
                                 </span>
                               </td>

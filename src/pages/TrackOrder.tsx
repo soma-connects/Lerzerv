@@ -153,7 +153,7 @@ const TrackOrder: React.FC = () => {
                     <p className="booking-meta">{booking.date} at {booking.time}</p>
                   </div>
                   <div className="status-indicator">
-                    <span className={`status-pill status-${booking.status}`}>
+                    <span className={`status-pill status-${booking.status.replace(/ /g, '-').replace(/\//g, '-')}`}>
                       {booking.status}
                     </span>
                   </div>

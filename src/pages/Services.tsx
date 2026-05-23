@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
-import BookingFlow from '../components/booking/BookingFlow';
 import { supabase } from '../lib/supabase';
 import './Services.css';
 
@@ -128,8 +127,6 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
 ];
 
 const Services: React.FC = () => {
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -173,8 +170,8 @@ const Services: React.FC = () => {
   }, []);
 
   const handleBook = (categoryTitle: string, tierName: string) => {
-    setSelectedService(`${categoryTitle} — ${tierName}`);
-    setIsBookingOpen(true);
+    const text = encodeURIComponent(`Hello Lezerv, I would like to book the service: ${categoryTitle} (${tierName}).`);
+    window.open(`https://wa.me/2349046367604?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -290,12 +287,6 @@ const Services: React.FC = () => {
           </div>
         </div>
       </section>
-
-      <BookingFlow
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        serviceName={selectedService}
-      />
     </div>
   );
 };

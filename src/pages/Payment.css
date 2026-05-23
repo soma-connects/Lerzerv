@@ -33,6 +33,25 @@
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-surface-variant);
   position: relative;
+  overflow: hidden;
+}
+
+.selection-card {
+  max-width: 580px;
+}
+
+.secure-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid var(--color-outline-variant);
 }
 
 .payment-header {
@@ -90,6 +109,254 @@
   font-size: var(--font-size-h3);
 }
 
+/* Methods Grid styling */
+.methods-grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.method-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--color-surface-container-low);
+  border: 1.5px solid var(--color-surface-variant);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-normal);
+}
+
+.method-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-fixed-dim);
+  background: white;
+  box-shadow: var(--shadow-md);
+}
+
+.method-item.recommend {
+  border-color: var(--color-primary-fixed-dim);
+  background: linear-gradient(to right, white, var(--color-surface-container-low));
+}
+
+.method-item.recommend:hover {
+  border-color: var(--color-primary);
+}
+
+.recommend-tag {
+  position: absolute;
+  top: -10px;
+  right: var(--spacing-lg);
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  font-size: 8px;
+  font-weight: var(--font-weight-bold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.method-icon-container {
+  width: 48px;
+  height: 48px;
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-outline-variant);
+}
+
+.method-info h3 {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-primary);
+  margin-bottom: 2px;
+}
+
+.method-info p {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.method-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  margin-bottom: var(--spacing-xl);
+}
+
+.method-breadcrumb:hover {
+  color: var(--color-primary);
+}
+
+/* Credit Card Mockup styling */
+.credit-card-mockup {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1.586/1;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  margin: 0 auto var(--spacing-xl);
+  color: white;
+  box-shadow: var(--shadow-lg), 0 10px 15px -3px rgba(49, 46, 129, 0.3);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.credit-card-mockup::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-chip {
+  width: 44px;
+  height: 32px;
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  border-radius: 6px;
+  position: relative;
+}
+
+.card-chip::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.card-logo {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-black);
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+.card-number-display {
+  font-size: 1.25rem;
+  letter-spacing: 2px;
+  font-family: monospace;
+  text-align: center;
+  margin: 1.5rem 0;
+  transition: all var(--transition-fast);
+}
+
+.card-number-display.focused {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  transform: scale(1.02);
+}
+
+.card-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.card-name-display, .card-expiry-display, .card-cvv-display {
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-fast);
+}
+
+.card-name-display.focused, .card-expiry-display.focused, .card-cvv-display.focused {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.card-bottom-row label {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+
+.card-bottom-row span {
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.5px;
+}
+
+.card-name-display span {
+  font-size: 0.8rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Card checkout form */
+.card-checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.card-input {
+  font-family: inherit;
+}
+
+.card-input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 4px var(--color-primary-fixed) !important;
+}
+
+/* POD Notice Box */
+.pod-notice-box {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.pod-notice-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pod-notice-box h3 {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.pod-notice-box p {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+}
+
+/* Previous Bank transfer items */
 .bank-details-box {
   display: grid;
   gap: var(--spacing-lg);
@@ -154,6 +421,7 @@
   border-radius: var(--radius-full);
   font-size: var(--font-size-label);
   box-shadow: var(--shadow-md);
+  z-index: 10;
 }
 
 .payment-loading {
@@ -162,4 +430,10 @@
   align-items: center;
   height: 50vh;
   font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 600px) {
+  .payment-card {
+    padding: var(--spacing-lg);
+  }
 }

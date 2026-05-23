@@ -9,7 +9,8 @@ export const JobApplicationSchema = z.object({
   role_title: z.string().min(1, 'Role title is required'),
   role_type: z.enum(['artisan', 'corporate']),
   experience: z.string().min(1, 'Experience information is required'),
-  message: z.string().optional()
+  message: z.string().optional(),
+  cv_url: z.string().url('Please enter a valid CV or Portfolio URL (e.g. Google Drive, Dropbox, or resume link)')
 });
 
 export type TJobApplication = z.infer<typeof JobApplicationSchema>;
@@ -32,7 +33,8 @@ export const applicationService = {
           role_title: validated.role_title,
           role_type: validated.role_type,
           experience: validated.experience,
-          message: validated.message || null
+          message: validated.message || null,
+          cv_url: validated.cv_url
         }])
         .select()
         .single();

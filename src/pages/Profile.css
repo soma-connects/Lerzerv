@@ -282,7 +282,11 @@
 
 .status-pending { background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
 .status-approved { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+.status-declined { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
+.status-on-hold-queue { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+.status-confirmed { background: #fdf2f8; color: #9d174d; border: 1px solid #fce7f3; }
 .status-completed { background: #f0f9ff; color: #075985; border: 1px solid #e0f2fe; }
+.status-cancelled { background: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
 
 .action-placeholder {
   color: var(--color-outline);

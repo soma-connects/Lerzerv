@@ -162,8 +162,17 @@
 }
 
 .status-pending { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
-.status-confirmed { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); }
+.status-approved { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); }
+.status-declined { background: var(--color-error-container); color: var(--color-on-error-container); }
+.status-on-hold-queue { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+.status-confirmed { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
 .status-completed { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+
+.amount-cell {
+  color: var(--color-primary);
+  font-family: monospace;
+  font-size: 0.875rem;
+}
 
 .action-menu {
   background: none;
