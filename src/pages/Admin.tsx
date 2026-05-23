@@ -112,7 +112,11 @@ const Admin: React.FC = () => {
     department: '',
     location: '',
     type: 'Full-Time',
-    role_type: 'artisan'
+    role_type: 'artisan',
+    description: '',
+    responsibilities: '',
+    requirements: '',
+    benefits: ''
   });
 
   // Price Review Custom Modal States
@@ -196,9 +200,31 @@ const Admin: React.FC = () => {
     }
   };
 
+  const findServiceBasePrice = (serviceName: string) => {
+    let service = services.find(s => s.title.toLowerCase().trim() === serviceName.toLowerCase().trim());
+    if (service) return service.price;
+    
+    service = services.find(s => 
+      serviceName.toLowerCase().includes(s.title.toLowerCase()) || 
+      s.title.toLowerCase().includes(serviceName.toLowerCase())
+    );
+    if (service) return service.price;
+    return '₦12,500';
+  };
+
   const openApproveModal = (booking: TBooking) => {
     setSelectedBookingForPrice(booking);
-    setInputPrice(booking.amount_due ? booking.amount_due.replace(/₦/g, '').replace(/,/g, '') : '');
+    if (booking.amount_due && booking.amount_due !== 'Pending Quote') {
+      setInputPrice(booking.amount_due.replace(/₦/g, '').replace(/,/g, ''));
+    } else {
+      const basePrice = findServiceBasePrice(booking.service_name);
+      const match = basePrice.match(/\d+([\d,]*)/);
+      if (match) {
+        setInputPrice(match[0].replace(/,/g, ''));
+      } else {
+        setInputPrice('');
+      }
+    }
     setIsPriceModalOpen(true);
   };
 
@@ -338,8 +364,12 @@ const Admin: React.FC = () => {
         title: '',
         department: '',
         location: '',
-        type: 'Apply for this role',
-        role_type: 'artisan'
+        type: 'Full-Time',
+        role_type: 'artisan',
+        description: '',
+        responsibilities: '',
+        requirements: '',
+        benefits: ''
       });
       fetchData();
     } else {
@@ -1151,6 +1181,55 @@ const Admin: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="form-group">
+                  <label>Job Description / Summary</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={3} 
+                      required 
+                      placeholder="About the company and core summary of the vacancy..."
+                      value={newJob.description || ''}
+                      onChange={e => setNewJob({...newJob, description: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Key Responsibilities (one per line)</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={4} 
+                      placeholder="e.g. Identify and acquire new customers&#10;Promote Lezerv services&#10;Track leads and report conversions"
+                      value={newJob.responsibilities || ''}
+                      onChange={e => setNewJob({...newJob, responsibilities: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Job Requirements (one per line)</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={4} 
+                      placeholder="e.g. Good communication skills&#10;Active use of WhatsApp&#10;Ability to work independently"
+                      value={newJob.requirements || ''}
+                      onChange={e => setNewJob({...newJob, requirements: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Benefits & Commission (one per line)</label>
+                  <div className="admin-input-wrapper">
+                    <textarea 
+                      rows={4} 
+                      placeholder="e.g. Flexible schedule&#10;15% commission on every booking&#10;Performance bonuses"
+                      value={newJob.benefits || ''}
+                      onChange={e => setNewJob({...newJob, benefits: e.target.value})}
+                    />
+                  </div>
+                </div>
+
                 <div className="drawer-footer">
                   <Button type="button" variant="outline" onClick={() => setIsAddJobDrawerOpen(false)}>Cancel</Button>
                   <Button type="submit">Publish Position</Button>
@@ -1195,6 +1274,27 @@ const Admin: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="price-review-alert-card">
+                  <div className="price-review-header">
+                    <Sparkles size={16} className="text-secondary" />
+                    <span>Pricing Standard Comparison</span>
+                  </div>
+                  <div className="price-review-body">
+                    <div className="price-row-item">
+                      <span className="price-row-label">Base / Service Area Price</span>
+                      <strong className="price-row-value text-secondary">
+                        {findServiceBasePrice(selectedBookingForPrice.service_name)}
+                      </strong>
+                    </div>
+                    <div className="price-row-item">
+                      <span className="price-row-label">Current Invoice Quote</span>
+                      <strong className="price-row-value">
+                        {selectedBookingForPrice.amount_due || 'Pending Quote'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="quote-price">Set Final Quote / Price <span className="required">*</span></label>
                   <div className="price-input-wrapper">
@@ -1209,12 +1309,12 @@ const Admin: React.FC = () => {
                       autoFocus
                     />
                   </div>
-                  <p className="field-hint">Enter the final price. Once approved, the customer will receive a "Pay Now" notification to choose their payment method.</p>
+                  <p className="field-hint">Verify details, adjust base price if additional labor/materials are required, or let it be to charge standard price.</p>
                 </div>
 
                 <div className="modal-footer">
-                  <Button type="button" variant="outline" onClick={() => setIsPriceModalOpen(false)}>Cancel</Button>
-                  <Button type="submit" variant="primary">Approve & Price</Button>
+                  <Button type="button" variant="outline" className="btn-modal-cancel" onClick={() => setIsPriceModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="primary" className="btn-modal-approve">Approve & Price</Button>
                 </div>
               </form>
             </motion.div>

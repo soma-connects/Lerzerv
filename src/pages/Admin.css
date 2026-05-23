@@ -979,8 +979,127 @@
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.btn-modal-cancel {
+  padding: 0.75rem 1.75rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-xl) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-modal-approve {
+  padding: 0.75rem 1.75rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-xl) !important;
+  background-color: var(--color-primary) !important;
+  color: white !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 10px rgba(0, 48, 87, 0.15) !important;
+}
+
+.btn-modal-approve:hover {
+  background-color: var(--color-primary-dim) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 14px rgba(0, 48, 87, 0.25) !important;
+}
+
+/* Beautiful alert-style comparison card inside Price Review */
+.price-review-alert-card {
+  background: linear-gradient(135deg, #f8faff, #f1f5fe);
+  border: 1px solid #dbe5fc;
+  border-radius: var(--radius-xl);
+  padding: 1.25rem;
+  margin: 0.5rem 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.price-review-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  letter-spacing: 0.5px;
+}
+
+.price-review-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.price-row-label {
+  font-size: 0.85rem;
+  color: var(--color-on-surface-variant);
+  font-weight: var(--font-weight-medium);
+}
+
+.price-row-value {
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-surface);
+}
+
+.price-row-value.text-secondary {
+  color: var(--color-secondary) !important;
+  font-size: 1.05rem;
+}
+
+/* Responsive configurations for Admin Console */
+@media (max-width: 600px) {
+  .custom-price-modal {
+    max-width: 92%;
+    border-radius: var(--radius-xl);
+  }
+  
+  .modal-header {
+    padding: 1.25rem;
+  }
+  
+  .modal-form {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  
+  .modal-info-box {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .price-review-alert-card {
+    padding: 1rem;
+  }
+  
+  .modal-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 0.75rem;
+  }
+  
+  .modal-footer button {
+    width: 100% !important;
+    text-align: center;
+    padding: 0.85rem !important;
+  }
 }
 
 

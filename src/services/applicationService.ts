@@ -10,7 +10,7 @@ export const JobApplicationSchema = z.object({
   role_type: z.enum(['artisan', 'corporate']),
   experience: z.string().min(1, 'Experience information is required'),
   message: z.string().optional(),
-  cv_url: z.string().url('Please enter a valid CV or Portfolio URL (e.g. Google Drive, Dropbox, or resume link)')
+  cv_url: z.string().url('Please enter a valid CV or Portfolio URL (e.g. Google Drive, Dropbox, or resume link)').optional().or(z.literal('')).nullable()
 });
 
 export type TJobApplication = z.infer<typeof JobApplicationSchema>;

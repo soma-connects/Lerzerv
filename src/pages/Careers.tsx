@@ -10,75 +10,63 @@ import './Careers.css';
 const fallbackJobs: TJob[] = [
   {
     id: 'fallback-1',
+    title: "Customer Acquisition Representative",
+    department: "Sales & Marketing",
+    location: "Remote / Flexible",
+    type: "Commission-Based",
+    role_type: "corporate",
+    description: "Lezerv is a registered company in Nigeria that connects customers with trusted home service providers for services such as cleaning, repairs, maintenance, laundry, cooking, and other household needs. Our mission is to make accessing reliable home services simple, convenient, and efficient. We are seeking energetic and self-driven Customer Acquisition Representatives to help Lezerv grow its customer base. Your primary responsibility will be generating paying customers through online and offline channels. This role is ideal for individuals with strong communication skills who want flexible work and unlimited earning potential.",
+    responsibilities: "Identify and acquire new customers for Lezerv services.\nPromote Lezerv through social media platforms, WhatsApp, referrals, communities, and direct outreach.\nFollow up with potential customers and guide them through the booking process.\nBuild relationships and maintain customer engagement.\nTrack leads and report successful conversions.",
+    requirements: "Good communication and interpersonal skills.\nActive use of WhatsApp and social media platforms.\nAbility to work independently and achieve targets.\nPrevious sales or marketing experience is an advantage but not required.",
+    benefits: "Earn 15% commission on every successful completed booking from customers you bring.\nAdditional performance incentives may be provided for reaching customer acquisition targets.\nExample: Customer booking value: ₦20,000 -> Your commission (15%): ₦3,000.\nFlexible working schedule.\nUnlimited earning opportunity.\nOpportunity to grow with Lezerv as the company expands."
+  },
+  {
+    id: 'fallback-2',
     title: "Operations Manager",
     department: "Logistics",
     location: "Lagos, Nigeria",
     type: "Full-time",
-    role_type: "corporate"
+    role_type: "corporate",
+    description: "We are looking for an experienced Operations Manager to oversee our daily home services logistics, service provider onboarding, quality control processes, and customer satisfaction metrics. You will ensure seamless service delivery and direct field operations across Nigeria.",
+    responsibilities: "Manage day-to-day operations and service delivery logistics.\nOnboard, verify, and monitor home service providers and artisans.\nImplement quality control standards and handle escalations.\nOptimize field resource allocation and dispatch schedules.\nTrack key operational performance indicators.",
+    requirements: "3+ years experience in operations, logistics, or project management.\nExcellent organizational and team management skills.\nDeep familiarity with the home service industry in Nigeria.\nStrong analytical mindset and problem-solving skills.",
+    benefits: "Competitive monthly base salary.\nComprehensive health insurance plan.\nPaid time off and performance-related bonuses.\nProfessional growth and executive leadership opportunities."
   },
   {
-    id: 'fallback-2',
+    id: 'fallback-3',
     title: "Frontend Engineer (React)",
     department: "Engineering",
     location: "Remote",
     type: "Full-time",
-    role_type: "corporate"
-  },
-  {
-    id: 'fallback-3',
-    title: "Growth Specialist",
-    department: "Marketing",
-    location: "Abuja, Nigeria",
-    type: "Full-time",
-    role_type: "corporate"
+    role_type: "corporate",
+    description: "Join our dynamic product team and build the next-generation web platforms for Lezerv. You will build highly responsive, state-of-the-art interactive frontends utilizing React, TypeScript, and modern styling libraries.",
+    responsibilities: "Develop high-quality, responsive user interfaces and modular components.\nCollaborate with product designers and backend engineers to integrate APIs.\nOptimize application performance, loading speeds, and accessibility.\nWrite strict, clean, and maintainable TypeScript code.",
+    requirements: "3+ years of professional experience building frontend applications in React.\nExpertise in CSS, TailwindCSS, Framer Motion, and TypeScript strict mode.\nFamiliarity with state management libraries and REST/GraphQL APIs.\nPortfolio showcasing premium UI designs and micro-animations.",
+    benefits: "Competitive remote remuneration package.\nAnnual learning and device upgrades budgets.\nFlexible working hours and remote setups.\nWork with an exceptionally talented international tech team."
   },
   {
     id: 'fallback-4',
-    title: "Customer Success Lead",
-    department: "Operations",
-    location: "Lagos, Nigeria",
-    type: "Full-time",
-    role_type: "corporate"
-  },
-  {
-    id: 'fallback-5',
     title: "Certified Electrician",
     department: "Electrical Services",
     location: "Lagos (Lekki, Ikeja, Yaba)",
     type: "Apply for this role",
-    role_type: "artisan"
+    role_type: "artisan",
+    description: "We are expanding our verified artisan network in Lagos! Join Lezerv as an Electrical Services Partner and receive direct consumer jobs with guaranteed weekly payouts. We are reaching out to local skilled electricians to connect them with high-value contracts.",
+    responsibilities: "Perform house conduit and surface wiring installations.\nTroubleshoot electrical faults, breaker issues, and short circuits.\nInstall and service distribution boards, lighting, and power outlets.\nEnsure rigorous safety standards on all residential and commercial jobs.",
+    requirements: "Solid hands-on experience in residential and commercial electrical work.\nTechnical degree, vocational certificate, or proven local apprenticeship.\nOwnership of basic professional testing and installation tools.\nReliable smartphone with WhatsApp access.",
+    benefits: "Constant stream of verified, high-paying bookings in your area.\nGuaranteed weekly direct payouts to your bank account.\nFree tool insurance and safety certifications.\nNo registration fees or commission cuts for verified basic tiers."
   },
   {
-    id: 'fallback-6',
+    id: 'fallback-5',
     title: "Master Plumber",
     department: "Plumbing Services",
     location: "Lagos (Gbagada, Surulere, Victoria Island)",
     type: "Apply for this role",
-    role_type: "artisan"
-  },
-  {
-    id: 'fallback-7',
-    title: "Generator Technician",
-    department: "Power Generator Maintenance",
-    location: "Lagos (Ikorodu, Maryland, Festac)",
-    type: "Apply for this role",
-    role_type: "artisan"
-  },
-  {
-    id: 'fallback-8',
-    title: "AC & Cooling Expert",
-    department: "HVAC Maintenance",
-    location: "Lagos (Island & Mainland)",
-    type: "Apply for this role",
-    role_type: "artisan"
-  },
-  {
-    id: 'fallback-9',
-    title: "Carpenter & Woodwork",
-    department: "Woodwork & Furniture",
-    location: "Lagos (Ikoyi, Ajah, Yaba)",
-    type: "Apply for this role",
-    role_type: "artisan"
+    role_type: "artisan",
+    description: "Become a verified Plumbing Services Partner on the Lezerv platform. Build a steady customer base in Lagos and gain access to continuous high-demand bookings, from pipe fixing to complex pump installations.",
+    responsibilities: "Install, maintain, and repair residential plumbing systems and fixtures.\nDetect leaks, unclog drains, and fix broken pipes or fittings.\nInstall and service overhead tanks, water pumps, and boreholes.\nProvide accurate estimates on pipe lengths and plumbing materials.",
+    requirements: "Proven experience as a master plumber in Nigeria.\nStrong practical knowledge of piping materials, water flow dynamics, and pump rigs.\nExcellent communication skills with customers.\nReliable smartphone for receiving jobs via WhatsApp.",
+    benefits: "Direct job assignments near your location.\nTransparent pricing and secure weekly bank transfers.\nGrowth support, tools subsidies, and partner benefits.\nFlexible scheduling: choose when you are available to work."
   }
 ];
 
@@ -95,6 +83,7 @@ const Careers: React.FC = () => {
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
   const [jobs, setJobs] = useState<TJob[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true);
+  const [selectedJobDetail, setSelectedJobDetail] = useState<TJob | null>(null);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -167,6 +156,7 @@ const Careers: React.FC = () => {
       case 'experience':
         return formData.experience.trim().length < 10 ? 'Please describe your experience in detail (min 10 chars)' : null;
       case 'cvUrl':
+        if (!formData.cvUrl.trim()) return null;
         return !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(formData.cvUrl) ? 'A valid URL link to your CV/Resume is required (e.g. Google Drive, Dropbox)' : null;
       default:
         return null;
@@ -174,11 +164,12 @@ const Careers: React.FC = () => {
   };
 
   const isFormValid = () => {
+    const isCvValid = !formData.cvUrl.trim() || /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(formData.cvUrl);
     return formData.name.trim().length >= 2 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
       /^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone) &&
       formData.experience.trim().length >= 10 &&
-      /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(formData.cvUrl);
+      isCvValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -317,10 +308,7 @@ const Careers: React.FC = () => {
                           transition={{ delay: i * 0.1 }}
                           onMouseEnter={() => setHoveredRole(i)}
                           onMouseLeave={() => setHoveredRole(null)}
-                          onClick={() => {
-                            setSelectedRole({ title: role.title, type: 'artisan' });
-                            setIsModalOpen(true);
-                          }}
+                          onClick={() => setSelectedJobDetail(role)}
                           role="button"
                           tabIndex={0}
                         >
@@ -428,10 +416,7 @@ const Careers: React.FC = () => {
                           variant="outline"
                           size="sm"
                           rightIcon={<ArrowRight size={16} />}
-                          onClick={() => {
-                            setSelectedRole({ title: role.title, type: 'corporate' });
-                            setIsModalOpen(true);
-                          }}
+                          onClick={() => setSelectedJobDetail(role)}
                         >
                           View Role
                         </Button>
@@ -601,16 +586,15 @@ const Careers: React.FC = () => {
                   </div>
 
                   <div className={`form-group ${getFieldError('cvUrl') ? 'has-error' : ''}`}>
-                    <label htmlFor="modal-cv">CV / Resume Link <span className="required">*</span></label>
+                    <label htmlFor="modal-cv">CV / Resume Link <span className="optional">(optional)</span></label>
                     <input
                       type="url"
                       id="modal-cv"
                       name="cvUrl"
-                      placeholder="Paste Google Drive, Dropbox, or PDF link to your CV"
+                      placeholder="Paste Google Drive, Dropbox, or PDF link to your CV (optional)"
                       value={formData.cvUrl}
                       onChange={e => setFormData(prev => ({ ...prev, cvUrl: e.target.value }))}
                       onBlur={() => setTouched(prev => ({ ...prev, cvUrl: true }))}
-                      required
                     />
                     {getFieldError('cvUrl') && <span className="field-error"><AlertCircle size={12} />{getFieldError('cvUrl')}</span>}
                   </div>
@@ -648,6 +632,113 @@ const Careers: React.FC = () => {
                   </div>
                 </form>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Immersive Job Details Overlay */}
+      <AnimatePresence>
+        {selectedJobDetail && (
+          <div className="job-details-overlay" onClick={() => setSelectedJobDetail(null)}>
+            <motion.div 
+              className="job-details-container"
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button className="job-details-close-btn" onClick={() => setSelectedJobDetail(null)} aria-label="Close job details">
+                <X size={20} />
+              </button>
+
+              <div className="job-details-header">
+                <div className="job-details-meta">
+                  <span className="job-details-dept">{selectedJobDetail.department}</span>
+                  <span className="job-details-dot">•</span>
+                  <span className="job-details-location">
+                    <MapPin size={14} />
+                    {selectedJobDetail.location}
+                  </span>
+                </div>
+                <h2>{selectedJobDetail.title}</h2>
+                <div className="job-details-tags">
+                  <span className={`job-tag role-${selectedJobDetail.role_type}`}>
+                    {selectedJobDetail.role_type === 'artisan' ? 'Artisan Partnership' : 'Corporate Role'}
+                  </span>
+                  <span className="job-tag employment-type">{selectedJobDetail.type}</span>
+                </div>
+              </div>
+
+              <div className="job-details-body">
+                <div className="job-details-section">
+                  <h3>About Lezerv</h3>
+                  <p>
+                    Lezerv is a <strong>registered company in Nigeria</strong> that connects customers with trusted home service providers for services such as cleaning, repairs, maintenance, laundry, cooking, and other household needs. Our mission is to make accessing reliable home services simple, convenient, and efficient.
+                  </p>
+                </div>
+
+                {selectedJobDetail.description && (
+                  <div className="job-details-section">
+                    <h3>Job Summary</h3>
+                    <p>{selectedJobDetail.description}</p>
+                  </div>
+                )}
+
+                {selectedJobDetail.responsibilities && (
+                  <div className="job-details-section">
+                    <h3>Key Responsibilities</h3>
+                    <ul className="details-bullet-list">
+                      {selectedJobDetail.responsibilities.split('\n').filter(r => r.trim()).map((resp, i) => (
+                        <li key={i}>{resp.replace(/^[\s*\-]+/, '').trim()}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedJobDetail.requirements && (
+                  <div className="job-details-section">
+                    <h3>Requirements</h3>
+                    <ul className="details-bullet-list">
+                      {selectedJobDetail.requirements.split('\n').filter(r => r.trim()).map((req, i) => (
+                        <li key={i}>{req.replace(/^[\s*\-]+/, '').trim()}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedJobDetail.benefits && (
+                  <div className="job-details-section">
+                    <h3>Benefits & Commission</h3>
+                    <ul className="details-bullet-list">
+                      {selectedJobDetail.benefits.split('\n').filter(r => r.trim()).map((ben, i) => (
+                        <li key={i}>{ben.replace(/^[\s*\-]+/, '').trim()}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="job-details-footer">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedJobDetail(null)}
+                >
+                  Back to Openings
+                </Button>
+                <Button 
+                  variant="primary" 
+                  rightIcon={<ArrowRight size={18} />}
+                  onClick={() => {
+                    setSelectedRole({ title: selectedJobDetail.title, type: selectedJobDetail.role_type });
+                    setSelectedJobDetail(null);
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Apply for this Position
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}
