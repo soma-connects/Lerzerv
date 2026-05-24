@@ -109,7 +109,7 @@ const getJobDetailsFallback = (job: TJob | null) => {
 };
 
 const Careers: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'artisan' | 'corporate'>('artisan');
+  const [activeTab, setActiveTab] = useState<'artisan' | 'corporate'>('corporate');
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
   const [jobs, setJobs] = useState<TJob[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true);
@@ -294,18 +294,18 @@ const Careers: React.FC = () => {
         <div className="container">
           <div className="tab-switcher">
             <button
-              className={`tab-btn ${activeTab === 'artisan' ? 'active' : ''}`}
-              onClick={() => setActiveTab('artisan')}
-            >
-              <HardHat size={18} />
-              Artisan Partners
-            </button>
-            <button
               className={`tab-btn ${activeTab === 'corporate' ? 'active' : ''}`}
               onClick={() => setActiveTab('corporate')}
             >
               <Briefcase size={18} />
               Corporate Roles
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'artisan' ? 'active' : ''}`}
+              onClick={() => setActiveTab('artisan')}
+            >
+              <HardHat size={18} />
+              Artisan Partners
             </button>
           </div>
 
