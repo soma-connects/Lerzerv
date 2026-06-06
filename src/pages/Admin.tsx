@@ -16,7 +16,8 @@ import {
   Check,
   Trash2,
   Edit2,
-  Database
+  Database,
+  Eye
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -94,6 +95,8 @@ const Admin: React.FC = () => {
   const [editingPrice, setEditingPrice] = useState('');
   const [isSeeding, setIsSeeding] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<TApplication | null>(null);
   const [featuresInput, setFeaturesInput] = useState('');
   const [newService, setNewService] = useState<TNewService>({
     title: '',
@@ -892,6 +895,7 @@ const Admin: React.FC = () => {
                     <th>Specialty & Experience</th>
                     <th>CV / Portfolio</th>
                     <th>Cover Note</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -956,11 +960,25 @@ const Admin: React.FC = () => {
                         <td className="experience-cell text-sm max-w-xs italic" title={app.message || ''}>
                           {app.message || '—'}
                         </td>
+                        <td>
+                          <div className="table-row-actions">
+                            <button 
+                              className="btn-icon-action"
+                              onClick={() => {
+                                setSelectedApplication(app);
+                                setIsApplicationModalOpen(true);
+                              }}
+                              title="View Full Application Details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="empty-table-cell">
+                      <td colSpan={8} className="empty-table-cell">
                         <Briefcase size={32} style={{opacity: 0.3, marginBottom: '0.5rem'}} />
                         <p>No job applications found.</p>
                       </td>
@@ -1318,6 +1336,82 @@ const Admin: React.FC = () => {
                   <Button type="submit" variant="primary" className="btn-modal-approve">Approve & Price</Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Application Details Modal */}
+      <AnimatePresence>
+        {isApplicationModalOpen && selectedApplication && (
+          <div className="modal-overlay" onClick={() => setIsApplicationModalOpen(false)}>
+            <motion.div 
+              className="custom-price-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '600px', width: '90%' }}
+            >
+              <div className="modal-header">
+                <h2>Application Details</h2>
+                <button className="btn-close-modal" onClick={() => setIsApplicationModalOpen(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="modal-body" style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>{selectedApplication.name}</h3>
+                      <p style={{ color: 'var(--color-outline)', fontSize: '0.9rem' }}>{selectedApplication.role_title} <span className={`status-pill status-${selectedApplication.role_type}`} style={{ marginLeft: '0.5rem' }}>{selectedApplication.role_type}</span></p>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-outline)' }}>
+                      {new Date(selectedApplication.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--color-surface-variant)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                    <div>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</p>
+                      <a href={`mailto:${selectedApplication.email}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{selectedApplication.email}</a>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone</p>
+                      <a href={`tel:${selectedApplication.phone}`} style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{selectedApplication.phone}</a>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '0.25rem' }}>Specialty & Experience</h4>
+                    <p style={{ fontSize: '0.9rem', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{selectedApplication.experience}</p>
+                  </div>
+
+                  {selectedApplication.message && (
+                    <div>
+                      <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: '0.25rem' }}>Cover Note / Message</h4>
+                      <p style={{ fontSize: '0.9rem', lineHeight: '1.5', whiteSpace: 'pre-wrap', fontStyle: 'italic', background: 'var(--color-surface)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--color-primary)' }}>{selectedApplication.message}</p>
+                    </div>
+                  )}
+
+                  {selectedApplication.cv_url && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <a 
+                        href={selectedApplication.cv_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="btn btn-primary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                      >
+                        <FileText size={16} /> View CV / Portfolio Document
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <Button type="button" variant="outline" className="btn-modal-cancel" onClick={() => setIsApplicationModalOpen(false)}>Close</Button>
+              </div>
             </motion.div>
           </div>
         )}

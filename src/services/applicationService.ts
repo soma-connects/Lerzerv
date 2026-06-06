@@ -32,7 +32,7 @@ export const applicationService = {
       // Validate schema at the boundary
       const validated = JobApplicationSchema.parse(application);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('job_applications')
         .insert([{
           name: validated.name,
@@ -43,12 +43,10 @@ export const applicationService = {
           experience: validated.experience,
           message: validated.message || null,
           cv_url: validated.cv_url
-        }])
-        .select()
-        .single();
+        }]);
 
       if (error) throw error;
-      return { success: true, data };
+      return { success: true, data: null };
     } catch (err: any) {
       console.error('Failed to submit job application to Supabase:', err);
       return {

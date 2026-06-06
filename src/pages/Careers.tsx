@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, MapPin, Briefcase, HardHat, Wrench, Zap, Droplets, Hammer, CheckCircle2, X, Loader2, Sparkles, AlertCircle, User, Mail, Phone, Link, MessageSquare, UploadCloud, Check, FileText } from 'lucide-react';
+import { ArrowRight, MapPin, Briefcase, HardHat, Wrench, Zap, Droplets, Hammer, CheckCircle2, X, Loader2, Sparkles, AlertCircle, User, Mail, Phone, MessageSquare, UploadCloud, Check, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { applicationService } from '../services/applicationService';
@@ -133,7 +133,6 @@ const Careers: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Drag and Drop File Upload States
-  const [cvUploadMode, setCvUploadMode] = useState<'file' | 'link'>('file');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvUploadProgress, setCvUploadProgress] = useState<number>(0);
   const [cvIsUploading, setCvIsUploading] = useState<boolean>(false);
@@ -745,73 +744,49 @@ const Careers: React.FC = () => {
 
                   <div className={`form-group ${getFieldError('cvUrl') ? 'has-error' : ''}`}>
                     <label htmlFor="modal-cv">CV / Resume <span className="optional">(optional)</span></label>
-                    {cvUploadMode === 'file' ? (
-                      <div className="cv-upload-container">
-                        {cvFile ? (
-                          <div className="cv-uploaded-file-card">
-                            <FileText className="file-icon" size={28} />
-                            <div className="file-details">
-                              <span className="file-name">{cvFile.name}</span>
-                              <span className="file-size">{(cvFile.size / 1024 / 1024).toFixed(2)} MB</span>
-                              {cvIsUploading ? (
-                                <div className="file-progress-bar-container">
-                                  <div className="file-progress-bar" style={{ width: `${cvUploadProgress}%` }}></div>
-                                </div>
-                              ) : (
-                                <span className="file-status-success"><Check size={12} /> Ready to submit</span>
-                              )}
-                            </div>
-                            <button type="button" className="file-remove-btn" onClick={handleRemoveCvFile} disabled={cvIsUploading}>
-                              <X size={16} />
-                            </button>
+                    <div className="cv-upload-container">
+                      {cvFile ? (
+                        <div className="cv-uploaded-file-card">
+                          <FileText className="file-icon" size={28} />
+                          <div className="file-details">
+                            <span className="file-name">{cvFile.name}</span>
+                            <span className="file-size">{(cvFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                            {cvIsUploading ? (
+                              <div className="file-progress-bar-container">
+                                <div className="file-progress-bar" style={{ width: `${cvUploadProgress}%` }}></div>
+                              </div>
+                            ) : (
+                              <span className="file-status-success"><Check size={12} /> Ready to submit</span>
+                            )}
                           </div>
-                        ) : (
-                          <div 
-                            className={`cv-dropzone ${isDragging ? 'dragging' : ''}`}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            onClick={triggerFileSelect}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <input 
-                              type="file" 
-                              id="cv-file-input" 
-                              accept=".pdf,.doc,.docx" 
-                              onChange={handleFileSelect} 
-                              style={{ display: 'none' }}
-                            />
-                            <UploadCloud className="upload-icon" size={32} />
-                            <p className="dropzone-text"><strong>Drag & drop your CV</strong> or <span className="browse-link">browse</span></p>
-                            <p className="dropzone-subtext">Supports PDF, DOC, DOCX up to 10MB</p>
-                          </div>
-                        )}
-                        {cvUploadError && <span className="field-error"><AlertCircle size={12} />{cvUploadError}</span>}
-                        <button type="button" className="cv-mode-toggle-btn" onClick={() => setCvUploadMode('link')}>
-                          <Link size={12} /> Paste a link instead
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="cv-link-container">
-                        <div className="premium-input-wrapper">
-                          <Link className="premium-input-icon" size={18} />
-                          <input
-                            type="url"
-                            id="modal-cv"
-                            name="cvUrl"
-                            placeholder="Paste Google Drive, Dropbox, or PDF link to your CV"
-                            value={formData.cvUrl}
-                            onChange={e => setFormData(prev => ({ ...prev, cvUrl: e.target.value }))}
-                            onBlur={() => setTouched(prev => ({ ...prev, cvUrl: true }))}
-                          />
+                          <button type="button" className="file-remove-btn" onClick={handleRemoveCvFile} disabled={cvIsUploading}>
+                            <X size={16} />
+                          </button>
                         </div>
-                        {getFieldError('cvUrl') && <span className="field-error"><AlertCircle size={12} />{getFieldError('cvUrl')}</span>}
-                        <button type="button" className="cv-mode-toggle-btn" onClick={() => setCvUploadMode('file')}>
-                          <UploadCloud size={12} /> Upload a file instead
-                        </button>
-                      </div>
-                    )}
+                      ) : (
+                        <div 
+                          className={`cv-dropzone ${isDragging ? 'dragging' : ''}`}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onClick={triggerFileSelect}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <input 
+                            type="file" 
+                            id="cv-file-input" 
+                            accept=".pdf,.doc,.docx" 
+                            onChange={handleFileSelect} 
+                            style={{ display: 'none' }}
+                          />
+                          <UploadCloud className="upload-icon" size={32} />
+                          <p className="dropzone-text"><strong>Drag & drop your CV</strong> or <span className="browse-link">browse</span></p>
+                          <p className="dropzone-subtext">Supports PDF, DOC, DOCX up to 10MB</p>
+                        </div>
+                      )}
+                      {cvUploadError && <span className="field-error"><AlertCircle size={12} />{cvUploadError}</span>}
+                    </div>
                   </div>
 
                   <div className="form-group">
