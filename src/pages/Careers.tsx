@@ -177,7 +177,13 @@ const Careers: React.FC = () => {
       const filePath = `resumes/${fileName}`;
 
       let publicUrl = '';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
       try {
+        if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+          throw new Error('Supabase is not configured on this environment.');
+        }
+
         // Try actual supabase upload
         const { error } = await supabase.storage
           .from('cvs')
@@ -190,11 +196,16 @@ const Careers: React.FC = () => {
           .getPublicUrl(filePath);
 
         publicUrl = urlData.publicUrl;
-      } catch (uploadErr) {
-        // Fallback mock upload
-        console.warn('Real Supabase upload failed, using mock path fallback:', uploadErr);
-        await new Promise(resolve => setTimeout(resolve, 800)); // wait brief moment
-        publicUrl = `https://lezerv-uploads.s3.amazonaws.com/cvs/${fileName}`;
+      } catch (uploadErr: any) {
+        const isMockMode = !supabaseUrl || supabaseUrl.includes('placeholder');
+        if (isMockMode) {
+          console.warn('Real Supabase upload failed, using mock path fallback for local testing:', uploadErr);
+          await new Promise(resolve => setTimeout(resolve, 800)); // wait brief moment
+          publicUrl = `https://lezerv-uploads.s3.amazonaws.com/cvs/${fileName}`;
+        } else {
+          // If the bucket is missing or upload fails in production, propagate the error to show feedback in UI
+          throw new Error(uploadErr.message || 'Failed to upload document to Supabase storage.');
+        }
       }
 
       setCvUploadProgress(100);
