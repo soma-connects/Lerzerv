@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
+import { ambassadorService } from '../services/ambassadorService';
 import './Login.css'; // Reusing some login styles for consistency
 
 const Signup: React.FC = () => {
@@ -33,6 +34,20 @@ const Signup: React.FC = () => {
 
       if (error) throw error;
       
+      // Attribute referral if a code was stored from a ?ref= link
+      const refCode = ambassadorService.getReferralCode();
+      if (refCode) {
+        try {
+          // Get the newly created user's ID from the signup response
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await ambassadorService.attachReferralToSignup(newUser.id, email, refCode);
+          }
+        } catch (refErr) {
+          console.warn('Referral attribution on signup failed:', refErr);
+        }
+      }
+
       // Usually Supabase sends a confirmation email
       alert('Registration successful! Please check your email for a confirmation link.');
       navigate('/login');

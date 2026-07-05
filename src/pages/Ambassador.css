@@ -1,0 +1,678 @@
+/* ============================================
+   AMBASSADOR PROGRAM PAGE — LEZERV
+   ============================================ */
+
+/* ------------------------------------------
+   PAGE WRAPPER
+   ------------------------------------------ */
+.ambassador-page {
+  background-color: var(--color-background);
+  min-height: 80vh;
+}
+
+/* ------------------------------------------
+   HERO SECTION
+   ------------------------------------------ */
+.ambassador-hero {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+  color: var(--color-on-primary);
+  padding: var(--spacing-2xl) var(--spacing-md);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ambassador-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.ambassador-hero .container {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ambassador-hero-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  color: var(--color-primary-fixed);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.375rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: var(--spacing-lg);
+}
+
+.ambassador-hero h1 {
+  font-size: clamp(2rem, 5vw, var(--font-size-h1));
+  font-weight: var(--font-weight-bold);
+  color: white;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.15;
+}
+
+.ambassador-hero p {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-primary-fixed);
+  max-width: 36rem;
+  margin: 0 auto var(--spacing-xl);
+  line-height: 1.6;
+}
+
+.ambassador-hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.ambassador-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.ambassador-hero-stat span:first-child {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: white;
+}
+
+.ambassador-hero-stat span:last-child {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-primary-fixed-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ------------------------------------------
+   APPLICATION FORM SECTION
+   ------------------------------------------ */
+.ambassador-apply-section {
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.apply-card {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-surface-variant);
+}
+
+.apply-card h2 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+.apply-card .form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.apply-card .form-group label {
+  display: block;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-on-surface);
+  margin-bottom: var(--spacing-xs);
+}
+
+.apply-card .form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: var(--font-size-body-md);
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.apply-card .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.1);
+}
+
+.apply-card .form-control::placeholder {
+  color: var(--color-outline);
+}
+
+.apply-card textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.apply-success {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.apply-success svg,
+.apply-success .icon {
+  font-size: 3rem;
+  color: var(--color-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.apply-success h3 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.apply-success p {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-md);
+}
+
+/* ------------------------------------------
+   PENDING STATE
+   ------------------------------------------ */
+.ambassador-pending {
+  max-width: 520px;
+  margin: var(--spacing-2xl) auto;
+  background: white;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-surface-variant);
+  text-align: center;
+}
+
+.ambassador-pending h2 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ambassador-pending p {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-md);
+  line-height: 1.6;
+}
+
+.pending-icon {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: var(--color-tertiary-fixed);
+  color: var(--color-on-tertiary-fixed-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto var(--spacing-lg);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+/* ------------------------------------------
+   AMBASSADOR DASHBOARD
+   ------------------------------------------ */
+.ambassador-dashboard {
+  padding: var(--spacing-2xl) var(--spacing-md);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-header h2 {
+  font-size: var(--font-size-h2);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-header p {
+  font-size: var(--font-size-body-md);
+  color: var(--color-on-surface-variant);
+}
+
+/* Referral Code Card */
+.referral-code-card {
+  background: white;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-surface-variant);
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}
+
+.referral-code-card h3 {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-on-surface);
+  margin-bottom: var(--spacing-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.referral-code-display {
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  background: var(--color-surface-container-low);
+  border: 2px dashed var(--color-primary-fixed-dim);
+  border-radius: var(--radius-xl);
+  padding: 0.75rem 1.5rem;
+  letter-spacing: 2px;
+  user-select: all;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.referral-code-display:hover {
+  background: var(--color-surface-container);
+  border-color: var(--color-primary);
+}
+
+.referral-link-display {
+  display: block;
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+  word-break: break-all;
+  padding: 0 var(--spacing-md);
+}
+
+/* Share Actions */
+.share-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+.share-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.share-btn:active {
+  transform: translateY(0);
+}
+
+.share-btn.whatsapp {
+  background: #25D366;
+  color: white;
+}
+
+.share-btn.whatsapp:hover {
+  background: #1fba59;
+}
+
+.share-btn.twitter {
+  background: var(--color-on-surface);
+  color: white;
+}
+
+.share-btn.twitter:hover {
+  opacity: 0.9;
+}
+
+.share-btn.copy {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.share-btn.copy:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.stat-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-surface-variant);
+  border-left: 4px solid var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat-card .stat-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-card .stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.stat-card .stat-label {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
+/* Stat card accent variants for visual variety */
+.stat-card:nth-child(2) {
+  border-left-color: var(--color-secondary);
+}
+
+.stat-card:nth-child(2) .stat-icon {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+}
+
+.stat-card:nth-child(2) .stat-value {
+  color: var(--color-secondary);
+}
+
+.stat-card:nth-child(3) {
+  border-left-color: var(--color-tertiary-container);
+}
+
+.stat-card:nth-child(3) .stat-icon {
+  background: var(--color-tertiary-fixed);
+  color: var(--color-on-tertiary-fixed);
+}
+
+.stat-card:nth-child(3) .stat-value {
+  color: var(--color-tertiary);
+}
+
+/* Discount Info Banner */
+.discount-info-banner {
+  background: var(--color-secondary-fixed);
+  border: 1px solid var(--color-on-secondary-fixed-variant);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  color: var(--color-on-secondary-fixed);
+  font-size: var(--font-size-body-sm);
+  line-height: 1.5;
+}
+
+.discount-info-banner svg,
+.discount-info-banner .icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  color: var(--color-on-secondary-fixed-variant);
+}
+
+/* ------------------------------------------
+   REFERRAL HISTORY
+   ------------------------------------------ */
+.referral-history {
+  margin-bottom: var(--spacing-xl);
+}
+
+.referral-history h3 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.referral-table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: var(--shadow-sm);
+}
+
+.referral-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-body-sm);
+}
+
+.referral-table th {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 1rem;
+  border-bottom: 2px solid var(--color-outline-variant);
+  white-space: nowrap;
+}
+
+.referral-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  vertical-align: middle;
+  color: var(--color-on-surface);
+}
+
+.referral-table tr:last-child td {
+  border-bottom: none;
+}
+
+.referral-table tr:hover {
+  background: var(--color-surface-container-low);
+}
+
+/* Referral Status Pills */
+.referral-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.referral-status.clicked {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.referral-status.signed_up {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #dbeafe;
+}
+
+.referral-status.booked {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #ffedd5;
+}
+
+.referral-status.completed {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.referral-status.expired {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fee2e2;
+}
+
+/* Empty Referrals State */
+.empty-referrals {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  color: var(--color-on-surface-variant);
+}
+
+.empty-referrals svg,
+.empty-referrals .icon {
+  font-size: 2.5rem;
+  color: var(--color-outline);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-referrals p {
+  font-size: var(--font-size-body-md);
+  max-width: 20rem;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------
+   LOGIN PROMPT
+   ------------------------------------------ */
+.ambassador-login-prompt {
+  max-width: 480px;
+  margin: var(--spacing-2xl) auto;
+  background: white;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-surface-variant);
+  text-align: center;
+}
+
+.ambassador-login-prompt h2 {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ambassador-login-prompt p {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-md);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------
+   RESPONSIVE — TABLET & MOBILE
+   ------------------------------------------ */
+@media (max-width: 768px) {
+  .ambassador-hero {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .ambassador-hero-stats {
+    gap: var(--spacing-lg);
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .share-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .share-btn {
+    justify-content: center;
+  }
+
+  .apply-card {
+    padding: var(--spacing-lg);
+  }
+
+  .referral-code-display {
+    font-size: 1.25rem;
+    padding: 0.625rem 1rem;
+  }
+
+  .ambassador-dashboard {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .referral-table th:nth-child(2),
+  .referral-table td:nth-child(2) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .ambassador-hero-stats {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+/* ------------------------------------------
+   ACCESSIBILITY & MOTION
+   ------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .pending-icon {
+    animation: none;
+  }
+
+  .stat-card,
+  .share-btn,
+  .referral-code-display {
+    transition: none !important;
+  }
+}

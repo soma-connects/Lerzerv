@@ -17,7 +17,8 @@ import {
   Trash2,
   Edit2,
   Database,
-  Eye
+  Eye,
+  Award
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +35,7 @@ import { jobService } from '../services/jobService';
 import type { TJob, TNewJob } from '../services/jobService';
 import { userService } from '../services/userService';
 import type { TUserProfile } from '../services/userService';
+import { ambassadorService } from '../services/ambassadorService';
 import './Admin.css';
 
 type TBooking = {
@@ -72,12 +74,13 @@ type TToast = {
 
 const Admin: React.FC = () => {
   const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
   const [jobs, setJobs] = useState<TJob[]>([]);
   const [users, setUsers] = useState<TUserProfile[]>([]);
+  const [ambassadors, setAmbassadors] = useState<any[]>([]);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
   
@@ -167,13 +170,14 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
         supabase.from('job_applications').select('*').order('created_at', { ascending: false }),
         jobService.fetchJobs(),
-        userService.fetchUsers()
+        userService.fetchUsers(),
+        supabase.from('ambassadors').select('*').order('created_at', { ascending: false })
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
@@ -182,6 +186,7 @@ const Admin: React.FC = () => {
       if (applicationsRes.data) setApplications(applicationsRes.data as TApplication[]);
       if (jobsRes.success && jobsRes.data) setJobs(jobsRes.data);
       if (usersRes.success && usersRes.data) setUsers(usersRes.data);
+      if (ambassadorsRes.data) setAmbassadors(ambassadorsRes.data);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -197,6 +202,13 @@ const Admin: React.FC = () => {
     const { error } = await supabase.from('bookings').update(updates).eq('id', id);
     if (!error) {
       triggerToast('Booking Status Updated', `Booking has been set to "${status}" successfully.`);
+      if (status === 'completed') {
+        try {
+          await ambassadorService.completeReferral(id);
+        } catch (refErr) {
+          console.error('Failed to complete referral points:', refErr);
+        }
+      }
       fetchData();
     } else {
       triggerToast('Update Failed', error.message);
@@ -429,6 +441,7 @@ const Admin: React.FC = () => {
                 <span className="admin-badge-count">{unreadApplicationsCount}</span>
               )}
             </button>
+            <button className={activeTab === 'ambassadors' ? 'active' : ''} onClick={() => setActiveTab('ambassadors')}>Ambassadors</button>
           </nav>
         </header>
 
@@ -988,6 +1001,231 @@ const Admin: React.FC = () => {
               </table>
             </div>
           </div>
+        )}
+
+        {activeTab === 'ambassadors' && (
+          <>
+            <div className="admin-stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon"><User size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Total Ambassadors</span>
+                  <span className="stat-value">{ambassadors.length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-tertiary)' }}><Clock size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Pending Reviews</span>
+                  <span className="stat-value">{ambassadors.filter(a => a.status === 'pending').length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-secondary)' }}><Award size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Total Points Active</span>
+                  <span className="stat-value">
+                    {ambassadors.reduce((acc, curr) => acc + (curr.total_points || 0), 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-content-card">
+              <div className="card-header">
+                <h2>Ambassadors & Referrals</h2>
+                <p className="card-desc">Review ambassador applications, track referrals, and award points.</p>
+              </div>
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Applied Date</th>
+                      <th>Ambassador Info</th>
+                      <th>Referral Code</th>
+                      <th>Points</th>
+                      <th>Referrals</th>
+                      <th>Reason / Note</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ambassadors.length > 0 ? (
+                      ambassadors.map((amb) => (
+                        <tr key={amb.id}>
+                          <td className="whitespace-nowrap text-sm">
+                            {new Date(amb.created_at).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </td>
+                          <td>
+                            <div className="candidate-cell">
+                              <span className="candidate-name">{amb.name}</span>
+                              <div className="candidate-links">
+                                <a href={`mailto:${amb.email}`} title="Send Email" className="candidate-link-icon">
+                                  <Mail size={14} />
+                                  <span>{amb.email}</span>
+                                </a>
+                                <a href={`tel:${amb.phone}`} title="Call Phone" className="candidate-link-icon">
+                                  <Phone size={14} />
+                                  <span>{amb.phone}</span>
+                                </a>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="order-badge" style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>
+                              {amb.referral_code}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{amb.total_points || 0}</strong>
+                          </td>
+                          <td>{amb.total_referrals || 0}</td>
+                          <td className="experience-cell text-sm max-w-xs" title={amb.reason}>
+                            {amb.reason}
+                          </td>
+                          <td>
+                            <span className={`status-pill status-${amb.status}`}>
+                              {amb.status}
+                            </span>
+                          </td>
+                          <td className="table-actions">
+                            {amb.status === 'pending' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="primary"
+                                  onClick={async () => {
+                                    const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'approved');
+                                    if (res.success) {
+                                      triggerToast('Application Approved', `${amb.name} is now an active ambassador.`);
+                                      fetchData();
+                                    } else {
+                                      triggerToast('Error', res.error?.message || 'Failed to approve application.');
+                                    }
+                                  }}
+                                >
+                                  Approve
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="btn-decline"
+                                  onClick={async () => {
+                                    if (window.confirm(`Are you sure you want to reject ${amb.name}'s application?`)) {
+                                      const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'rejected');
+                                      if (res.success) {
+                                        triggerToast('Application Rejected', `${amb.name}'s application was declined.`);
+                                        fetchData();
+                                      } else {
+                                        triggerToast('Error', res.error?.message || 'Failed to reject application.');
+                                      }
+                                    }
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+
+                            {amb.status === 'approved' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={async () => {
+                                    const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'suspended');
+                                    if (res.success) {
+                                      triggerToast('Ambassador Suspended', `${amb.name} is now suspended.`);
+                                      fetchData();
+                                    } else {
+                                      triggerToast('Error', res.error?.message || 'Failed to suspend.');
+                                    }
+                                  }}
+                                >
+                                  Suspend
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={async () => {
+                                    const valueStr = window.prompt(`Adjust points for ${amb.name} (e.g. 100 to add, -50 to subtract):`, '100');
+                                    if (valueStr === null) return;
+                                    const pts = parseInt(valueStr, 10);
+                                    if (isNaN(pts)) {
+                                      alert('Invalid points input.');
+                                      return;
+                                    }
+                                    const res = await ambassadorService.adjustPoints(amb.id, pts);
+                                    if (res.success) {
+                                      triggerToast('Points Adjusted', `Ambassador's points adjusted by ${pts}.`);
+                                      fetchData();
+                                    } else {
+                                      triggerToast('Error', res.error?.message || 'Failed to adjust points.');
+                                    }
+                                  }}
+                                >
+                                  Adjust Pts
+                                </Button>
+                              </>
+                            )}
+
+                            {amb.status === 'suspended' && (
+                              <Button 
+                                size="sm" 
+                                variant="primary"
+                                onClick={async () => {
+                                  const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'approved');
+                                  if (res.success) {
+                                    triggerToast('Ambassador Reactivated', `${amb.name} is active again.`);
+                                    fetchData();
+                                  } else {
+                                    triggerToast('Error', res.error?.message || 'Failed to reactivate.');
+                                  }
+                                }}
+                              >
+                                Reactivate
+                              </Button>
+                            )}
+
+                            {amb.status === 'rejected' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={async () => {
+                                  const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'approved');
+                                  if (res.success) {
+                                    triggerToast('Application Approved', `${amb.name} is now an active ambassador.`);
+                                    fetchData();
+                                  } else {
+                                    triggerToast('Error', res.error?.message || 'Failed to approve application.');
+                                  }
+                                }}
+                              >
+                                Approve
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="empty-table-cell">
+                          <Award size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                          <p>No ambassadors or applications found.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

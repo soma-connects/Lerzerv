@@ -473,3 +473,54 @@
     background: #e0e0e0;
   }
 }
+
+/* Ambassador Promo Section */
+.ambassador-promo {
+  padding: var(--spacing-2xl) 0;
+}
+
+.promo-banner {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.promo-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+.promo-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-lg);
+}
+
+.promo-banner h2 {
+  color: white;
+  font-size: var(--font-size-h2);
+  margin-bottom: var(--spacing-md);
+}
+
+.promo-banner p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--font-size-body-lg);
+  max-width: 600px;
+  margin: 0 auto var(--spacing-xl);
+  line-height: 1.6;
+}

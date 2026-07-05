@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight as ArrowIcon, Eraser, Play, Zap, Droplets } from 'lucide-react';
+import { ArrowRight as ArrowIcon, Eraser, Play, Zap, Droplets, Gift } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import './Home.css';
@@ -158,6 +158,28 @@ const Home: React.FC = () => {
             <h3>Relax</h3>
             <p>Track the job and pay securely when it's done.</p>
           </div>
+        </div>
+      </section>
+
+      {/* Ambassador Promo Section */}
+      <section className="ambassador-promo">
+        <div className="container">
+          <motion.div
+            className="promo-banner"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <div className="promo-icon">
+              <Gift size={32} />
+            </div>
+            <h2>Earn Rewards as a Lezerv Ambassador</h2>
+            <p>Share Lezerv with friends and family. When they book a service, you earn points — and they get a discount on their first booking.</p>
+            <Link to="/ambassador">
+              <Button variant="secondary" size="lg">Become an Ambassador</Button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 

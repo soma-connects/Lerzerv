@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout/Layout';
@@ -17,8 +17,21 @@ const Payment = lazy(() => import('./pages/Payment'));
 const TrackOrder = lazy(() => import('./pages/TrackOrder'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Ambassador = lazy(() => import('./pages/Ambassador'));
+
+import { ambassadorService } from './services/ambassadorService';
 
 const App: React.FC = () => {
+  // Capture referral code from URL on any page load
+  useEffect(() => {
+    ambassadorService.captureReferralCode();
+    // Track the click if a code was captured
+    const code = ambassadorService.getReferralCode();
+    if (code) {
+      ambassadorService.trackReferralClick(code);
+    }
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
@@ -38,6 +51,7 @@ const App: React.FC = () => {
             <Route path="/track" element={<TrackOrder />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/ambassador" element={<Ambassador />} />
           </Routes>
         </Suspense>
       </Layout>

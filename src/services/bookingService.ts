@@ -2,6 +2,7 @@ import type { IBookingRequest, IApiResponse, IStoredBooking } from '../types/api
 import { bookingStorage } from './bookingStorage';
 import { emailService } from './emailService';
 import { supabase } from '../lib/supabase';
+import { ambassadorService } from './ambassadorService';
 
 /**
  * Service for handling home service bookings.
@@ -50,6 +51,16 @@ export const bookingService = {
         await emailService.sendBookingEmail(request);
       } catch (e) {
         console.error('Email notification failed:', e);
+      }
+
+      // Attribute referral if a code was stored from a ?ref= link
+      try {
+        const refCode = ambassadorService.getReferralCode();
+        if (refCode && data?.id) {
+          await ambassadorService.attachReferralToBooking(data.id, refCode);
+        }
+      } catch (refErr) {
+        console.warn('Referral attribution on booking failed:', refErr);
       }
 
       return { success: true, data: data as any };

@@ -1279,3 +1279,52 @@
     right: 1rem;
   }
 }
+
+/* Ambassador Promo in Careers */
+.ambassador-careers-promo {
+  padding: var(--spacing-2xl) 0;
+}
+
+.ambassador-careers-promo .promo-compact-card {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  transition: box-shadow var(--transition-normal);
+}
+
+.ambassador-careers-promo .promo-compact-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.ambassador-careers-promo .promo-compact-icon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.ambassador-careers-promo .promo-compact-content h3 {
+  font-size: var(--font-size-h3);
+  margin-bottom: var(--spacing-xs);
+}
+
+.ambassador-careers-promo .promo-compact-content p {
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .ambassador-careers-promo .promo-compact-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, MapPin, Briefcase, HardHat, Wrench, Zap, Droplets, Hammer, CheckCircle2, X, Loader2, Sparkles, AlertCircle, User, Mail, Phone, MessageSquare, UploadCloud, Check, FileText } from 'lucide-react';
+import { ArrowRight, MapPin, Briefcase, HardHat, Wrench, Zap, Droplets, Hammer, CheckCircle2, X, Loader2, Sparkles, AlertCircle, User, Mail, Phone, MessageSquare, UploadCloud, Check, FileText, Gift } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { applicationService } from '../services/applicationService';
@@ -582,6 +583,30 @@ const Careers: React.FC = () => {
               </div>
             </motion.div>
           )}
+        </div>
+      </section>
+
+      {/* Ambassador Promo */}
+      <section className="ambassador-careers-promo">
+        <div className="container">
+          <motion.div
+            className="promo-compact-card"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            <div className="promo-compact-icon">
+              <Gift size={28} />
+            </div>
+            <div className="promo-compact-content">
+              <h3>Not an artisan? Become an Ambassador!</h3>
+              <p>Earn rewards by referring friends and family to use Lezerv services. No technical skills required.</p>
+              <Link to="/ambassador">
+                <Button variant="primary" size="lg">Learn More & Apply</Button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 
