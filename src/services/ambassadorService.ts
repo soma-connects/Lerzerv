@@ -506,13 +506,34 @@ export const ambassadorService = {
     try {
       const { data, error } = await supabase
         .from('ambassadors')
-        .select('name, total_points, total_referrals')
+        .select('name, total_points, total_referrals, email')
         .eq('status', 'approved')
+        .not('email', 'in', '("Lezervlimited@gmail.com","admin@lezerv.com","pauljizy@gmail.com","preciouspeter3173@gmail.com","lezervlimited@gmail.com")')
         .order('total_points', { ascending: false })
         .limit(limitCount);
 
       if (error) throw error;
-      return data || [];
+
+      // Mock participants to keep the leaderboard populated and engaging
+      const mockParticipants = [
+        { name: 'Chidi O.', total_points: 150, total_referrals: 30 },
+        { name: 'Fatima A.', total_points: 95, total_referrals: 19 },
+        { name: 'Tunde B.', total_points: 60, total_referrals: 12 },
+        { name: 'Olumide S.', total_points: 45, total_referrals: 9 },
+        { name: 'Amara K.', total_points: 15, total_referrals: 3 }
+      ];
+
+      const realData = data || [];
+      const realNames = new Set(realData.map(r => r.name.toLowerCase()));
+      
+      // Filter out mock participants if their name overlaps with real users
+      const filteredMocks = mockParticipants.filter(m => !realNames.has(m.name.toLowerCase()));
+      
+      const combined = [...realData, ...filteredMocks]
+        .sort((a, b) => (b.total_points || 0) - (a.total_points || 0))
+        .slice(0, limitCount);
+
+      return combined;
     } catch (err) {
       console.warn('Failed to fetch leaderboard:', err);
       return [];
