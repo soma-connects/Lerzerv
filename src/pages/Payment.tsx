@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
+import { emailService } from '../services/emailService';
+import { ambassadorService } from '../services/ambassadorService';
 import './Payment.css';
 
 type TPaymentMethod = 'bank_transfer' | 'card' | 'pod' | null;
@@ -73,6 +75,16 @@ const Payment: React.FC = () => {
     
     setIsConfirming(false);
     if (!error) {
+      // Notify Admin via email
+      try {
+        await emailService.sendPaymentNotificationEmail(
+          booking?.order_number || 'N/A',
+          booking?.customer?.name || 'Guest',
+          booking?.amount_due || 'Pending Quote'
+        );
+      } catch (err) {
+        console.warn('Failed to send admin payment email:', err);
+      }
       alert('Payment notification sent! The admin will verify your transfer shortly.');
       navigate('/profile');
     } else {
@@ -98,6 +110,12 @@ const Payment: React.FC = () => {
         
       setIsConfirming(false);
       if (!error) {
+        // Award referral points since payment is fully successful
+        try {
+          await ambassadorService.completeReferral(bookingId!);
+        } catch (refErr) {
+          console.warn('Failed to credit ambassador points on card payment:', refErr);
+        }
         alert('Payment Approved! Your service booking is now confirmed in real-time.');
         navigate('/profile');
       } else {

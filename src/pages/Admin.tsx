@@ -18,7 +18,8 @@ import {
   Edit2,
   Database,
   Eye,
-  Award
+  Award,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -445,6 +446,28 @@ const Admin: React.FC = () => {
           </nav>
         </header>
 
+        {/* Action Required Banner */}
+        {bookings.filter(b => b.status === 'pending' || b.status === 'awaiting_confirmation').length > 0 && (
+          <div className="admin-alert-banner" style={{
+            background: 'var(--color-tertiary-container)',
+            border: '1px solid var(--color-outline-variant)',
+            color: 'var(--color-on-tertiary-container)',
+            padding: 'var(--spacing-md)',
+            borderRadius: 'var(--radius-xl)',
+            marginBottom: 'var(--spacing-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-sm)'
+          }}>
+            <AlertCircle size={20} color="var(--color-tertiary)" />
+            <span>
+              <strong>Action Required:</strong> You have{' '}
+              <strong>{bookings.filter(b => b.status === 'pending').length}</strong> pending booking request(s) and{' '}
+              <strong>{bookings.filter(b => b.status === 'awaiting_confirmation').length}</strong> payment confirmation(s) awaiting your review.
+            </span>
+          </div>
+        )}
+
         {activeTab === 'bookings' && (
           <>
             <div className="admin-stats-grid">
@@ -526,10 +549,44 @@ const Admin: React.FC = () => {
                                   .update({ status: 'confirmed', payment_status: 'paid' })
                                   .eq('id', booking.id);
                                 if (!error) {
+                                  try {
+                                    await ambassadorService.completeReferral(booking.id);
+                                  } catch (refErr) {
+                                    console.error('Failed to complete referral points:', refErr);
+                                  }
                                   triggerToast('Payment Confirmed', `Order ${booking.order_number} is now marked as confirmed.`);
                                   fetchData();
                                 }
                               }}>Confirm Payment</Button>
+                            )}
+
+                            {booking.payment_status !== 'paid' && booking.status !== 'declined' && booking.status !== 'cancelled' && booking.status !== 'awaiting_confirmation' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                style={{ borderColor: 'var(--color-secondary)', color: 'var(--color-secondary)' }}
+                                onClick={async () => {
+                                  if (window.confirm(`Mark order ${booking.order_number} payment as PAID?`)) {
+                                    const { error } = await supabase
+                                      .from('bookings')
+                                      .update({ payment_status: 'paid' })
+                                      .eq('id', booking.id);
+                                    if (!error) {
+                                      try {
+                                        await ambassadorService.completeReferral(booking.id);
+                                      } catch (refErr) {
+                                        console.error('Failed to complete referral points:', refErr);
+                                      }
+                                      triggerToast('Payment Confirmed', `Order ${booking.order_number} marked as PAID.`);
+                                      fetchData();
+                                    } else {
+                                      triggerToast('Error', error.message);
+                                    }
+                                  }
+                                }}
+                              >
+                                Mark Paid
+                              </Button>
                             )}
                           </td>
                         </tr>

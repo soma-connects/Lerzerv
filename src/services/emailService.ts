@@ -44,5 +44,19 @@ export const emailService = {
     console.log('[Email Service] Preparing to send welcome email to ambassador:', email, { name, referralCode });
     // Simulate sending welcome email
     return true;
+  },
+
+  /**
+   * Sends a notification to Lezerv admin that a customer has claimed to make a payment.
+   */
+  sendPaymentNotificationEmail: async (orderNumber: string, customerName: string, amount: string): Promise<boolean> => {
+    console.log('[Email Service] Admin Notification: Customer marked payment as complete.', {
+      to: 'Lezervlimited@gmail.com',
+      orderNumber,
+      customerName,
+      amount
+    });
+    // Simulate sending admin email
+    return true;
   }
 };
