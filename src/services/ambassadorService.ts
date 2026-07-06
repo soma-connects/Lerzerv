@@ -497,5 +497,25 @@ export const ambassadorService = {
         error: { code: 'DATABASE_ERROR', message: err.message || 'Failed to adjust points.' }
       };
     }
+  },
+
+  /**
+   * Fetch the leaderboard data (top active ambassadors by points).
+   */
+  getLeaderboard: async (limitCount = 10): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('ambassadors')
+        .select('name, total_points, total_referrals')
+        .eq('status', 'approved')
+        .order('total_points', { ascending: false })
+        .limit(limitCount);
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.warn('Failed to fetch leaderboard:', err);
+      return [];
+    }
   }
 };

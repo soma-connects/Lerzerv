@@ -30,6 +30,7 @@ const Ambassador: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [ambassador, setAmbassador] = useState<TAmbassador | null>(null);
   const [referrals, setReferrals] = useState<TReferral[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
@@ -51,8 +52,12 @@ const Ambassador: React.FC = () => {
       }
 
       try {
-        const profile = await ambassadorService.getMyAmbassadorProfile();
+        const [profile, board] = await Promise.all([
+          ambassadorService.getMyAmbassadorProfile(),
+          ambassadorService.getLeaderboard()
+        ]);
         setAmbassador(profile);
+        setLeaderboard(board);
 
         if (profile) {
           const refs = await ambassadorService.getMyReferrals();
@@ -534,46 +539,111 @@ const Ambassador: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* Referral History Table */}
-            <div className="referral-history">
-              <h3>Referral Activity</h3>
-              {referrals.length === 0 ? (
-                <div className="empty-referrals">
-                  <Share2 size={40} strokeWidth={1.5} />
-                  <p>No referrals yet. Share your link to get started!</p>
-                </div>
-              ) : (
-                <div className="referral-table-container">
-                  <table className="referral-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Referred Person</th>
-                        <th>Status</th>
-                        <th>Points</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {referrals.map(ref => (
-                        <tr key={ref.id}>
-                          <td>{new Date(ref.created_at).toLocaleDateString()}</td>
-                          <td>{ref.referred_email || 'Anonymous visitor'}</td>
-                          <td>
-                            <span className={`referral-status ${ref.status}`}>
-                              {ref.status === 'signed_up' ? 'Signed Up' : ref.status.charAt(0).toUpperCase() + ref.status.slice(1)}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ fontWeight: ref.points_awarded > 0 ? 'var(--font-weight-bold)' : 'normal', color: ref.points_awarded > 0 ? 'var(--color-secondary)' : 'var(--color-on-surface-variant)' }}>
-                              {ref.points_awarded > 0 ? `+${ref.points_awarded}` : '—'}
-                            </span>
-                          </td>
+            {/* Dashboard Sections Grid */}
+            <div className="dashboard-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 0.8fr',
+              gap: 'var(--spacing-xl)',
+              marginTop: 'var(--spacing-xl)'
+            }}>
+              {/* Left Column: Referral History */}
+              <div className="referral-history" style={{ margin: 0 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--spacing-md)' }}>
+                  <Share2 size={20} color="var(--color-primary)" />
+                  Referral Activity
+                </h3>
+                {referrals.length === 0 ? (
+                  <div className="empty-referrals">
+                    <Share2 size={40} strokeWidth={1.5} />
+                    <p>No referrals yet. Share your link to get started!</p>
+                  </div>
+                ) : (
+                  <div className="referral-table-container">
+                    <table className="referral-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Referred Person</th>
+                          <th>Status</th>
+                          <th>Points</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody>
+                        {referrals.map(ref => (
+                          <tr key={ref.id}>
+                            <td>{new Date(ref.created_at).toLocaleDateString()}</td>
+                            <td>{ref.referred_email || 'Anonymous visitor'}</td>
+                            <td>
+                              <span className={`referral-status ${ref.status}`}>
+                                {ref.status === 'signed_up' ? 'Signed Up' : ref.status.charAt(0).toUpperCase() + ref.status.slice(1)}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: ref.points_awarded > 0 ? 'var(--font-weight-bold)' : 'normal', color: ref.points_awarded > 0 ? 'var(--color-secondary)' : 'var(--color-on-surface-variant)' }}>
+                                {ref.points_awarded > 0 ? `+${ref.points_awarded}` : '—'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Leaderboard */}
+              <div className="leaderboard-section" style={{
+                background: 'var(--color-surface-container)',
+                border: '1px solid var(--color-outline-variant)',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--spacing-lg)'
+              }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--spacing-md)' }}>
+                  <Award size={20} color="var(--color-secondary)" />
+                  Top Ambassadors
+                </h3>
+                {leaderboard.length === 0 ? (
+                  <p style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-size-body-sm)' }}>No data available.</p>
+                ) : (
+                  <div className="leaderboard-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {leaderboard.map((item, idx) => (
+                      <div key={idx} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        background: 'var(--color-surface-container-high)',
+                        borderRadius: 'var(--radius-md)',
+                        border: item.name === ambassador.name ? '1px solid var(--color-primary)' : 'none'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: idx === 0 ? '#ffd700' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : 'var(--color-surface-variant)',
+                            color: idx < 3 ? '#1e293b' : 'var(--color-on-surface-variant)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 'var(--font-size-label)',
+                            fontWeight: 'bold'
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <span style={{
+                            fontWeight: item.name === ambassador.name ? 'bold' : 'normal',
+                            fontSize: 'var(--font-size-body-md)'
+                          }}>
+                            {item.name} {item.name === ambassador.name && ' (You)'}
+                          </span>
+                        </div>
+                        <span style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>{item.total_points || 0} pts</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

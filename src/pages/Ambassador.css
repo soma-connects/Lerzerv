@@ -694,3 +694,10 @@
   background: linear-gradient(135deg, #e5e9f0 0%, #577080 100%) !important;
   color: white !important;
 }
+
+/* Dashboard Sections Grid Responsive Layout */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
