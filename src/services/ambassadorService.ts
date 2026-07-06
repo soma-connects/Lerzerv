@@ -280,7 +280,7 @@ export const ambassadorService = {
 
       if (!ambassador) return;
 
-      // Prevent self-referral
+      // Prevent self-referral (allow in development mode for easy developer testing)
       const { data: selfCheck } = await supabase
         .from('ambassadors')
         .select('id')
@@ -288,8 +288,8 @@ export const ambassadorService = {
         .eq('id', ambassador.id)
         .single();
 
-      if (selfCheck) {
-        console.warn('Self-referral attempt blocked.');
+      if (selfCheck && !import.meta.env.DEV) {
+        console.warn('Self-referral attempt blocked in production.');
         return;
       }
 

@@ -82,6 +82,7 @@ const Admin: React.FC = () => {
   const [jobs, setJobs] = useState<TJob[]>([]);
   const [users, setUsers] = useState<TUserProfile[]>([]);
   const [ambassadors, setAmbassadors] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<any[]>([]);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
   
@@ -171,14 +172,15 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
         supabase.from('job_applications').select('*').order('created_at', { ascending: false }),
         jobService.fetchJobs(),
         userService.fetchUsers(),
-        supabase.from('ambassadors').select('*').order('created_at', { ascending: false })
+        supabase.from('ambassadors').select('*').order('created_at', { ascending: false }),
+        supabase.from('referrals').select('*, ambassadors(name, referral_code)').order('created_at', { ascending: false })
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
@@ -188,6 +190,7 @@ const Admin: React.FC = () => {
       if (jobsRes.success && jobsRes.data) setJobs(jobsRes.data);
       if (usersRes.success && usersRes.data) setUsers(usersRes.data);
       if (ambassadorsRes.data) setAmbassadors(ambassadorsRes.data);
+      if (referralsRes.data) setReferrals(referralsRes.data);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -1073,8 +1076,8 @@ const Admin: React.FC = () => {
               <div className="stat-card">
                 <div className="stat-icon" style={{ color: 'var(--color-tertiary)' }}><Clock size={20} /></div>
                 <div className="stat-info">
-                  <span className="stat-label">Pending Reviews</span>
-                  <span className="stat-value">{ambassadors.filter(a => a.status === 'pending').length}</span>
+                  <span className="stat-label">Referrals Tracked</span>
+                  <span className="stat-value">{referrals.length}</span>
                 </div>
               </div>
               <div className="stat-card">
@@ -1090,8 +1093,8 @@ const Admin: React.FC = () => {
 
             <div className="admin-content-card">
               <div className="card-header">
-                <h2>Ambassadors & Referrals</h2>
-                <p className="card-desc">Review ambassador applications, track referrals, and award points.</p>
+                <h2>Ambassadors List</h2>
+                <p className="card-desc">Monitor ambassador points, suspension status, and their active grades.</p>
               </div>
 
               <div className="admin-table-container">
@@ -1103,7 +1106,7 @@ const Admin: React.FC = () => {
                       <th>Referral Code</th>
                       <th>Points</th>
                       <th>Referrals</th>
-                      <th>Reason / Note</th>
+                      <th>Grade Level</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -1143,8 +1146,10 @@ const Admin: React.FC = () => {
                             <strong>{amb.total_points || 0}</strong>
                           </td>
                           <td>{amb.total_referrals || 0}</td>
-                          <td className="experience-cell text-sm max-w-xs" title={amb.reason}>
-                            {amb.reason}
+                          <td>
+                            <span className={`status-pill status-${(amb.total_points < 50 ? 'bronze' : amb.total_points < 100 ? 'silver' : amb.total_points < 200 ? 'gold' : 'platinum')}`}>
+                              {amb.total_points < 50 ? 'Bronze' : amb.total_points < 100 ? 'Silver' : amb.total_points < 200 ? 'Gold' : 'Platinum'}
+                            </span>
                           </td>
                           <td>
                             <span className={`status-pill status-${amb.status}`}>
@@ -1238,7 +1243,73 @@ const Admin: React.FC = () => {
                       <tr>
                         <td colSpan={8} className="empty-table-cell">
                           <Award size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                          <p>No ambassadors or applications found.</p>
+                          <p>No ambassadors found.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Second Card: Referral Tracking Logs */}
+            <div className="admin-content-card" style={{ marginTop: 'var(--spacing-xl)' }}>
+              <div className="card-header">
+                <h2>Referral Activity Logs</h2>
+                <p className="card-desc">Track real-time visitor clicks, user signups, and booking conversions driven by ambassadors.</p>
+              </div>
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Activity Date</th>
+                      <th>Ambassador</th>
+                      <th>Referral Code</th>
+                      <th>Customer Email / ID</th>
+                      <th>Current Status</th>
+                      <th>Points Awarded</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referrals.length > 0 ? (
+                      referrals.map((ref) => (
+                        <tr key={ref.id}>
+                          <td className="whitespace-nowrap text-sm">
+                            {new Date(ref.created_at).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td>
+                            <strong>{ref.ambassadors?.name || 'Unknown'}</strong>
+                          </td>
+                          <td>
+                            <span className="order-badge" style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>
+                              {ref.referral_code}
+                            </span>
+                          </td>
+                          <td className="text-sm">
+                            {ref.referred_email || ref.referred_user_id || <span style={{ color: 'var(--color-outline)' }}>Visitor (Anonymous)</span>}
+                          </td>
+                          <td>
+                            <span className={`status-pill status-${ref.status === 'signed_up' ? 'artisan' : ref.status === 'booked' ? 'pending' : ref.status === 'completed' ? 'confirmed' : 'on-hold-queue'}`}>
+                              {ref.status}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{ref.points_awarded || 0} pt</strong>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="empty-table-cell">
+                          <Award size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                          <p>No referral clicks or conversions tracked yet.</p>
                         </td>
                       </tr>
                     )}
