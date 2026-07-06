@@ -23,6 +23,7 @@ import {
   type TReferral,
   type TAmbassadorApplication
 } from '../services/ambassadorService';
+import { emailService } from '../services/emailService';
 import './Ambassador.css';
 
 const Ambassador: React.FC = () => {
@@ -37,10 +38,9 @@ const Ambassador: React.FC = () => {
   const [appName, setAppName] = useState('');
   const [appEmail, setAppEmail] = useState('');
   const [appPhone, setAppPhone] = useState('');
-  const [appReason, setAppReason] = useState('');
+  const [agreedToEmails, setAgreedToEmails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -54,7 +54,7 @@ const Ambassador: React.FC = () => {
         const profile = await ambassadorService.getMyAmbassadorProfile();
         setAmbassador(profile);
 
-        if (profile?.status === 'approved') {
+        if (profile) {
           const refs = await ambassadorService.getMyReferrals();
           setReferrals(refs);
         }
@@ -74,6 +74,10 @@ const Ambassador: React.FC = () => {
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreedToEmails) {
+      setSubmitError('You must agree to receive your referral code via email.');
+      return;
+    }
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -81,14 +85,21 @@ const Ambassador: React.FC = () => {
       name: appName,
       email: appEmail,
       phone: appPhone,
-      reason: appReason
+      reason: 'Instant Join Program' // filler for schema validation
     };
 
     const response = await ambassadorService.applyToProgram(application);
 
     if (response.success) {
-      setSubmitSuccess(true);
-      setAmbassador(response.data!);
+      const activeAmbassador = response.data!;
+      setAmbassador(activeAmbassador);
+
+      // Trigger welcome email notification
+      try {
+        await emailService.sendAmbassadorWelcomeEmail(appName, appEmail, activeAmbassador.referral_code);
+      } catch (emailErr) {
+        console.warn('Welcome email failed to send:', emailErr);
+      }
     } else {
       setSubmitError(response.error?.message || 'Something went wrong. Please try again.');
     }
@@ -130,6 +141,42 @@ const Ambassador: React.FC = () => {
     return `${window.location.origin}/?ref=${ambassador.referral_code}`;
   };
 
+  const getAmbassadorTier = (points: number) => {
+    if (points < 50) {
+      return {
+        current: 'Bronze',
+        next: 'Silver',
+        pointsNeeded: 50 - points,
+        progress: (points / 50) * 100,
+        desc: 'Accumulate 50 points to unlock Silver Grade and claim your first rewards!'
+      };
+    } else if (points < 100) {
+      return {
+        current: 'Silver',
+        next: 'Gold',
+        pointsNeeded: 100 - points,
+        progress: ((points - 50) / 50) * 100,
+        desc: 'Silver Grade active! Unlock Gold Grade at 100 points for even bigger rewards.'
+      };
+    } else if (points < 200) {
+      return {
+        current: 'Gold',
+        next: 'Platinum',
+        pointsNeeded: 200 - points,
+        progress: ((points - 100) / 100) * 100,
+        desc: 'Gold Grade active! Only a few more referrals to unlock the top Platinum status.'
+      };
+    } else {
+      return {
+        current: 'Platinum',
+        next: null,
+        pointsNeeded: 0,
+        progress: 100,
+        desc: 'Platinum Grade active! You have unlocked maximum rewards. Outstanding job! 👑'
+      };
+    }
+  };
+
   const pendingCount = referrals.filter(r => ['clicked', 'signed_up', 'booked'].includes(r.status)).length;
 
   if (isLoading || authLoading) {
@@ -163,16 +210,16 @@ const Ambassador: React.FC = () => {
             </p>
             <div className="ambassador-hero-stats">
               <div className="ambassador-hero-stat">
-                <span className="stat-number">100</span>
+                <span className="stat-number">5</span>
                 <span className="stat-text">Points per referral</span>
+              </div>
+              <div className="ambassador-hero-stat">
+                <span className="stat-number">50 pt</span>
+                <span className="stat-text">For Reward Eligibility</span>
               </div>
               <div className="ambassador-hero-stat">
                 <span className="stat-number">10%</span>
                 <span className="stat-text">Discount for friends</span>
-              </div>
-              <div className="ambassador-hero-stat">
-                <span className="stat-number">∞</span>
-                <span className="stat-text">No limit on referrals</span>
               </div>
             </div>
           </motion.div>
@@ -203,28 +250,25 @@ const Ambassador: React.FC = () => {
           </motion.div>
         )}
 
-        {/* ── Pending Application ── */}
-        {user && ambassador?.status === 'pending' && (
+        {/* ── Suspended State ── */}
+        {user && ambassador?.status === 'suspended' && (
           <motion.div
             className="ambassador-pending"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <div className="pending-icon">
-              <Clock size={48} />
+            <div className="pending-icon" style={{ background: 'var(--color-error-container)' }}>
+              <AlertCircle size={48} color="var(--color-error)" />
             </div>
-            <h2>Application Under Review</h2>
+            <h2>Account Suspended</h2>
             <p>
-              Thank you for applying to the Lezerv Ambassador Program!
-              Our team is reviewing your application. You will be notified once it's approved.
+              Your ambassador account has been suspended by an administrator.
+              Please contact support at <a href="mailto:Lezervlimited@gmail.com">Lezervlimited@gmail.com</a>.
             </p>
-            <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-size-body-sm)' }}>
-              Applied: {new Date(ambassador.created_at).toLocaleDateString()}
-            </div>
           </motion.div>
         )}
 
-        {/* ── Rejected ── */}
+        {/* ── Rejected State ── */}
         {user && ambassador?.status === 'rejected' && (
           <motion.div
             className="ambassador-pending"
@@ -234,16 +278,16 @@ const Ambassador: React.FC = () => {
             <div className="pending-icon" style={{ background: 'var(--color-error-container)' }}>
               <AlertCircle size={48} color="var(--color-error)" />
             </div>
-            <h2>Application Not Approved</h2>
+            <h2>Registration Not Approved</h2>
             <p>
-              Unfortunately, your application was not approved at this time.
-              Please contact support at <a href="mailto:Lezervlimited@gmail.com">Lezervlimited@gmail.com</a> for more information.
+              Your ambassador profile is currently deactivated.
+              Please contact support at <a href="mailto:Lezervlimited@gmail.com">Lezervlimited@gmail.com</a> for help.
             </p>
           </motion.div>
         )}
 
-        {/* ── Application Form (no ambassador record yet) ── */}
-        {user && !ambassador && !submitSuccess && (
+        {/* ── Join Form (no ambassador record yet) ── */}
+        {user && !ambassador && (
           <motion.section
             className="ambassador-apply-section"
             initial={{ opacity: 0, y: 20 }}
@@ -251,9 +295,9 @@ const Ambassador: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <div className="apply-card">
-              <h2>Apply to Become an Ambassador</h2>
+              <h2>Join the Ambassador Program</h2>
               <p style={{ color: 'var(--color-on-surface-variant)', marginBottom: 'var(--spacing-xl)' }}>
-                Tell us a bit about yourself. Once approved, you'll receive your unique referral code.
+                Activate your account to receive your unique referral code instantly.
               </p>
 
               <form onSubmit={handleApply}>
@@ -290,20 +334,23 @@ const Ambassador: React.FC = () => {
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label>Why do you want to be a Lezerv Ambassador?</label>
-                  <textarea
-                    className="form-control"
-                    rows={4}
-                    value={appReason}
-                    onChange={e => setAppReason(e.target.value)}
-                    placeholder="Tell us about your network, how you plan to share Lezerv, and why you'd be a great ambassador..."
+
+                <div className="form-group checkbox-group" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', margin: 'var(--spacing-md) 0' }}>
+                  <input
+                    type="checkbox"
+                    id="agreedToEmails"
+                    checked={agreedToEmails}
+                    onChange={e => setAgreedToEmails(e.target.checked)}
                     required
+                    style={{ marginTop: '0.25rem', cursor: 'pointer', width: '18px', height: '18px' }}
                   />
+                  <label htmlFor="agreedToEmails" style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--color-on-surface-variant)', cursor: 'pointer', lineHeight: '1.4' }}>
+                    I agree to join the Lezerv Ambassador Program and receive my unique referral code at this email address.
+                  </label>
                 </div>
 
                 {submitError && (
-                  <div className="apply-error">
+                  <div className="apply-error" style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-error)' }}>
                     <AlertCircle size={16} />
                     <span>{submitError}</span>
                   </div>
@@ -317,27 +364,11 @@ const Ambassador: React.FC = () => {
                   disabled={isSubmitting}
                   rightIcon={isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  {isSubmitting ? 'Activating...' : 'Join Now & Get Referral Code'}
                 </Button>
               </form>
             </div>
           </motion.section>
-        )}
-
-        {/* ── Application Success (just submitted) ── */}
-        {user && submitSuccess && ambassador?.status === 'pending' && (
-          <motion.div
-            className="apply-success"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Check size={64} color="var(--color-secondary)" style={{ margin: '0 auto' }} />
-            <h2>Application Submitted!</h2>
-            <p>
-              Your application to the Lezerv Ambassador Program has been received.
-              Our team will review it and get back to you soon.
-            </p>
-          </motion.div>
         )}
 
         {/* ── Approved Ambassador Dashboard ── */}
@@ -390,6 +421,67 @@ const Ambassador: React.FC = () => {
                   {isLinkCopied ? 'Copied!' : 'Copy Link'}
                 </button>
               </div>
+            </motion.div>
+
+            {/* Ambassador Grade Progress Card */}
+            <motion.div
+              className="tier-progress-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              style={{
+                background: 'var(--color-surface-container-high)',
+                border: '1px solid var(--color-outline-variant)',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--spacing-lg)',
+                marginTop: 'var(--spacing-md)',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div className="tier-header-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-sm)' }}>
+                <span className="tier-title" style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Ambassador Status</span>
+                <span className={`tier-badge tier-${getAmbassadorTier(ambassador.total_points || 0).current.toLowerCase()}`} style={{
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--font-size-label)',
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%)',
+                  color: 'white',
+                  textTransform: 'uppercase'
+                }}>
+                  {getAmbassadorTier(ambassador.total_points || 0).current} Grade
+                </span>
+              </div>
+              
+              <div className="progress-bar-container" style={{
+                background: 'var(--color-surface-variant)',
+                borderRadius: 'var(--radius-full)',
+                height: '12px',
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden',
+                margin: '16px 0'
+              }}>
+                <div className="progress-bar-fill" style={{
+                  background: 'linear-gradient(90deg, var(--color-secondary) 0%, var(--color-primary) 100%)',
+                  height: '100%',
+                  width: `${getAmbassadorTier(ambassador.total_points || 0).progress}%`,
+                  borderRadius: 'var(--radius-full)',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+
+              <div className="tier-footer-info" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-size-body-sm)', color: 'var(--color-on-surface-variant)', fontWeight: '500' }}>
+                <span>{ambassador.total_points || 0} Points</span>
+                {getAmbassadorTier(ambassador.total_points || 0).next ? (
+                  <span>{getAmbassadorTier(ambassador.total_points || 0).pointsNeeded} points until {getAmbassadorTier(ambassador.total_points || 0).next} Grade</span>
+                ) : (
+                  <span>Max Grade Unlocked! 👑</span>
+                )}
+              </div>
+              <p style={{ marginTop: 'var(--spacing-md)', fontSize: 'var(--font-size-body-sm)', color: 'var(--color-on-surface-variant)', lineHeight: '1.5' }}>
+                {getAmbassadorTier(ambassador.total_points || 0).desc}
+              </p>
             </motion.div>
 
             {/* Discount Info Banner */}

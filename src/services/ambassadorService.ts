@@ -40,10 +40,8 @@ export type TReferral = {
   created_at: string;
 };
 
-// ─── Constants ─────────────────────────────────────────
-
 const REFERRAL_STORAGE_KEY = 'lezerv_ref_code';
-const POINTS_PER_REFERRAL = 100;
+const POINTS_PER_REFERRAL = 5;
 
 // ─── Helper: Generate unique referral code ─────────────
 
@@ -63,7 +61,7 @@ export const ambassadorService = {
 
   /**
    * Submit an application to become an ambassador.
-   * Creates a record with status='pending' — admin must approve.
+   * Creates a record with status='approved' instantly.
    */
   applyToProgram: async (application: TAmbassadorApplication): Promise<IApiResponse<TAmbassador>> => {
     try {
@@ -86,11 +84,7 @@ export const ambassadorService = {
           success: false,
           error: {
             code: 'ALREADY_EXISTS',
-            message: existing.status === 'pending'
-              ? 'You already have a pending application.'
-              : existing.status === 'approved'
-                ? 'You are already an ambassador!'
-                : 'You already have an application on file. Please contact support.'
+            message: 'You are already an ambassador!'
           }
         };
       }
@@ -108,7 +102,7 @@ export const ambassadorService = {
           referral_code: referralCode,
           total_points: 0,
           total_referrals: 0,
-          status: 'pending'
+          status: 'approved'
         }])
         .select()
         .single();
@@ -273,7 +267,7 @@ export const ambassadorService = {
    * Attach a referral to a booking. Updates or creates a referral record
    * with status='booked'.
    */
-  attachReferralToBooking: async (bookingId: string, code: string): Promise<void> => {
+  attachReferralToBooking: async (bookingId: string, code: string, referredEmail?: string): Promise<void> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -299,22 +293,39 @@ export const ambassadorService = {
         return;
       }
 
-      // Try to upgrade an existing signed_up referral for this user
-      const { data: existingReferral } = await supabase
-        .from('referrals')
-        .select('id')
-        .eq('ambassador_id', ambassador.id)
-        .eq('referred_user_id', user?.id ?? '')
-        .in('status', ['clicked', 'signed_up'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Try to upgrade an existing signed_up referral for this user or email
+      let existingReferral = null;
+      
+      if (user) {
+        const { data } = await supabase
+          .from('referrals')
+          .select('id')
+          .eq('ambassador_id', ambassador.id)
+          .eq('referred_user_id', user.id)
+          .in('status', ['clicked', 'signed_up'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        existingReferral = data;
+      } else if (referredEmail) {
+        const { data } = await supabase
+          .from('referrals')
+          .select('id')
+          .eq('ambassador_id', ambassador.id)
+          .eq('referred_email', referredEmail)
+          .in('status', ['clicked', 'signed_up'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        existingReferral = data;
+      }
 
       if (existingReferral) {
         await supabase
           .from('referrals')
           .update({
             referred_booking_id: bookingId,
+            referred_email: referredEmail || null,
             status: 'booked',
             discount_applied: true
           })
@@ -325,6 +336,7 @@ export const ambassadorService = {
           referral_code: code.toUpperCase(),
           referred_user_id: user?.id ?? null,
           referred_booking_id: bookingId,
+          referred_email: referredEmail || null,
           status: 'booked',
           points_awarded: 0,
           discount_applied: true

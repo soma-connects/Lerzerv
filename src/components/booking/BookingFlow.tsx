@@ -5,6 +5,7 @@ import { X, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, Loader2 } from 'lu
 import { Button } from '../ui/Button';
 import './BookingFlow.css';
 import { bookingService } from '../../services/bookingService';
+import { ambassadorService } from '../../services/ambassadorService';
 import type { IBookingRequest } from '../../types/api';
 
 interface BookingFlowProps {
@@ -30,7 +31,8 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
     estate: '',
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    referralCode: ambassadorService.getReferralCode() || ''
   });
 
   const steps: Step[] = ['details', 'schedule', 'info', 'review'];
@@ -63,7 +65,8 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
         name: formData.name,
         phone: formData.phone,
         email: formData.email
-      }
+      },
+      referralCode: formData.referralCode || undefined
     };
 
     try {
@@ -247,6 +250,16 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
                     onChange={e => updateField('phone', e.target.value)}
                   />
                 </div>
+                <div className="form-group">
+                  <label>Referral Code (Optional)</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    placeholder="e.g. LZ-REF-XXXXXX"
+                    value={formData.referralCode}
+                    onChange={e => updateField('referralCode', e.target.value)}
+                  />
+                </div>
               </motion.div>
             )}
 
@@ -278,11 +291,17 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
                     <span>Contact</span>
                     <span>{formData.phone || 'Not set'}</span>
                   </div>
+                  {formData.referralCode && (
+                    <div className="summary-item">
+                      <span>Referral Code</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{formData.referralCode}</span>
+                    </div>
+                  )}
                   <div className="summary-item">
                     <span>Fee Type</span>
                     <span>Service Base + Inspection</span>
+                  </div>
                 </div>
-              </div>
                 {error && (
                   <div className="booking-error-message" style={{ marginTop: 'var(--spacing-md)' }}>
                     <AlertCircle size={18} />

@@ -34,6 +34,7 @@ export interface IBookingRequest {
     phone: string;
     email: string;
   };
+  referralCode?: string;
 }
 
 export interface IStoredBooking extends IBookingRequest {

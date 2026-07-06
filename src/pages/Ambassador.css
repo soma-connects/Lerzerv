@@ -676,3 +676,21 @@
     transition: none !important;
   }
 }
+
+/* Ambassador Tiers styling */
+.tier-badge.tier-bronze {
+  background: linear-gradient(135deg, #a75d31 0%, #4c260f 100%) !important;
+  color: white !important;
+}
+.tier-badge.tier-silver {
+  background: linear-gradient(135deg, #b0b0b0 0%, #505050 100%) !important;
+  color: white !important;
+}
+.tier-badge.tier-gold {
+  background: linear-gradient(135deg, #e6b800 0%, #806000 100%) !important;
+  color: white !important;
+}
+.tier-badge.tier-platinum {
+  background: linear-gradient(135deg, #e5e9f0 0%, #577080 100%) !important;
+  color: white !important;
+}

@@ -1095,43 +1095,7 @@ const Admin: React.FC = () => {
                             </span>
                           </td>
                           <td className="table-actions">
-                            {amb.status === 'pending' && (
-                              <>
-                                <Button 
-                                  size="sm" 
-                                  variant="primary"
-                                  onClick={async () => {
-                                    const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'approved');
-                                    if (res.success) {
-                                      triggerToast('Application Approved', `${amb.name} is now an active ambassador.`);
-                                      fetchData();
-                                    } else {
-                                      triggerToast('Error', res.error?.message || 'Failed to approve application.');
-                                    }
-                                  }}
-                                >
-                                  Approve
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="btn-decline"
-                                  onClick={async () => {
-                                    if (window.confirm(`Are you sure you want to reject ${amb.name}'s application?`)) {
-                                      const res = await ambassadorService.updateAmbassadorStatus(amb.id, 'rejected');
-                                      if (res.success) {
-                                        triggerToast('Application Rejected', `${amb.name}'s application was declined.`);
-                                        fetchData();
-                                      } else {
-                                        triggerToast('Error', res.error?.message || 'Failed to reject application.');
-                                      }
-                                    }
-                                  }}
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
+                            {/* No pending state actions since join is instant */}
 
                             {amb.status === 'approved' && (
                               <>

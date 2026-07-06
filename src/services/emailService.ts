@@ -35,5 +35,14 @@ export const emailService = {
       console.error('[Email Service] Failed to send email:', error);
       return false;
     }
+  },
+
+  /**
+   * Sends a welcome email containing their referral code.
+   */
+  sendAmbassadorWelcomeEmail: async (name: string, email: string, referralCode: string): Promise<boolean> => {
+    console.log('[Email Service] Preparing to send welcome email to ambassador:', email, { name, referralCode });
+    // Simulate sending welcome email
+    return true;
   }
 };

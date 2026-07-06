@@ -53,11 +53,11 @@ export const bookingService = {
         console.error('Email notification failed:', e);
       }
 
-      // Attribute referral if a code was stored from a ?ref= link
+      // Attribute referral if a code was provided or stored in localStorage
       try {
-        const refCode = ambassadorService.getReferralCode();
+        const refCode = request.referralCode || ambassadorService.getReferralCode();
         if (refCode && data?.id) {
-          await ambassadorService.attachReferralToBooking(data.id, refCode);
+          await ambassadorService.attachReferralToBooking(data.id, refCode, request.customer.email);
         }
       } catch (refErr) {
         console.warn('Referral attribution on booking failed:', refErr);
