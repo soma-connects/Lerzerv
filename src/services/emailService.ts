@@ -14,7 +14,7 @@ export const emailService = {
    */
   sendBookingEmail: async (booking: IBookingRequest): Promise<boolean> => {
     // For local development/testing without keys, we log it
-    console.log('[Email Service] Preparing to send booking email to Lezervlimited@gmail.com', booking);
+    console.log('[Email Service] Preparing to send booking email to Lezervlimited@gmail.com and pauljizy@gmail.com', booking);
 
     if (EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
       console.warn('[Email Service] EmailJS Public Key not set. Email will not be sent to real inbox.');
@@ -25,7 +25,7 @@ export const emailService = {
     try {
       // Mock email sending
       console.log('[Email Service] Email content ready:', {
-        to: 'Lezervlimited@gmail.com',
+        to: ['Lezervlimited@gmail.com', 'pauljizy@gmail.com'],
         service: booking.serviceName,
         customer: booking.customer.name
       });
@@ -51,7 +51,7 @@ export const emailService = {
    */
   sendPaymentNotificationEmail: async (orderNumber: string, customerName: string, amount: string): Promise<boolean> => {
     console.log('[Email Service] Admin Notification: Customer marked payment as complete.', {
-      to: 'Lezervlimited@gmail.com',
+      to: ['Lezervlimited@gmail.com', 'pauljizy@gmail.com'],
       orderNumber,
       customerName,
       amount
