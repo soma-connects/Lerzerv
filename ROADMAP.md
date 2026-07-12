@@ -41,13 +41,12 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [x] Data model: artisans / artisan_private / categories / service_requests /
       reviews (migrations 0004–0005) + PostGIS geo-search + secure RPCs
 - [x] Service layer: `src/services/artisanService.ts` + `src/types/marketplace.ts`
-- [ ] Artisan onboarding UI (profile, categories, location, KYC fields)
-- [ ] "Ready for work" availability toggle UI
+- [x] Artisan onboarding UI (/become-artisan) + "ready for work" toggle
+- [x] Admin: artisan approval + KYC verification queue (migration 0006)
 - [ ] Client-facing geo-search + artisan list/cards UI
 - [ ] Public artisan profile page (bio, badge, reviews)
 - [ ] Job request flow + artisan inbox (accept/decline/progress/complete)
 - [ ] Review submission after completed job
-- [ ] Admin: artisan approval + KYC verification queue
 
 ### Phase 2 — Trust + money
 - [ ] In-app **chat** (Supabase Realtime) with contact-info **redaction** (anti-leakage)
