@@ -38,11 +38,16 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [ ] NDPA/GAID privacy basics: privacy policy, consent, data export/delete, breach process
 
 ### Phase 1 — Marketplace core
-- [ ] Artisan profiles + onboarding, categories, base pricing
-- [ ] Artisan **KYC/vetting** (ID/NIN, guarantor, verification badge)
-- [ ] "Ready for work" availability toggle (online/offline)
-- [ ] Geo-search: find available artisans near a location (PostGIS + service radius)
-- [ ] Job lifecycle: request → quote → accept → in-progress → completed
+- [x] Data model: artisans / artisan_private / categories / service_requests /
+      reviews (migrations 0004–0005) + PostGIS geo-search + secure RPCs
+- [x] Service layer: `src/services/artisanService.ts` + `src/types/marketplace.ts`
+- [ ] Artisan onboarding UI (profile, categories, location, KYC fields)
+- [ ] "Ready for work" availability toggle UI
+- [ ] Client-facing geo-search + artisan list/cards UI
+- [ ] Public artisan profile page (bio, badge, reviews)
+- [ ] Job request flow + artisan inbox (accept/decline/progress/complete)
+- [ ] Review submission after completed job
+- [ ] Admin: artisan approval + KYC verification queue
 
 ### Phase 2 — Trust + money
 - [ ] In-app **chat** (Supabase Realtime) with contact-info **redaction** (anti-leakage)
