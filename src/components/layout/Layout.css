@@ -6,7 +6,7 @@
 
 .layout-content {
   flex: 1;
-  padding-top: 5rem; /* Match header height */
+  padding-top: 4.75rem; /* Match header height */
 }
 
 /* Floating WhatsApp Chat Button */

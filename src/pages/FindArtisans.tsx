@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Star, ShieldCheck, Loader2, LocateFixed, SlidersHorizontal, Hammer,
 } from 'lucide-react';
-import { Button } from '../components/ui/Button';
 import { artisanService } from '../services/artisanService';
 import type { IServiceCategory, IArtisanSearchResult } from '../types/marketplace';
 import './FindArtisans.css';
@@ -70,30 +69,37 @@ const FindArtisans: React.FC = () => {
     <div className="find-artisans">
       <div className="fa-hero">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="fa-hero-inner">
-          <h1>Find a verified artisan near you</h1>
-          <p>Browse trusted professionals in {usingPreciseLocation ? 'your area' : 'Lagos'} — request, chat, and pay safely through Lezerv.</p>
-          <div className="fa-controls">
-            <Button variant="outline" onClick={captureLocation} disabled={locating}
-              leftIcon={locating ? <Loader2 className="animate-spin" size={18} /> : <LocateFixed size={18} />}>
-              {locating ? 'Locating…' : usingPreciseLocation ? 'Using your location' : 'Use my location'}
-            </Button>
-            <div className="fa-radius">
-              <SlidersHorizontal size={16} />
-              <label htmlFor="fa-radius">Within <strong>{radius} km</strong></label>
-              <input id="fa-radius" type="range" min={2} max={50} value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))} onMouseUp={onRadiusCommit} onTouchEnd={onRadiusCommit} />
-            </div>
+          <h1>Find a trusted artisan near you</h1>
+          <p>Verified professionals in {usingPreciseLocation ? 'your area' : 'Lagos'}. Request, chat & pay — all safely on Lezerv.</p>
+        </motion.div>
+      </div>
+
+      {/* Floating control bar */}
+      <div className="fa-bar-wrap">
+        <motion.div className="fa-bar" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+          <button className={`fa-loc ${usingPreciseLocation ? 'on' : ''}`} onClick={captureLocation} disabled={locating}>
+            {locating ? <Loader2 className="animate-spin" size={18} /> : <LocateFixed size={18} />}
+            <span>{locating ? 'Locating…' : usingPreciseLocation ? 'Your location' : 'Use my location'}</span>
+          </button>
+          <div className="fa-bar-divider" />
+          <div className="fa-radius">
+            <SlidersHorizontal size={16} />
+            <label htmlFor="fa-radius">Within <strong>{radius} km</strong></label>
+            <input id="fa-radius" type="range" min={2} max={50} value={radius}
+              onChange={(e) => setRadius(Number(e.target.value))} onMouseUp={onRadiusCommit} onTouchEnd={onRadiusCommit} />
           </div>
         </motion.div>
       </div>
 
-      <div className="fa-cats">
-        <button className={`fa-cat ${activeCat === null ? 'active' : ''}`} onClick={() => selectCategory(null)}>All</button>
-        {categories.map((c) => (
-          <button key={c.slug} className={`fa-cat ${activeCat === c.slug ? 'active' : ''}`} onClick={() => selectCategory(c.slug)}>
-            {c.name}
-          </button>
-        ))}
+      <div className="fa-cats-wrap">
+        <div className="fa-cats">
+          <button className={`fa-cat ${activeCat === null ? 'active' : ''}`} onClick={() => selectCategory(null)}>All services</button>
+          {categories.map((c) => (
+            <button key={c.slug} className={`fa-cat ${activeCat === c.slug ? 'active' : ''}`} onClick={() => selectCategory(c.slug)}>
+              {c.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="fa-results">
@@ -110,21 +116,21 @@ const FindArtisans: React.FC = () => {
             <p className="fa-count">{results.length} artisan{results.length > 1 ? 's' : ''} available</p>
             <div className="fa-grid">
               {results.map((a) => (
-                <motion.div key={a.id} className="artisan-card" whileHover={{ y: -3 }}
+                <motion.div key={a.id} className="artisan-card" whileHover={{ y: -4 }}
                   onClick={() => navigate(`/artisan/${a.id}`)}>
+                  <span className="ac-distance-pill"><MapPin size={12} /> {a.distance_km} km</span>
                   <div className="ac-top">
                     <div className="ac-avatar">
                       {a.avatar_url ? <img src={a.avatar_url} alt={a.display_name} /> : <span>{a.display_name.charAt(0)}</span>}
+                      {a.is_verified && <span className="ac-avatar-badge"><ShieldCheck size={12} /></span>}
                     </div>
                     <div className="ac-headline">
-                      <div className="ac-name">
-                        {a.display_name}
-                        {a.is_verified && <ShieldCheck size={15} className="ac-verified" aria-label="Verified" />}
-                      </div>
+                      <div className="ac-name">{a.display_name}</div>
                       <div className="ac-meta">
                         <Stars rating={a.avg_rating} />
-                        <span className="ac-reviews">{a.total_reviews > 0 ? `${a.avg_rating.toFixed(1)} (${a.total_reviews})` : 'New'}</span>
+                        <span className="ac-reviews">{a.total_reviews > 0 ? `${a.avg_rating.toFixed(1)} (${a.total_reviews})` : 'New on Lezerv'}</span>
                       </div>
+                      <span className="ac-jobs">{a.completed_jobs} job{a.completed_jobs === 1 ? '' : 's'} completed{a.years_experience ? ` · ${a.years_experience}y exp` : ''}</span>
                     </div>
                   </div>
                   {a.bio && <p className="ac-bio">{a.bio}</p>}
@@ -136,8 +142,7 @@ const FindArtisans: React.FC = () => {
                     {a.categories.length > 3 && <span className="ac-chip more">+{a.categories.length - 3}</span>}
                   </div>
                   <div className="ac-foot">
-                    <span className="ac-distance"><MapPin size={14} /> {a.distance_km} km away</span>
-                    <span className="ac-jobs">{a.completed_jobs} jobs done</span>
+                    <span className="ac-cta">View profile →</span>
                   </div>
                 </motion.div>
               ))}
