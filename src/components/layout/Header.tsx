@@ -50,6 +50,13 @@ export const Header: React.FC = () => {
                 </Link>
               </li>
             ))}
+            {user && (
+              <li>
+                <Link to="/my-jobs" className={`nav-link ${location.pathname === '/my-jobs' ? 'nav-link-active' : ''}`}>
+                  My Jobs
+                </Link>
+              </li>
+            )}
             {isAdmin && (
               <li>
                 <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'nav-link-active' : ''}`}>

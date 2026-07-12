@@ -230,4 +230,31 @@ export const artisanService = {
     if (error) return [];
     return (data || []) as IServiceRequest[];
   },
+
+  /**
+   * The current user's jobs, enriched for the dashboard: artisan name,
+   * category, linked conversation, and whether the caller is the artisan.
+   */
+  getMyJobs: async (): Promise<{ jobs: any[]; myUserId: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { jobs: [], myUserId: null };
+
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select('*, artisans(display_name, user_id), service_categories(name), conversations(id)')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.warn('getMyJobs failed:', error);
+      return { jobs: [], myUserId: user.id };
+    }
+
+    const jobs = (data || []).map((r: any) => ({
+      ...r,
+      artisan_name: r.artisans?.display_name || 'Artisan',
+      category_name: r.service_categories?.name || null,
+      conversation_id: r.conversations?.[0]?.id || null,
+      iAmArtisan: r.artisans?.user_id === user.id,
+    }));
+    return { jobs, myUserId: user.id };
+  },
 };
