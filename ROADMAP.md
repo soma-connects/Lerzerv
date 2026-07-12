@@ -43,16 +43,17 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [x] Service layer: `src/services/artisanService.ts` + `src/types/marketplace.ts`
 - [x] Artisan onboarding UI (/become-artisan) + "ready for work" toggle
 - [x] Admin: artisan approval + KYC verification queue (migration 0006)
-- [ ] Client-facing geo-search + artisan list/cards UI
-- [ ] Public artisan profile page (bio, badge, reviews)
-- [ ] Job request flow + artisan inbox (accept/decline/progress/complete)
-- [ ] Review submission after completed job
+- [x] Client-facing geo-search + artisan list/cards UI (/find-artisans)
+- [x] Public artisan profile page (bio, badge, reviews) (/artisan/:id)
+- [x] Client can send a job request (create_service_request modal)
+- [x] Artisan inbox + client requests view (/my-jobs, accept/decline/progress/complete)
+- [x] Review submission after completed job (star rating modal)
 
 ### Phase 2 — Trust + money
-- [ ] In-app **chat** (Supabase Realtime) with contact-info **redaction** (anti-leakage)
+- [x] In-app **chat** (Supabase Realtime) with contact-info **redaction** (migration 0007)
 - [ ] **Paystack escrow**: client pays in → held → released to artisan on completion − commission
+      ⛔ BLOCKED — waiting on Paystack API keys from company team
 - [ ] Artisan payout KYC (bank account + BVN)
-- [ ] **Two-sided reviews** (client↔artisan), only after a completed paid job
 - [ ] Dispute resolution + cancellation/refund/no-show policy
 
 ### Phase 3 — Polish + store launch
