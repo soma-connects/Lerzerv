@@ -27,3 +27,6 @@ skills-lock.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local Claude Code helpers
+.claude/
