@@ -15,7 +15,6 @@ import {
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { emailService } from '../services/emailService';
-import { ambassadorService } from '../services/ambassadorService';
 import './Payment.css';
 
 type TPaymentMethod = 'bank_transfer' | 'card' | 'pod' | null;
@@ -44,7 +43,8 @@ const Payment: React.FC = () => {
     const fetchData = async () => {
       try {
         const [bookingRes, settingsRes] = await Promise.all([
-          supabase.from('bookings').select('*').eq('id', bookingId).single(),
+          // Secure RPC — direct table reads are blocked by RLS for guests
+          supabase.rpc('get_booking_payment', { p_booking_id: bookingId }).single(),
           supabase.from('settings').select('*').eq('key', 'payment_details').single()
         ]);
 
@@ -68,11 +68,9 @@ const Payment: React.FC = () => {
 
   const handleBankPaymentConfirm = async () => {
     setIsConfirming(true);
-    const { error } = await supabase
-      .from('bookings')
-      .update({ payment_status: 'pending_verification', status: 'awaiting_confirmation' })
-      .eq('id', bookingId);
-    
+    // Secure RPC: flags the transfer for admin verification; can never mark as paid
+    const { error } = await supabase.rpc('claim_bank_transfer', { p_booking_id: bookingId });
+
     setIsConfirming(false);
     if (!error) {
       // Notify Admin via email
@@ -94,43 +92,18 @@ const Payment: React.FC = () => {
 
   const handleOnlineCardPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
-      alert('Please fill out all credit card fields.');
-      return;
-    }
-    
-    setIsConfirming(true);
-    
-    // Simulate a secure payment authorization process (spinner & delays)
-    setTimeout(async () => {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ payment_status: 'paid', status: 'confirmed' })
-        .eq('id', bookingId);
-        
-      setIsConfirming(false);
-      if (!error) {
-        // Award referral points since payment is fully successful
-        try {
-          await ambassadorService.completeReferral(bookingId!);
-        } catch (refErr) {
-          console.warn('Failed to credit ambassador points on card payment:', refErr);
-        }
-        alert('Payment Approved! Your service booking is now confirmed in real-time.');
-        navigate('/profile');
-      } else {
-        alert(`Transaction failed: ${error.message}`);
-      }
-    }, 2500);
+    // SECURITY: the previous simulated card flow collected real card details
+    // without processing them (PCI risk) and let anyone mark a booking as
+    // 'paid' from the browser. Card payments are disabled until the Paystack
+    // integration lands. Use bank transfer or pay-on-delivery instead.
+    alert('Card payments are coming soon! Please use Bank Transfer or Pay on Delivery for now.');
   };
 
   const handlePayOnDeliveryConfirm = async () => {
     setIsConfirming(true);
-    const { error } = await supabase
-      .from('bookings')
-      .update({ payment_status: 'pay_on_delivery', status: 'confirmed' })
-      .eq('id', bookingId);
-      
+    // Secure RPC — direct table updates are blocked by RLS for guests
+    const { error } = await supabase.rpc('confirm_pay_on_delivery', { p_booking_id: bookingId });
+
     setIsConfirming(false);
     if (!error) {
       alert('Pay on Delivery Confirmed! Your booking has been successfully scheduled.');

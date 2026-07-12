@@ -41,7 +41,7 @@ export type TReferral = {
 };
 
 const REFERRAL_STORAGE_KEY = 'lezerv_ref_code';
-const POINTS_PER_REFERRAL = 5;
+// Points per referral now lives server-side in the complete_referral() RPC
 
 // ─── Helper: Generate unique referral code ─────────────
 
@@ -189,23 +189,8 @@ export const ambassadorService = {
    */
   trackReferralClick: async (code: string): Promise<void> => {
     try {
-      // Verify ambassador exists and is active
-      const { data: ambassador } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('referral_code', code.toUpperCase())
-        .eq('status', 'approved')
-        .single();
-
-      if (!ambassador) return;
-
-      await supabase.from('referrals').insert([{
-        ambassador_id: ambassador.id,
-        referral_code: code.toUpperCase(),
-        status: 'clicked',
-        points_awarded: 0,
-        discount_applied: false
-      }]);
+      // Secure RPC: validates the code server-side (RLS blocks direct writes)
+      await supabase.rpc('track_referral_click', { p_code: code });
     } catch (err) {
       console.warn('Referral click tracking failed:', err);
     }
@@ -215,49 +200,11 @@ export const ambassadorService = {
    * Attach a referral to a user signup. Updates the latest 'clicked' referral
    * for this code to 'signed_up'.
    */
-  attachReferralToSignup: async (userId: string, email: string, code: string): Promise<void> => {
+  attachReferralToSignup: async (_userId: string, email: string, code: string): Promise<void> => {
     try {
-      const { data: ambassador } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('referral_code', code.toUpperCase())
-        .eq('status', 'approved')
-        .single();
-
-      if (!ambassador) return;
-
-      // Try to find an existing 'clicked' referral to upgrade
-      const { data: existingReferral } = await supabase
-        .from('referrals')
-        .select('id')
-        .eq('ambassador_id', ambassador.id)
-        .eq('referral_code', code.toUpperCase())
-        .eq('status', 'clicked')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existingReferral) {
-        await supabase
-          .from('referrals')
-          .update({
-            referred_user_id: userId,
-            referred_email: email,
-            status: 'signed_up'
-          })
-          .eq('id', existingReferral.id);
-      } else {
-        // No click was recorded (e.g. user had code in localStorage from before)
-        await supabase.from('referrals').insert([{
-          ambassador_id: ambassador.id,
-          referral_code: code.toUpperCase(),
-          referred_user_id: userId,
-          referred_email: email,
-          status: 'signed_up',
-          points_awarded: 0,
-          discount_applied: false
-        }]);
-      }
+      // Secure RPC: attributes to the *signed-in* user server-side,
+      // with self-referral guard (RLS blocks direct writes)
+      await supabase.rpc('attach_referral_to_signup', { p_code: code, p_email: email });
     } catch (err) {
       console.warn('Referral signup attribution failed:', err);
     }
@@ -269,79 +216,13 @@ export const ambassadorService = {
    */
   attachReferralToBooking: async (bookingId: string, code: string, referredEmail?: string): Promise<void> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { data: ambassador } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('referral_code', code.toUpperCase())
-        .eq('status', 'approved')
-        .single();
-
-      if (!ambassador) return;
-
-      // Prevent self-referral
-      const { data: selfCheck } = await supabase
-        .from('ambassadors')
-        .select('id')
-        .eq('user_id', user?.id ?? '')
-        .eq('id', ambassador.id)
-        .single();
-
-      if (selfCheck) {
-        console.warn('Self-referral attempt blocked.');
-        return;
-      }
-
-      // Try to upgrade an existing signed_up referral for this user or email
-      let existingReferral = null;
-      
-      if (user) {
-        const { data } = await supabase
-          .from('referrals')
-          .select('id')
-          .eq('ambassador_id', ambassador.id)
-          .eq('referred_user_id', user.id)
-          .in('status', ['clicked', 'signed_up'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        existingReferral = data;
-      } else if (referredEmail) {
-        const { data } = await supabase
-          .from('referrals')
-          .select('id')
-          .eq('ambassador_id', ambassador.id)
-          .eq('referred_email', referredEmail)
-          .in('status', ['clicked', 'signed_up'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        existingReferral = data;
-      }
-
-      if (existingReferral) {
-        await supabase
-          .from('referrals')
-          .update({
-            referred_booking_id: bookingId,
-            referred_email: referredEmail || null,
-            status: 'booked',
-            discount_applied: true
-          })
-          .eq('id', existingReferral.id);
-      } else {
-        await supabase.from('referrals').insert([{
-          ambassador_id: ambassador.id,
-          referral_code: code.toUpperCase(),
-          referred_user_id: user?.id ?? null,
-          referred_booking_id: bookingId,
-          referred_email: referredEmail || null,
-          status: 'booked',
-          points_awarded: 0,
-          discount_applied: true
-        }]);
-      }
+      // Secure RPC: validates code, booking, and self-referral server-side
+      // (RLS blocks direct writes to referrals)
+      await supabase.rpc('attach_referral_to_booking', {
+        p_booking_id: bookingId,
+        p_code: code,
+        p_email: referredEmail ?? null
+      });
 
       // Consume the referral code after successful booking attribution
       ambassadorService.consumeReferralCode();
@@ -356,41 +237,8 @@ export const ambassadorService = {
    */
   completeReferral: async (bookingId: string): Promise<void> => {
     try {
-      // Find a referral linked to this booking
-      const { data: referral } = await supabase
-        .from('referrals')
-        .select('id, ambassador_id, status')
-        .eq('referred_booking_id', bookingId)
-        .eq('status', 'booked')
-        .single();
-
-      if (!referral) return; // No referral attached or already completed
-
-      // Update referral status and award points
-      await supabase
-        .from('referrals')
-        .update({
-          status: 'completed',
-          points_awarded: POINTS_PER_REFERRAL
-        })
-        .eq('id', referral.id);
-
-      // Increment ambassador's total points and referral count
-      const { data: ambassador } = await supabase
-        .from('ambassadors')
-        .select('total_points, total_referrals')
-        .eq('id', referral.ambassador_id)
-        .single();
-
-      if (ambassador) {
-        await supabase
-          .from('ambassadors')
-          .update({
-            total_points: (ambassador.total_points || 0) + POINTS_PER_REFERRAL,
-            total_referrals: (ambassador.total_referrals || 0) + 1
-          })
-          .eq('id', referral.ambassador_id);
-      }
+      // Secure RPC: admin-only server-side; awards points atomically
+      await supabase.rpc('complete_referral', { p_booking_id: bookingId });
     } catch (err) {
       console.warn('Referral completion failed:', err);
     }
@@ -504,13 +352,10 @@ export const ambassadorService = {
    */
   getLeaderboard: async (limitCount = 10): Promise<any[]> => {
     try {
+      // Secure RPC: returns only name/points/referrals of approved,
+      // non-admin ambassadors (RLS blocks direct reads of the table)
       const { data, error } = await supabase
-        .from('ambassadors')
-        .select('name, total_points, total_referrals, email')
-        .eq('status', 'approved')
-        .not('email', 'in', '("Lezervlimited@gmail.com","admin@lezerv.com","pauljizy@gmail.com","preciouspeter3173@gmail.com","lezervlimited@gmail.com")')
-        .order('total_points', { ascending: false })
-        .limit(limitCount);
+        .rpc('get_leaderboard', { p_limit: limitCount });
 
       if (error) throw error;
 
@@ -523,7 +368,7 @@ export const ambassadorService = {
         { name: 'Amara K.', total_points: 15, total_referrals: 3 }
       ];
 
-      const realData = data || [];
+      const realData: { name: string; total_points: number; total_referrals: number }[] = data || [];
       const realNames = new Set(realData.map(r => r.name.toLowerCase()));
       
       // Filter out mock participants if their name overlaps with real users

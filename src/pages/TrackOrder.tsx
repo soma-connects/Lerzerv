@@ -33,11 +33,8 @@ const TrackOrder: React.FC = () => {
   const handleClaim = async () => {
     if (!user || !booking) return;
     setIsClaiming(true);
-    const { error } = await supabase
-      .from('bookings')
-      .update({ user_id: user.id })
-      .eq('id', booking.id);
-    
+    const { error } = await supabase.rpc('claim_booking', { p_booking_id: booking.id });
+
     if (!error) {
       setBooking({ ...booking, user_id: user.id });
       alert('This booking has been linked to your account successfully!');
@@ -55,10 +52,9 @@ const TrackOrder: React.FC = () => {
     setBooking(null);
 
     try {
+      // Secure RPC — direct table reads are blocked by RLS for guests
       const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('order_number', query.trim().toUpperCase())
+        .rpc('track_booking', { p_order_number: query.trim().toUpperCase() })
         .single();
 
       if (error || !data) {
@@ -66,12 +62,9 @@ const TrackOrder: React.FC = () => {
       }
 
       // AUTO-LINK: If user is logged in and booking is a guest booking, link it now
-      if (user && !data.user_id) {
-        await supabase
-          .from('bookings')
-          .update({ user_id: user.id })
-          .eq('id', data.id);
-        data.user_id = user.id; // Update local state
+      if (user && !(data as any).user_id) {
+        await supabase.rpc('claim_booking', { p_booking_id: (data as any).id });
+        (data as any).user_id = user.id; // Update local state
       }
 
       setBooking(data);

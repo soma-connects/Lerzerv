@@ -12,31 +12,24 @@ export const bookingService = {
    * Submit a new booking request.
    */
   submitBooking: async (request: IBookingRequest): Promise<IApiResponse<IStoredBooking>> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
-
     try {
       // Create a unique order number
       const orderNo = `LZ-${Math.floor(100000 + Math.random() * 900000)}`;
 
-      // Save to Supabase (Works for both Guests and Users)
+      // Save via secure RPC (works for both Guests and Users — with RLS a
+      // guest INSERT could not read its own row back, so the RPC returns it)
       const { data, error } = await supabase
-        .from('bookings')
-        .insert([{
-          service_name: request.serviceName,
-          details: request.details,
-          date: request.date,
-          time: request.time,
-          location: request.location,
-          customer: request.customer,
-          user_id: userId,
-          status: 'pending',
-          order_number: orderNo,
-          payment_status: 'unpaid'
-        }])
-        .select()
-        .single();
-      
+        .rpc('create_booking', {
+          p_service_name: request.serviceName,
+          p_details: request.details,
+          p_date: request.date,
+          p_time: request.time,
+          p_location: request.location,
+          p_customer: request.customer,
+          p_order_number: orderNo
+        })
+        .single<IStoredBooking & { order_number: string; id: string }>();
+
       if (error) throw error;
 
       // Save to local recent orders for "Quick Track" memory
@@ -97,14 +90,10 @@ export const bookingService = {
       if (!error) localStorage.removeItem('lezerv_bookings');
     }
 
-    // 2. Sync order numbers from new system
+    // 2. Sync order numbers from new system (secure RPC — RLS blocks direct updates)
     const recentNumbers = JSON.parse(localStorage.getItem('lezerv_recent_orders') || '[]');
     if (recentNumbers.length > 0) {
-      await supabase
-        .from('bookings')
-        .update({ user_id: user.id })
-        .in('order_number', recentNumbers)
-        .is('user_id', null);
+      await supabase.rpc('claim_bookings_by_orders', { p_orders: recentNumbers });
     }
   },
 
@@ -132,14 +121,13 @@ export const bookingService = {
    */
   getBookingByOrder: async (orderNo: string): Promise<IApiResponse<IStoredBooking>> => {
     try {
+      // Secure RPC — direct table reads are blocked by RLS for guests
       const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('order_number', orderNo.toUpperCase())
+        .rpc('track_booking', { p_order_number: orderNo.toUpperCase() })
         .single();
-      
+
       if (error || !data) throw new Error('Order not found');
-      
+
       return { success: true, data: data as any };
     } catch (err: any) {
       return { success: false, error: { code: 'NOT_FOUND', message: err.message } };
