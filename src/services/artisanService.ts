@@ -49,6 +49,40 @@ export const artisanService = {
     }
   },
 
+  /** The current user's own artisan profile (any status) + categories + private fields. */
+  getMyProfile: async (): Promise<
+    | (Record<string, any> & { categorySlugs: string[]; phone?: string; nin?: string; address?: string })
+    | null
+  > => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('artisans')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error || !data) return null;
+
+    const [{ data: cats }, { data: priv }] = await Promise.all([
+      supabase
+        .from('artisan_categories')
+        .select('service_categories(slug)')
+        .eq('artisan_id', data.id),
+      supabase
+        .from('artisan_private')
+        .select('phone, nin, address')
+        .eq('artisan_id', data.id)
+        .maybeSingle(),
+    ]);
+
+    const categorySlugs = (cats || [])
+      .map((c: any) => c.service_categories?.slug)
+      .filter(Boolean);
+
+    return { ...data, categorySlugs, ...(priv || {}) };
+  },
+
   /** Toggle "ready for work" (server enforces approved status). */
   setAvailability: async (available: boolean): Promise<void> => {
     await supabase.rpc('set_artisan_availability', { p_available: available });

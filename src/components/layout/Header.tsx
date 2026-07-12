@@ -27,6 +27,7 @@ export const Header: React.FC = () => {
     { name: 'Contact', path: '/contact' },
     { name: 'Track Order', path: '/track' },
     { name: 'Ambassador', path: '/ambassador' },
+    { name: 'Join as Artisan', path: '/become-artisan' },
   ];
 
   return (
