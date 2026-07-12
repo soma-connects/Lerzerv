@@ -37,6 +37,7 @@ import type { TJob, TNewJob } from '../services/jobService';
 import { userService } from '../services/userService';
 import type { TUserProfile } from '../services/userService';
 import { ambassadorService } from '../services/ambassadorService';
+import { artisanService } from '../services/artisanService';
 import './Admin.css';
 
 type TBooking = {
@@ -75,7 +76,7 @@ type TToast = {
 
 const Admin: React.FC = () => {
   const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
@@ -83,6 +84,7 @@ const Admin: React.FC = () => {
   const [users, setUsers] = useState<TUserProfile[]>([]);
   const [ambassadors, setAmbassadors] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [artisans, setArtisans] = useState<any[]>([]);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
   
@@ -172,7 +174,7 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes, artisansRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
@@ -180,7 +182,8 @@ const Admin: React.FC = () => {
         jobService.fetchJobs(),
         userService.fetchUsers(),
         supabase.from('ambassadors').select('*').order('created_at', { ascending: false }),
-        supabase.from('referrals').select('*, ambassadors(name, referral_code)').order('created_at', { ascending: false })
+        supabase.from('referrals').select('*, ambassadors(name, referral_code)').order('created_at', { ascending: false }),
+        artisanService.adminFetchArtisans()
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
@@ -191,6 +194,7 @@ const Admin: React.FC = () => {
       if (usersRes.success && usersRes.data) setUsers(usersRes.data);
       if (ambassadorsRes.data) setAmbassadors(ambassadorsRes.data);
       if (referralsRes.data) setReferrals(referralsRes.data);
+      if (artisansRes) setArtisans(artisansRes);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -446,6 +450,12 @@ const Admin: React.FC = () => {
               )}
             </button>
             <button className={activeTab === 'ambassadors' ? 'active' : ''} onClick={() => setActiveTab('ambassadors')}>Ambassadors</button>
+            <button className={activeTab === 'artisans' ? 'active' : ''} onClick={() => setActiveTab('artisans')}>
+              Artisans
+              {artisans.filter((a) => a.status === 'pending').length > 0 && (
+                <span className="tab-badge">{artisans.filter((a) => a.status === 'pending').length}</span>
+              )}
+            </button>
           </nav>
         </header>
 
@@ -1310,6 +1320,146 @@ const Admin: React.FC = () => {
                         <td colSpan={6} className="empty-table-cell">
                           <Award size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
                           <p>No referral clicks or conversions tracked yet.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'artisans' && (
+          <>
+            <div className="admin-stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon"><Briefcase size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Total Artisans</span>
+                  <span className="stat-value">{artisans.length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-tertiary)' }}><Clock size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Pending Review</span>
+                  <span className="stat-value">{artisans.filter((a) => a.status === 'pending').length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-secondary)' }}><Check size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Approved &amp; Live</span>
+                  <span className="stat-value">{artisans.filter((a) => a.status === 'approved').length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-content-card">
+              <div className="card-header">
+                <h2>Artisan Verification Queue</h2>
+                <p className="card-desc">Review new artisan applications, verify identity (NIN), and approve them to go live in search.</p>
+              </div>
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Applied</th>
+                      <th>Artisan</th>
+                      <th>Services</th>
+                      <th>Location</th>
+                      <th>Exp.</th>
+                      <th>Verified</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {artisans.length > 0 ? (
+                      artisans.map((a) => {
+                        const priv = a.artisan_private || {};
+                        const cats = (a.artisan_categories || [])
+                          .map((c: any) => c.service_categories?.name)
+                          .filter(Boolean);
+                        return (
+                          <tr key={a.id}>
+                            <td className="whitespace-nowrap text-sm">
+                              {new Date(a.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </td>
+                            <td>
+                              <div className="candidate-cell">
+                                <span className="candidate-name">{a.display_name}</span>
+                                <div className="candidate-links">
+                                  {priv.phone && (
+                                    <a href={`tel:${priv.phone}`} title="Call" className="candidate-link-icon">
+                                      <Phone size={14} /><span>{priv.phone}</span>
+                                    </a>
+                                  )}
+                                  {priv.nin && (
+                                    <span className="candidate-link-icon" title="NIN">
+                                      <Hash size={14} /><span>{priv.nin}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="text-sm">{cats.length ? cats.join(', ') : <span style={{ color: 'var(--color-outline)' }}>—</span>}</td>
+                            <td className="text-sm">
+                              {a.city}
+                              {a.lat != null
+                                ? <span title="GPS set" style={{ color: 'var(--color-secondary)', marginLeft: 4 }}>📍</span>
+                                : <span title="No GPS" style={{ color: 'var(--color-error)', marginLeft: 4 }}>⚠</span>}
+                            </td>
+                            <td>{a.years_experience || 0}y</td>
+                            <td>
+                              <button
+                                type="button"
+                                className={`verify-toggle ${a.is_verified ? 'on' : ''}`}
+                                title={a.is_verified ? 'Verified — click to un-verify' : 'Not verified — click to verify'}
+                                onClick={async () => {
+                                  const res = await artisanService.adminSetVerified(a.id, !a.is_verified);
+                                  if (res.success) { triggerToast('Updated', `${a.display_name} ${!a.is_verified ? 'verified' : 'un-verified'}.`); fetchData(); }
+                                  else triggerToast('Error', res.error?.message || 'Failed.');
+                                }}
+                              >
+                                {a.is_verified ? <><Check size={12} /> Verified</> : 'Verify'}
+                              </button>
+                            </td>
+                            <td><span className={`status-pill status-${a.status}`}>{a.status}</span></td>
+                            <td className="table-actions">
+                              {a.status !== 'approved' && (
+                                <Button size="sm" variant="primary"
+                                  onClick={async () => {
+                                    const res = await artisanService.adminSetStatus(a.id, 'approved');
+                                    if (res.success) { triggerToast('Artisan Approved', `${a.display_name} is now live.`); fetchData(); }
+                                    else triggerToast('Error', res.error?.message || 'Failed.');
+                                  }}>Approve</Button>
+                              )}
+                              {a.status === 'pending' && (
+                                <Button size="sm" variant="outline"
+                                  onClick={async () => {
+                                    const res = await artisanService.adminSetStatus(a.id, 'rejected');
+                                    if (res.success) { triggerToast('Rejected', `${a.display_name} was rejected.`); fetchData(); }
+                                  }}>Reject</Button>
+                              )}
+                              {a.status === 'approved' && (
+                                <Button size="sm" variant="outline"
+                                  onClick={async () => {
+                                    const res = await artisanService.adminSetStatus(a.id, 'suspended');
+                                    if (res.success) { triggerToast('Suspended', `${a.display_name} is suspended.`); fetchData(); }
+                                  }}>Suspend</Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="empty-table-cell">
+                          <Briefcase size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                          <p>No artisan applications yet.</p>
                         </td>
                       </tr>
                     )}

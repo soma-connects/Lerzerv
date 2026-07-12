@@ -183,6 +183,44 @@ export const artisanService = {
     }
   },
 
+  // ── Admin ────────────────────────────────────────────────────────
+
+  /** All artisans with their private KYC data (admin — RLS enforces access). */
+  adminFetchArtisans: async (): Promise<any[]> => {
+    const { data, error } = await supabase
+      .from('artisans')
+      .select('*, artisan_private(phone, nin, nin_verified, address), artisan_categories(service_categories(name))')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.warn('adminFetchArtisans failed:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  /** Approve / reject / suspend / re-pend an artisan (admin). */
+  adminSetStatus: async (
+    artisanId: string,
+    status: 'pending' | 'approved' | 'suspended' | 'rejected'
+  ): Promise<IApiResponse<null>> => {
+    const { error } = await supabase.rpc('admin_set_artisan_status', {
+      p_artisan_id: artisanId,
+      p_status: status,
+    });
+    if (error) return { success: false, error: { code: 'ADMIN_ERROR', message: error.message } };
+    return { success: true, data: null };
+  },
+
+  /** Toggle the verified/KYC badge (admin). */
+  adminSetVerified: async (artisanId: string, verified: boolean): Promise<IApiResponse<null>> => {
+    const { error } = await supabase.rpc('admin_set_artisan_verified', {
+      p_artisan_id: artisanId,
+      p_verified: verified,
+    });
+    if (error) return { success: false, error: { code: 'ADMIN_ERROR', message: error.message } };
+    return { success: true, data: null };
+  },
+
   /** Requests visible to the current user (own as client, or assigned as artisan). */
   myRequests: async (): Promise<IServiceRequest[]> => {
     const { data, error } = await supabase
