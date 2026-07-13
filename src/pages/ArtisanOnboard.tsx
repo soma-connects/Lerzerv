@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Hammer, User, MapPin, Phone, IdCard, Briefcase, Loader2, ArrowRight,
-  Check, Clock, ShieldCheck, AlertCircle, LocateFixed,
+  Check, Clock, ShieldCheck, AlertCircle, Plus,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { artisanService } from '../services/artisanService';
-import type { IServiceCategory } from '../types/marketplace';
+import type { IServiceCategory, IServiceArea } from '../types/marketplace';
 import './ArtisanOnboard.css';
 
 const CITIES = ['Lagos', 'Abuja', 'Port Harcourt'];
@@ -19,7 +19,9 @@ const ArtisanOnboard: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<IServiceCategory[]>([]);
+  const [areas, setAreas] = useState<IServiceArea[]>([]);
   const [existing, setExisting] = useState<Record<string, any> | null>(null);
+  const [editing, setEditing] = useState(false);
 
   // form fields
   const [displayName, setDisplayName] = useState('');
@@ -27,14 +29,11 @@ const ArtisanOnboard: React.FC = () => {
   const [bio, setBio] = useState('');
   const [years, setYears] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
-  const [radius, setRadius] = useState(15);
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [phone, setPhone] = useState('');
   const [nin, setNin] = useState('');
   const [address, setAddress] = useState('');
 
-  const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedStatus, setSavedStatus] = useState<string | null>(null);
@@ -43,8 +42,9 @@ const ArtisanOnboard: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       if (authLoading) return;
-      const cats = await artisanService.fetchCategories();
+      const [cats, ars] = await Promise.all([artisanService.fetchCategories(), artisanService.fetchAreas()]);
       setCategories(cats);
+      setAreas(ars);
 
       if (user) {
         const mine = await artisanService.getMyProfile();
@@ -57,13 +57,12 @@ const ArtisanOnboard: React.FC = () => {
           setBio(mine.bio || '');
           setYears(mine.years_experience || 0);
           setSelected(mine.categorySlugs || []);
-          setRadius(mine.service_radius_km || 15);
-          setLat(mine.lat ?? null);
-          setLng(mine.lng ?? null);
+          setSelectedAreas(mine.areaSlugs || []);
           setPhone(mine.phone || '');
           setNin(mine.nin || '');
           setAddress(mine.address || '');
         } else {
+          setEditing(true);
           setDisplayName(user.user_metadata?.full_name || '');
         }
       }
@@ -78,25 +77,14 @@ const ArtisanOnboard: React.FC = () => {
     );
   };
 
-  const captureLocation = () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported on this device.');
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(Number(pos.coords.latitude.toFixed(6)));
-        setLng(Number(pos.coords.longitude.toFixed(6)));
-        setLocating(false);
-      },
-      () => {
-        setError('Could not get your location. Please allow location access.');
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+  const toggleArea = (slug: string) => {
+    setSelectedAreas((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
     );
   };
+
+  const nameFor = (list: { slug: string; name: string }[], slug: string) =>
+    list.find((x) => x.slug === slug)?.name || slug;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +92,7 @@ const ArtisanOnboard: React.FC = () => {
 
     if (!displayName.trim()) return setError('Please enter your name.');
     if (selected.length === 0) return setError('Select at least one service you offer.');
-    if (lat === null || lng === null) return setError('Please set your work location.');
+    if (selectedAreas.length === 0) return setError('Select at least one area you work in.');
     if (!phone.trim()) return setError('A phone number is required for verification.');
 
     setSubmitting(true);
@@ -113,19 +101,24 @@ const ArtisanOnboard: React.FC = () => {
       city,
       bio: bio.trim() || undefined,
       yearsExperience: years,
-      lat,
-      lng,
-      serviceRadiusKm: radius,
       phone: phone.trim(),
       nin: nin.trim() || undefined,
       address: address.trim() || undefined,
       categorySlugs: selected,
+      areaSlugs: selectedAreas,
     });
     setSubmitting(false);
 
     if (res.success) {
       setSavedStatus(res.data?.status || 'pending');
-      setExisting({ ...(existing || {}), status: res.data?.status || 'pending' });
+      setExisting({
+        ...(existing || {}),
+        status: res.data?.status || 'pending',
+        display_name: displayName.trim(),
+        categorySlugs: selected,
+        areaSlugs: selectedAreas,
+      });
+      setEditing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setError(res.error?.message || 'Something went wrong. Please try again.');
@@ -212,6 +205,33 @@ const ArtisanOnboard: React.FC = () => {
           </div>
         )}
 
+        {existing && !editing && (
+          <div className="onboard-summary">
+            <div className="summary-block">
+              <span className="summary-label">You applied as</span>
+              <div className="summary-chips">
+                {selected.length ? selected.map((s) => (
+                  <span key={s} className="summary-chip">{nameFor(categories, s)}</span>
+                )) : <span className="summary-empty">No services selected</span>}
+              </div>
+            </div>
+            <div className="summary-block">
+              <span className="summary-label">Areas you cover</span>
+              <div className="summary-chips">
+                {selectedAreas.length ? selectedAreas.map((s) => (
+                  <span key={s} className="summary-chip area">{nameFor(areas, s)}</span>
+                )) : <span className="summary-empty">No areas selected</span>}
+              </div>
+            </div>
+            <div className="summary-actions">
+              <Button variant="outline" leftIcon={<Plus size={16} />} onClick={() => setEditing(true)}>
+                Edit / add a service or area
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {(!existing || editing) && (
         <form onSubmit={handleSubmit} className="onboard-form">
           <section className="form-section">
             <h2>About you</h2>
@@ -264,21 +284,17 @@ const ArtisanOnboard: React.FC = () => {
           </section>
 
           <section className="form-section">
-            <h2>Where you work</h2>
-            <p className="section-hint">We use this to match you with nearby clients. Your exact location is never shown publicly.</p>
-            <div className="location-row">
-              <Button type="button" variant="outline" onClick={captureLocation} disabled={locating}
-                leftIcon={locating ? <Loader2 className="animate-spin" size={18} /> : <LocateFixed size={18} />}>
-                {locating ? 'Getting location…' : lat !== null ? 'Update my location' : 'Use my current location'}
-              </Button>
-              {lat !== null && lng !== null && (
-                <span className="coords"><MapPin size={14} /> {lat.toFixed(4)}, {lng.toFixed(4)}</span>
-              )}
-            </div>
-            <div className="form-group radius-group">
-              <label htmlFor="radius">How far will you travel? <strong>{radius} km</strong></label>
-              <input id="radius" type="range" min={2} max={50} value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))} className="range-input" />
+            <h2>Areas you work in</h2>
+            <p className="section-hint">Pick every Lagos area you can take jobs in — we'll only show you jobs in these areas.</p>
+            <div className="chip-grid">
+              {areas.map((a) => (
+                <button type="button" key={a.slug}
+                  className={`chip ${selectedAreas.includes(a.slug) ? 'selected' : ''}`}
+                  onClick={() => toggleArea(a.slug)}>
+                  {selectedAreas.includes(a.slug) && <Check size={14} />}
+                  {a.name}
+                </button>
+              ))}
             </div>
           </section>
 
@@ -314,13 +330,15 @@ const ArtisanOnboard: React.FC = () => {
           {error && <div className="onboard-note error"><AlertCircle size={18} /><span>{error}</span></div>}
 
           <div className="onboard-actions">
-            <Button type="button" variant="text" onClick={() => navigate('/profile')}>Cancel</Button>
+            <Button type="button" variant="text"
+              onClick={() => (existing ? setEditing(false) : navigate('/profile'))}>Cancel</Button>
             <Button type="submit" variant="primary" size="lg" disabled={submitting}
               rightIcon={submitting ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}>
               {submitting ? 'Saving…' : existing ? 'Save changes' : 'Submit for review'}
             </Button>
           </div>
         </form>
+        )}
       </motion.div>
     </div>
   );

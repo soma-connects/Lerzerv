@@ -6,6 +6,7 @@ import type {
   IArtisanOnboarding,
   IServiceRequest,
   IServiceCategory,
+  IServiceArea,
 } from '../types/marketplace';
 
 /**
@@ -25,6 +26,17 @@ export const artisanService = {
     return (data || []) as IServiceCategory[];
   },
 
+  /** Public list of Lagos service areas. */
+  fetchAreas: async (): Promise<IServiceArea[]> => {
+    const { data, error } = await supabase
+      .from('service_areas')
+      .select('slug, name')
+      .eq('is_active', true)
+      .order('sort_order');
+    if (error) return [];
+    return (data || []) as IServiceArea[];
+  },
+
   /** Create or update the current user's artisan profile. */
   saveProfile: async (o: IArtisanOnboarding): Promise<IApiResponse<{ id: string; status: string }>> => {
     try {
@@ -34,13 +46,11 @@ export const artisanService = {
         p_bio: o.bio ?? null,
         p_avatar_url: o.avatarUrl ?? null,
         p_years_experience: o.yearsExperience ?? 0,
-        p_lat: o.lat ?? null,
-        p_lng: o.lng ?? null,
-        p_service_radius_km: o.serviceRadiusKm ?? 15,
         p_phone: o.phone ?? null,
         p_nin: o.nin ?? null,
         p_address: o.address ?? null,
         p_category_slugs: o.categorySlugs,
+        p_area_slugs: o.areaSlugs,
       }).single();
       if (error) throw error;
       return { success: true, data: data as any };
@@ -64,10 +74,14 @@ export const artisanService = {
       .maybeSingle();
     if (error || !data) return null;
 
-    const [{ data: cats }, { data: priv }] = await Promise.all([
+    const [{ data: cats }, { data: areas }, { data: priv }] = await Promise.all([
       supabase
         .from('artisan_categories')
         .select('service_categories(slug)')
+        .eq('artisan_id', data.id),
+      supabase
+        .from('artisan_areas')
+        .select('service_areas(slug)')
         .eq('artisan_id', data.id),
       supabase
         .from('artisan_private')
@@ -79,8 +93,11 @@ export const artisanService = {
     const categorySlugs = (cats || [])
       .map((c: any) => c.service_categories?.slug)
       .filter(Boolean);
+    const areaSlugs = (areas || [])
+      .map((a: any) => a.service_areas?.slug)
+      .filter(Boolean);
 
-    return { ...data, categorySlugs, ...(priv || {}) };
+    return { ...data, categorySlugs, areaSlugs, ...(priv || {}) };
   },
 
   /** Toggle "ready for work" (server enforces approved status). */

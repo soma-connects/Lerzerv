@@ -55,19 +55,22 @@ export interface IArtisanProfile {
   reviews: IArtisanReview[];
 }
 
+export interface IServiceArea {
+  slug: string;
+  name: string;
+}
+
 export interface IArtisanOnboarding {
   displayName: string;
   city: string;
   bio?: string;
   avatarUrl?: string;
   yearsExperience?: number;
-  lat?: number;
-  lng?: number;
-  serviceRadiusKm?: number;
   phone?: string;
   nin?: string;
   address?: string;
   categorySlugs: string[];
+  areaSlugs: string[];
 }
 
 export interface IServiceRequest {

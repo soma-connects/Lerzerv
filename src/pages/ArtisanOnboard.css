@@ -163,3 +163,20 @@ textarea { resize: vertical; }
   .form-row { grid-template-columns: 1fr; }
   .onboard-head { flex-direction: column; }
 }
+
+/* ── Applied summary (existing profile, read-only) ───── */
+.onboard-summary { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.summary-block { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.summary-label {
+  font-size: var(--font-size-label); font-weight: var(--font-weight-semibold);
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-on-surface-variant);
+}
+.summary-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.summary-chip {
+  padding: 6px 14px; border-radius: var(--radius-full); font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-primary-fixed); color: var(--color-on-primary-fixed);
+}
+.summary-chip.area { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+.summary-empty { color: var(--color-outline); font-size: var(--font-size-body-sm); }
+.summary-actions { border-top: 1px solid var(--color-outline-variant); padding-top: var(--spacing-lg); }
