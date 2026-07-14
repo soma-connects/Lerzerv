@@ -1,45 +1,66 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User, ChevronDown, LogOut, Briefcase, LayoutDashboard, Bell } from 'lucide-react';
+import {
+  Menu, X, User, ChevronDown, LogOut, Briefcase, LayoutDashboard, Bell,
+  Sparkles, Wrench, Zap, ShieldCheck, ClipboardList, Award, Search,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationService, type INotification } from '../../services/notificationService';
 import './Header.css';
 
-// Primary links always visible on desktop
-const primaryLinks = [
-  { name: 'Post a Job', path: '/post-job' },
-  { name: 'Find Artisans', path: '/find-artisans' },
-  { name: 'For Artisans', path: '/become-artisan' },
+// Artisan categories grouped for the Services mega-menu
+const serviceGroups: { label: string; icon: React.ReactNode; items: [string, string][] }[] = [
+  { label: 'Home Care', icon: <Sparkles size={16} />, items: [
+    ['cleaning', 'Cleaning'], ['painting', 'Painting'], ['pest-control', 'Pest Control'], ['landscaping', 'Gardening & Landscaping'],
+  ] },
+  { label: 'Repairs & Fittings', icon: <Wrench size={16} />, items: [
+    ['plumbing', 'Plumbing'], ['carpentry', 'Carpentry'], ['masonry-tiling', 'Masonry & Tiling'], ['appliance-repair', 'Appliance Repair'],
+  ] },
+  { label: 'Power & Water', icon: <Zap size={16} />, items: [
+    ['electrical', 'Electrical'], ['generator-power', 'Generator & Power'], ['solar-inverter', 'Solar & Inverter'], ['ac-refrigeration', 'AC & Refrigeration'], ['borehole-water', 'Borehole & Water'],
+  ] },
+  { label: 'Security', icon: <ShieldCheck size={16} />, items: [
+    ['home-security', 'Home Security'],
+  ] },
 ];
 
-// Secondary links tucked into the "More" dropdown
-const moreLinks = [
+const companyLinks = [
   { name: 'About', path: '/about' },
   { name: 'How it works', path: '/services' },
   { name: 'Careers', path: '/careers' },
-  { name: 'Ambassador', path: '/ambassador' },
   { name: 'Track Order', path: '/track' },
   { name: 'Contact', path: '/contact' },
 ];
-
-const allMobileLinks = [{ name: 'Home', path: '/' }, ...primaryLinks, ...moreLinks];
 
 export const Header: React.FC = () => {
   const { user, isAdmin, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const moreRef = useRef<HTMLLIElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
-  const bellRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const unread = notifications.filter((n) => !n.read).length;
+  const toggle = (name: string) => setOpenMenu((cur) => (cur === name ? null : name));
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  useEffect(() => { setOpenMenu(null); setIsMenuOpen(false); }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!user) { setNotifications([]); return; }
@@ -52,70 +73,72 @@ export const Header: React.FC = () => {
   }, [user]);
 
   const openNotification = async (n: INotification) => {
-    setBellOpen(false);
+    setOpenMenu(null);
     if (!n.read) {
       await notificationService.markRead(n.id);
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
     }
     if (n.link) navigate(n.link);
   };
-
   const markAll = async () => {
     await notificationService.markAllRead();
     setNotifications((prev) => prev.map((x) => ({ ...x, read: true })));
   };
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Close dropdowns on outside click or route change
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
-
-  useEffect(() => {
-    setMoreOpen(false);
-    setUserOpen(false);
-    setBellOpen(false);
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
-  const isActive = (path: string) => location.pathname === path;
-
   return (
     <header className={`header ${isScrolled ? 'header-scrolled' : ''}`}>
       <div className="container header-container">
-        <Link to="/" className="logo">
-          <img src="/logo.png" alt="Lezerv" className="logo-img" />
-        </Link>
+        <Link to="/" className="logo"><img src="/logo.png" alt="Lezerv" className="logo-img" /></Link>
 
-        <nav className="nav-desktop">
+        <nav className="nav-desktop" ref={navRef}>
           <ul className="nav-list">
-            {primaryLinks.map((link) => (
-              <li key={link.path}>
-                <Link to={link.path} className={`nav-link ${isActive(link.path) ? 'nav-link-active' : ''}`}>
-                  {link.name}
-                </Link>
-              </li>
-            ))}
-            <li className="nav-dropdown" ref={moreRef}>
-              <button className="nav-link nav-more" onClick={() => setMoreOpen((v) => !v)}>
-                More <ChevronDown size={15} className={`chev ${moreOpen ? 'open' : ''}`} />
+            {/* Services mega-menu */}
+            <li className={`nav-dropdown ${openMenu === 'services' ? 'open' : ''}`}>
+              <button className="nav-link nav-trigger" onClick={() => toggle('services')}>
+                Services <ChevronDown size={15} className={`chev ${openMenu === 'services' ? 'open' : ''}`} />
               </button>
-              {moreOpen && (
+              {openMenu === 'services' && (
+                <div className="mega-menu">
+                  <div className="mega-groups">
+                    {serviceGroups.map((g) => (
+                      <div className="mega-col" key={g.label}>
+                        <span className="mega-col-title">{g.icon} {g.label}</span>
+                        {g.items.map(([slug, name]) => (
+                          <Link key={slug} to={`/find-artisans?category=${slug}`} className="mega-item">{name}</Link>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mega-foot">
+                    <Link to="/find-artisans" className="mega-foot-link"><Search size={16} /> Browse all artisans</Link>
+                    <Link to="/post-job"><Button variant="primary" size="sm" leftIcon={<ClipboardList size={15} />}>Post a job</Button></Link>
+                  </div>
+                </div>
+              )}
+            </li>
+
+            {/* For Artisans */}
+            <li className={`nav-dropdown ${openMenu === 'artisans' ? 'open' : ''}`}>
+              <button className="nav-link nav-trigger" onClick={() => toggle('artisans')}>
+                For Artisans <ChevronDown size={15} className={`chev ${openMenu === 'artisans' ? 'open' : ''}`} />
+              </button>
+              {openMenu === 'artisans' && (
                 <div className="dropdown-menu">
-                  {moreLinks.map((link) => (
-                    <Link key={link.name} to={link.path} className="dropdown-item">{link.name}</Link>
-                  ))}
+                  <Link to="/become-artisan" className="dropdown-item"><ShieldCheck size={16} /> Become an artisan</Link>
+                  {user && <Link to="/my-jobs" className="dropdown-item"><Briefcase size={16} /> My jobs</Link>}
+                  <Link to="/ambassador" className="dropdown-item"><Award size={16} /> Refer &amp; earn</Link>
+                </div>
+              )}
+            </li>
+
+            {/* Company */}
+            <li className={`nav-dropdown ${openMenu === 'company' ? 'open' : ''}`}>
+              <button className="nav-link nav-trigger" onClick={() => toggle('company')}>
+                Company <ChevronDown size={15} className={`chev ${openMenu === 'company' ? 'open' : ''}`} />
+              </button>
+              {openMenu === 'company' && (
+                <div className="dropdown-menu">
+                  {companyLinks.map((l) => <Link key={l.name} to={l.path} className="dropdown-item">{l.name}</Link>)}
                 </div>
               )}
             </li>
@@ -123,12 +146,12 @@ export const Header: React.FC = () => {
 
           <div className="nav-actions">
             {user && (
-              <div className="nav-dropdown" ref={bellRef}>
-                <button className="bell-btn" onClick={() => setBellOpen((v) => !v)} aria-label="Notifications">
+              <div className={`nav-dropdown ${openMenu === 'bell' ? 'open' : ''}`}>
+                <button className="bell-btn" onClick={() => toggle('bell')} aria-label="Notifications">
                   <Bell size={19} />
                   {unread > 0 && <span className="bell-badge">{unread > 9 ? '9+' : unread}</span>}
                 </button>
-                {bellOpen && (
+                {openMenu === 'bell' && (
                   <div className="dropdown-menu dropdown-right notif-menu">
                     <div className="notif-head">
                       <strong>Notifications</strong>
@@ -149,26 +172,26 @@ export const Header: React.FC = () => {
                 )}
               </div>
             )}
+
+            <Link to="/post-job" className="cta-desktop"><Button variant="primary" size="md" leftIcon={<ClipboardList size={17} />}>Post a Job</Button></Link>
+
             {user ? (
-              <div className="nav-dropdown" ref={userRef}>
-                <button className="user-chip" onClick={() => setUserOpen((v) => !v)}>
+              <div className={`nav-dropdown ${openMenu === 'user' ? 'open' : ''}`}>
+                <button className="user-chip" onClick={() => toggle('user')}>
                   <span className="user-avatar"><User size={16} /></span>
-                  <ChevronDown size={15} className={`chev ${userOpen ? 'open' : ''}`} />
+                  <ChevronDown size={15} className={`chev ${openMenu === 'user' ? 'open' : ''}`} />
                 </button>
-                {userOpen && (
+                {openMenu === 'user' && (
                   <div className="dropdown-menu dropdown-right">
-                    <Link to="/my-jobs" className="dropdown-item"><Briefcase size={16} /> My Jobs</Link>
-                    <Link to="/profile" className="dropdown-item"><User size={16} /> Profile</Link>
+                    <Link to="/profile" className="dropdown-item"><User size={16} /> My account</Link>
+                    <Link to="/my-jobs" className="dropdown-item"><Briefcase size={16} /> My jobs</Link>
                     {isAdmin && <Link to="/admin" className="dropdown-item"><LayoutDashboard size={16} /> Admin</Link>}
                     <button className="dropdown-item danger" onClick={() => signOut()}><LogOut size={16} /> Log out</button>
                   </div>
                 )}
               </div>
             ) : (
-              <>
-                <Link to="/login"><Button variant="text" size="md">Login</Button></Link>
-                <Link to="/find-artisans"><Button variant="primary" size="md">Get Started</Button></Link>
-              </>
+              <Link to="/login"><Button variant="text" size="md">Login</Button></Link>
             )}
           </div>
         </nav>
@@ -178,35 +201,36 @@ export const Header: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       <div className={`nav-mobile ${isMenuOpen ? 'nav-mobile-open' : ''}`}>
-        <ul className="nav-mobile-list">
-          {allMobileLinks.map((link) => (
-            <li key={link.name}>
-              <Link to={link.path} className={`nav-mobile-link ${isActive(link.path) ? 'nav-mobile-active' : ''}`}
-                onClick={() => setIsMenuOpen(false)}>
-                {link.name}
-              </Link>
-            </li>
+        <div className="nav-mobile-scroll">
+          <span className="mob-heading">Services</span>
+          {serviceGroups.flatMap((g) => g.items).map(([slug, name]) => (
+            <Link key={slug} to={`/find-artisans?category=${slug}`} className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>{name}</Link>
           ))}
-          {user && (
-            <>
-              <li><Link to="/my-jobs" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>My Jobs</Link></li>
-              <li><Link to="/profile" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Profile</Link></li>
-              {isAdmin && <li><Link to="/admin" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Admin</Link></li>}
-            </>
-          )}
-          <li className="nav-mobile-cta">
+          <Link to="/find-artisans" className="nav-mobile-link strong" onClick={() => setIsMenuOpen(false)}>Browse all artisans</Link>
+
+          <span className="mob-heading">For Artisans</span>
+          <Link to="/become-artisan" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Become an artisan</Link>
+          {user && <Link to="/my-jobs" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>My jobs</Link>}
+          <Link to="/ambassador" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Refer &amp; earn</Link>
+
+          <span className="mob-heading">Company</span>
+          {companyLinks.map((l) => <Link key={l.name} to={l.path} className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>{l.name}</Link>)}
+
+          {user && <><span className="mob-heading">Account</span>
+            <Link to="/profile" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>My account</Link>
+            {isAdmin && <Link to="/admin" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Admin</Link>}</>}
+
+          <div className="nav-mobile-cta">
+            <Link to="/post-job" onClick={() => setIsMenuOpen(false)}><Button variant="primary" size="lg" fullWidth>Post a Job</Button></Link>
             {user ? (
               <Button variant="outline" size="lg" fullWidth onClick={() => { signOut(); setIsMenuOpen(false); }}>Log out</Button>
             ) : (
-              <>
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}><Button variant="outline" size="lg" fullWidth>Login</Button></Link>
-                <Link to="/find-artisans" onClick={() => setIsMenuOpen(false)}><Button variant="primary" size="lg" fullWidth>Get Started</Button></Link>
-              </>
+              <Link to="/login" onClick={() => setIsMenuOpen(false)}><Button variant="outline" size="lg" fullWidth>Login</Button></Link>
             )}
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
     </header>
   );

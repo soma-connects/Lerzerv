@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Star, ShieldCheck, Loader2, Hammer, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -17,9 +17,11 @@ const Stars: React.FC<{ rating: number }> = ({ rating }) => (
 
 const FindArtisans: React.FC = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const initialCat = params.get('category') || '';
   const [categories, setCategories] = useState<IServiceCategory[]>([]);
   const [areas, setAreas] = useState<IServiceArea[]>([]);
-  const [activeCat, setActiveCat] = useState<string>('');
+  const [activeCat, setActiveCat] = useState<string>(initialCat);
   const [activeArea, setActiveArea] = useState<string>('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,15 @@ const FindArtisans: React.FC = () => {
     Promise.all([artisanService.fetchCategories(), artisanService.fetchAreas()]).then(([c, a]) => {
       setCategories(c); setAreas(a);
     });
-    run('', '');
-  }, [run]);
+  }, []);
+
+  // React to category changes coming from the URL (nav dropdown links)
+  useEffect(() => {
+    const cat = params.get('category') || '';
+    setActiveCat(cat);
+    run(activeArea, cat);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, run]);
 
   const onArea = (slug: string) => { setActiveArea(slug); run(slug, activeCat); };
   const onCat = (slug: string) => { setActiveCat(slug); run(activeArea, slug); };
