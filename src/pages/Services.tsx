@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import BookingFlow from '../components/booking/BookingFlow';
 import './Services.css';
+
+// Best-effort map from a catalog service to a dispatch category slug
+const guessCategory = (text: string): string | undefined => {
+  const t = text.toLowerCase();
+  if (t.includes('clean')) return 'cleaning';
+  if (t.includes('solar') || t.includes('inverter')) return 'solar-inverter';
+  if (t.includes('generator') || t.includes('power')) return 'generator-power';
+  if (t.includes('borehole') || t.includes('plumb') || t.includes('tank') || t.includes('water')) return 'plumbing';
+  if (t.includes('ac ') || t.includes('cooling') || t.includes('refrig')) return 'ac-refrigeration';
+  if (t.includes('electric')) return 'electrical';
+  if (t.includes('carpent') || t.includes('furniture') || t.includes('cabinet')) return 'carpentry';
+  if (t.includes('paint')) return 'painting';
+  if (t.includes('pest') || t.includes('fumig')) return 'pest-control';
+  if (t.includes('tile') || t.includes('mason') || t.includes('interlock')) return 'masonry-tiling';
+  if (t.includes('security') || t.includes('gate') || t.includes('lock')) return 'home-security';
+  return undefined;
+};
 
 interface ServiceTier {
   name: string;
@@ -129,8 +145,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
 ];
 
 const Services: React.FC = () => {
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState('');
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -174,8 +189,10 @@ const Services: React.FC = () => {
   }, []);
 
   const handleBook = (categoryTitle: string, tierName: string) => {
-    setSelectedService(`${categoryTitle} - ${tierName}`);
-    setIsBookingOpen(true);
+    const cat = guessCategory(`${categoryTitle} ${tierName}`);
+    const qs = new URLSearchParams({ title: tierName });
+    if (cat) qs.set('category', cat);
+    navigate(`/post-job?${qs.toString()}`);
   };
 
   return (
@@ -302,11 +319,6 @@ const Services: React.FC = () => {
         </div>
       </section>
 
-      <BookingFlow 
-        isOpen={isBookingOpen} 
-        onClose={() => setIsBookingOpen(false)} 
-        serviceName={selectedService} 
-      />
     </div>
   );
 };
