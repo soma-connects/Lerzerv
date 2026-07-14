@@ -57,9 +57,18 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [ ] Dispute resolution + cancellation/refund/no-show policy
 
 ### Phase 3 — Polish + store launch
-- [ ] Notifications (SMS/WhatsApp + push) across the job lifecycle
+- [x] In-app notifications (bell + realtime) on job posted/assigned/message/approval (0009)
+- [ ] External delivery channels reading the notifications table via an Edge Function:
+      SMS/WhatsApp (Termii/Twilio), push (Capacitor/FCM+APNs), email (Zoho SMTP) — need accounts/keys
 - [ ] Admin / trust-&-safety ops (disputes, suspensions, moderation)
 - [ ] App Store + Play Store submission
+
+### Dispatch model (delivered)
+- [x] Lagos areas + area-based artisan onboarding
+- [x] Client "Post a job" → pool; artisan job board (express interest)
+- [x] Admin dispatch queue (view applicants → assign → chat opens)
+- [x] Area-based Find Artisans directory (browse_artisans)
+- [ ] Retire deprecated direct-hire `service_requests` tables/RPCs once confident
 
 ## Compliance note (NDPA + GAID, in force since Sept 2025)
 
