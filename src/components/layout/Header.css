@@ -183,3 +183,8 @@
 .nav-mobile-scroll { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--spacing-2xl); }
 .mob-heading { font-size: var(--font-size-label); font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-on-surface-variant); margin: var(--spacing-md) var(--spacing-sm) 4px; }
 .nav-mobile-link.strong { font-weight: var(--font-weight-semibold); color: var(--color-primary); }
+
+/* Hover bridge: keeps the menu open while crossing the gap from the trigger */
+.mega-menu::before, .nav-list .dropdown-menu::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -14px; height: 14px;
+}

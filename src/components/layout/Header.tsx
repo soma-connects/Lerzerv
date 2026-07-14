@@ -42,9 +42,21 @@ export const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const navRef = useRef<HTMLElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unread = notifications.filter((n) => !n.read).length;
   const toggle = (name: string) => setOpenMenu((cur) => (cur === name ? null : name));
+
+  // Hover-open for the desktop nav menus (with a small close delay so the
+  // gap between trigger and panel doesn't make it flicker shut).
+  const hoverOpen = (name: string) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setOpenMenu(name);
+  };
+  const hoverClose = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setOpenMenu(null), 160);
+  };
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20);
@@ -93,7 +105,8 @@ export const Header: React.FC = () => {
         <nav className="nav-desktop" ref={navRef}>
           <ul className="nav-list">
             {/* Services mega-menu */}
-            <li className={`nav-dropdown ${openMenu === 'services' ? 'open' : ''}`}>
+            <li className={`nav-dropdown ${openMenu === 'services' ? 'open' : ''}`}
+              onMouseEnter={() => hoverOpen('services')} onMouseLeave={hoverClose}>
               <button className="nav-link nav-trigger" onClick={() => toggle('services')}>
                 Services <ChevronDown size={15} className={`chev ${openMenu === 'services' ? 'open' : ''}`} />
               </button>
@@ -118,7 +131,8 @@ export const Header: React.FC = () => {
             </li>
 
             {/* For Artisans */}
-            <li className={`nav-dropdown ${openMenu === 'artisans' ? 'open' : ''}`}>
+            <li className={`nav-dropdown ${openMenu === 'artisans' ? 'open' : ''}`}
+              onMouseEnter={() => hoverOpen('artisans')} onMouseLeave={hoverClose}>
               <button className="nav-link nav-trigger" onClick={() => toggle('artisans')}>
                 For Artisans <ChevronDown size={15} className={`chev ${openMenu === 'artisans' ? 'open' : ''}`} />
               </button>
@@ -132,7 +146,8 @@ export const Header: React.FC = () => {
             </li>
 
             {/* Company */}
-            <li className={`nav-dropdown ${openMenu === 'company' ? 'open' : ''}`}>
+            <li className={`nav-dropdown ${openMenu === 'company' ? 'open' : ''}`}
+              onMouseEnter={() => hoverOpen('company')} onMouseLeave={hoverClose}>
               <button className="nav-link nav-trigger" onClick={() => toggle('company')}>
                 Company <ChevronDown size={15} className={`chev ${openMenu === 'company' ? 'open' : ''}`} />
               </button>
