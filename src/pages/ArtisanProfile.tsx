@@ -106,8 +106,9 @@ const ArtisanProfile: React.FC = () => {
             </div>
           </div>
           <div className="ap-cta">
-            <Button variant="primary" size="lg" leftIcon={<Send size={18} />} onClick={() => setModalOpen(true)}>
-              Request this artisan
+            <Button variant="primary" size="lg" leftIcon={<Send size={18} />}
+              onClick={() => navigate(`/post-job${profile.categories[0] ? `?category=${profile.categories[0].slug}` : ''}`)}>
+              Post a job
             </Button>
           </div>
         </motion.div>

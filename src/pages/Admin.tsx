@@ -76,7 +76,7 @@ type TToast = {
 
 const Admin: React.FC = () => {
   const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
@@ -85,6 +85,10 @@ const Admin: React.FC = () => {
   const [ambassadors, setAmbassadors] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [artisans, setArtisans] = useState<any[]>([]);
+  const [dispatchJobs, setDispatchJobs] = useState<any[]>([]);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [unreadApplicationsCount, setUnreadApplicationsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<TToast[]>([]);
   
@@ -174,7 +178,7 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes, artisansRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes, artisansRes, dispatchRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
@@ -183,7 +187,8 @@ const Admin: React.FC = () => {
         userService.fetchUsers(),
         supabase.from('ambassadors').select('*').order('created_at', { ascending: false }),
         supabase.from('referrals').select('*, ambassadors(name, referral_code)').order('created_at', { ascending: false }),
-        artisanService.adminFetchArtisans()
+        artisanService.adminFetchArtisans(),
+        artisanService.adminFetchJobs()
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
@@ -195,8 +200,29 @@ const Admin: React.FC = () => {
       if (ambassadorsRes.data) setAmbassadors(ambassadorsRes.data);
       if (referralsRes.data) setReferrals(referralsRes.data);
       if (artisansRes) setArtisans(artisansRes);
+      if (dispatchRes) setDispatchJobs(dispatchRes);
     } catch (err) {
       console.error('Error fetching admin data:', err);
+    }
+  };
+
+  const viewApplicants = async (jobId: string) => {
+    if (expandedJobId === jobId) { setExpandedJobId(null); return; }
+    setExpandedJobId(jobId);
+    setLoadingApplicants(true);
+    const list = await artisanService.adminGetApplicants(jobId);
+    setApplicants(list);
+    setLoadingApplicants(false);
+  };
+
+  const assignJob = async (jobId: string, artisanId: string, name: string) => {
+    const res = await artisanService.adminAssignJob(jobId, artisanId);
+    if (res.success) {
+      triggerToast('Job Assigned', `${name} has been assigned. Call them to confirm availability.`);
+      setExpandedJobId(null);
+      fetchData();
+    } else {
+      triggerToast('Error', res.error?.message || 'Failed to assign.');
     }
   };
 
@@ -454,6 +480,12 @@ const Admin: React.FC = () => {
               Artisans
               {artisans.filter((a) => a.status === 'pending').length > 0 && (
                 <span className="tab-badge">{artisans.filter((a) => a.status === 'pending').length}</span>
+              )}
+            </button>
+            <button className={activeTab === 'dispatch' ? 'active' : ''} onClick={() => setActiveTab('dispatch')}>
+              Dispatch
+              {dispatchJobs.filter((j) => j.status === 'open').length > 0 && (
+                <span className="tab-badge">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
               )}
             </button>
           </nav>
@@ -1462,6 +1494,108 @@ const Admin: React.FC = () => {
                           <p>No artisan applications yet.</p>
                         </td>
                       </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'dispatch' && (
+          <>
+            <div className="admin-stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-tertiary)' }}><Clock size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Open (need assigning)</span>
+                  <span className="stat-value">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon"><Briefcase size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Active Jobs</span>
+                  <span className="stat-value">{dispatchJobs.filter((j) => ['assigned', 'in_progress'].includes(j.status)).length}</span>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon" style={{ color: 'var(--color-secondary)' }}><Check size={20} /></div>
+                <div className="stat-info">
+                  <span className="stat-label">Completed</span>
+                  <span className="stat-value">{dispatchJobs.filter((j) => j.status === 'completed').length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-content-card">
+              <div className="card-header">
+                <h2>Job Dispatch Queue</h2>
+                <p className="card-desc">Assign posted jobs to interested artisans. After assigning, call the artisan to confirm availability.</p>
+              </div>
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Posted</th>
+                      <th>Job</th>
+                      <th>Service</th>
+                      <th>Area</th>
+                      <th>Status</th>
+                      <th>Assigned</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dispatchJobs.length > 0 ? (
+                      dispatchJobs.map((j) => (
+                        <React.Fragment key={j.id}>
+                          <tr>
+                            <td className="whitespace-nowrap text-sm">{new Date(j.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
+                            <td><div className="candidate-cell"><span className="candidate-name">{j.title}</span>{j.description && <span className="text-sm" style={{ color: 'var(--color-outline)' }}>{j.description.slice(0, 60)}</span>}</div></td>
+                            <td className="text-sm">{j.category_name || '—'}</td>
+                            <td className="text-sm">{j.area_name || '—'}</td>
+                            <td><span className={`status-pill status-${j.status === 'open' ? 'pending' : j.status === 'completed' ? 'confirmed' : j.status === 'cancelled' ? 'suspended' : 'artisan'}`}>{j.status}</span></td>
+                            <td className="text-sm">{j.assigned_name || <span style={{ color: 'var(--color-outline)' }}>—</span>}</td>
+                            <td className="table-actions">
+                              {j.status === 'open' && (
+                                <Button size="sm" variant="primary" onClick={() => viewApplicants(j.id)}>
+                                  {expandedJobId === j.id ? 'Hide' : 'View applicants'}
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                          {expandedJobId === j.id && (
+                            <tr>
+                              <td colSpan={7} style={{ background: 'var(--color-surface-container-low)', padding: 'var(--spacing-md)' }}>
+                                {loadingApplicants ? (
+                                  <div style={{ textAlign: 'center', padding: '1rem' }}>Loading applicants…</div>
+                                ) : applicants.length === 0 ? (
+                                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-on-surface-variant)' }}>No artisans have expressed interest yet.</div>
+                                ) : (
+                                  <div className="applicant-list">
+                                    {applicants.map((ap) => (
+                                      <div key={ap.artisan_id} className="applicant-row">
+                                        <div>
+                                          <strong>{ap.display_name}</strong>{ap.is_verified && <Check size={13} style={{ color: 'var(--color-secondary)', verticalAlign: 'middle', marginLeft: 4 }} />}
+                                          <div className="text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                            ⭐ {Number(ap.avg_rating).toFixed(1)} ({ap.total_reviews}) · {ap.completed_jobs} jobs · {ap.phone || 'no phone'}
+                                          </div>
+                                          {ap.note && <div className="text-sm" style={{ fontStyle: 'italic' }}>"{ap.note}"</div>}
+                                        </div>
+                                        <Button size="sm" variant="primary" onClick={() => assignJob(j.id, ap.artisan_id, ap.display_name)}>Assign</Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <tr><td colSpan={7} className="empty-table-cell"><Briefcase size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} /><p>No jobs posted yet.</p></td></tr>
                     )}
                   </tbody>
                 </table>

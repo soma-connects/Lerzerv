@@ -200,7 +200,116 @@ export const artisanService = {
     }
   },
 
+  // ── Dispatch: jobs ───────────────────────────────────────────────
+
+  /** Client posts a job to the dispatch pool. */
+  createJob: async (p: {
+    title: string; categorySlug: string; areaSlug: string;
+    description?: string; addressText?: string; scheduledFor?: string;
+    budgetNote?: string; clientContact?: { name?: string; phone?: string };
+  }): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('create_service_job', {
+        p_title: p.title,
+        p_category_slug: p.categorySlug,
+        p_area_slug: p.areaSlug,
+        p_description: p.description ?? null,
+        p_address_text: p.addressText ?? null,
+        p_scheduled_for: p.scheduledFor ?? null,
+        p_budget_note: p.budgetNote ?? null,
+        p_client_contact: p.clientContact ?? null,
+      }).single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: any) {
+      return { success: false, error: { code: 'JOB_ERROR', message: err.message } };
+    }
+  },
+
+  /** Artisan job board: open jobs matching my areas + services. */
+  getOpenJobs: async (): Promise<any[]> => {
+    const { data, error } = await supabase.rpc('get_open_jobs_for_artisan');
+    if (error) { console.warn('getOpenJobs failed:', error); return []; }
+    return data || [];
+  },
+
+  /** Artisan expresses interest in a job. */
+  expressInterest: async (jobId: string, note?: string): Promise<IApiResponse<null>> => {
+    const { error } = await supabase.rpc('express_interest', { p_job_id: jobId, p_note: note ?? null });
+    if (error) return { success: false, error: { code: 'INTEREST_ERROR', message: error.message } };
+    return { success: true, data: null };
+  },
+
+  /**
+   * The current user's dispatch jobs (posted as client, or assigned as artisan),
+   * enriched with category, area, counterpart, and conversation.
+   */
+  getDispatchJobs: async (): Promise<{ jobs: any[]; myUserId: string | null }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { jobs: [], myUserId: null };
+
+    const { data, error } = await supabase
+      .from('service_jobs')
+      .select('*, service_categories(name), service_areas(name), artisans(display_name, user_id), conversations(id)')
+      .order('created_at', { ascending: false });
+    if (error) { console.warn('getDispatchJobs failed:', error); return { jobs: [], myUserId: user.id }; }
+
+    const jobs = (data || []).map((j: any) => ({
+      ...j,
+      category_name: j.service_categories?.name || null,
+      area_name: j.service_areas?.name || null,
+      artisan_name: j.artisans?.display_name || null,
+      conversation_id: j.conversations?.[0]?.id || null,
+      iAmClient: j.client_id === user.id,
+      iAmAssigned: j.artisans?.user_id === user.id,
+    }));
+    return { jobs, myUserId: user.id };
+  },
+
+  /** Advance a dispatch job: in_progress / completed (artisan) or cancelled (client). */
+  updateJobStatus: async (jobId: string, status: 'in_progress' | 'completed' | 'cancelled', reason?: string): Promise<void> => {
+    await supabase.rpc('update_service_job_status', { p_job_id: jobId, p_status: status, p_reason: reason ?? null });
+  },
+
+  /** Client reviews a completed dispatch job. */
+  submitJobReview: async (jobId: string, rating: number, comment?: string): Promise<IApiResponse<null>> => {
+    const { error } = await supabase.rpc('submit_job_review', { p_job_id: jobId, p_rating: rating, p_comment: comment ?? null });
+    if (error) return { success: false, error: { code: 'REVIEW_ERROR', message: error.message } };
+    return { success: true, data: null };
+  },
+
   // ── Admin ────────────────────────────────────────────────────────
+
+  /** All dispatch jobs for the admin queue. */
+  adminFetchJobs: async (): Promise<any[]> => {
+    const { data, error } = await supabase
+      .from('service_jobs')
+      .select('*, service_categories(name), service_areas(name), artisans(display_name)')
+      .order('created_at', { ascending: false });
+    if (error) { console.warn('adminFetchJobs failed:', error); return []; }
+    return (data || []).map((j: any) => ({
+      ...j,
+      category_name: j.service_categories?.name || null,
+      area_name: j.service_areas?.name || null,
+      assigned_name: j.artisans?.display_name || null,
+    }));
+  },
+
+  /** Applicants (interested artisans) for a job (admin). */
+  adminGetApplicants: async (jobId: string): Promise<any[]> => {
+    const { data, error } = await supabase.rpc('admin_get_job_applicants', { p_job_id: jobId });
+    if (error) { console.warn('adminGetApplicants failed:', error); return []; }
+    return data || [];
+  },
+
+  /** Assign a job to an artisan (admin) — opens the chat. */
+  adminAssignJob: async (jobId: string, artisanId: string): Promise<IApiResponse<null>> => {
+    const { error } = await supabase.rpc('admin_assign_job', { p_job_id: jobId, p_artisan_id: artisanId });
+    if (error) return { success: false, error: { code: 'ASSIGN_ERROR', message: error.message } };
+    return { success: true, data: null };
+  },
+
+  // ── Admin (artisans) ─────────────────────────────────────────────
 
   /** All artisans with their private KYC data (admin — RLS enforces access). */
   adminFetchArtisans: async (): Promise<any[]> => {

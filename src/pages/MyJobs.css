@@ -109,3 +109,14 @@
   .job-card { flex-direction: column; }
   .chat-panel { max-width: 100%; }
 }
+
+/* ── Dispatch additions ──────────────────────────────── */
+.s-open { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
+.mj-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); }
+.mj-section-head h2 { margin-bottom: 0; }
+.mj-hint { font-size: var(--font-size-body-sm); color: var(--color-on-surface-variant); margin-top: var(--spacing-sm); }
+.interested-tag {
+  display: inline-flex; align-items: center; gap: 5px; font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold); color: var(--color-on-secondary-container);
+  background: var(--color-secondary-container); padding: 6px 12px; border-radius: var(--radius-full);
+}

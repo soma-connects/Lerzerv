@@ -7,8 +7,8 @@ import './Header.css';
 
 // Primary links always visible on desktop
 const primaryLinks = [
+  { name: 'Post a Job', path: '/post-job' },
   { name: 'Find Artisans', path: '/find-artisans' },
-  { name: 'Services', path: '/services' },
   { name: 'For Artisans', path: '/become-artisan' },
 ];
 

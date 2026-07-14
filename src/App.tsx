@@ -22,6 +22,7 @@ const ArtisanOnboard = lazy(() => import('./pages/ArtisanOnboard'));
 const FindArtisans = lazy(() => import('./pages/FindArtisans'));
 const ArtisanProfile = lazy(() => import('./pages/ArtisanProfile'));
 const MyJobs = lazy(() => import('./pages/MyJobs'));
+const PostJob = lazy(() => import('./pages/PostJob'));
 
 import { ambassadorService } from './services/ambassadorService';
 
@@ -60,6 +61,7 @@ const App: React.FC = () => {
             <Route path="/find-artisans" element={<FindArtisans />} />
             <Route path="/artisan/:id" element={<ArtisanProfile />} />
             <Route path="/my-jobs" element={<MyJobs />} />
+            <Route path="/post-job" element={<PostJob />} />
           </Routes>
         </Suspense>
       </Layout>
