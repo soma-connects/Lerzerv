@@ -14,6 +14,38 @@ export type TUserProfile = z.infer<typeof UserProfileSchema>;
 
 export const userService = {
   /**
+   * Update the current user's own display name (profiles + auth metadata).
+   */
+  updateMyProfile: async (fullName: string): Promise<IApiResponse<null>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in.');
+      const { error: pErr } = await supabase.from('profiles').update({ full_name: fullName }).eq('id', user.id);
+      if (pErr) throw pErr;
+      const { error: aErr } = await supabase.auth.updateUser({ data: { full_name: fullName } });
+      if (aErr) throw aErr;
+      return { success: true, data: null };
+    } catch (err: any) {
+      return { success: false, error: { code: 'PROFILE_ERROR', message: err.message || 'Failed to update profile.' } };
+    }
+  },
+
+  /**
+   * Send a password-reset link to the current user's email.
+   */
+  sendPasswordReset: async (email: string): Promise<IApiResponse<null>> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) throw error;
+      return { success: true, data: null };
+    } catch (err: any) {
+      return { success: false, error: { code: 'AUTH_ERROR', message: err.message || 'Failed to send reset link.' } };
+    }
+  },
+
+  /**
    * Fetch all registered users from the public profiles table.
    */
   fetchUsers: async (): Promise<IApiResponse<TUserProfile[]>> => {

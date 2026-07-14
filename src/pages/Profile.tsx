@@ -1,162 +1,299 @@
-import React, { useState, useEffect } from 'react';
-import { User, Settings, Shield, LogOut, Package, Wallet } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Settings, LogOut, LayoutGrid, ClipboardList, Briefcase, Star, ShieldCheck,
+  Clock, Loader2, Check, Download, Trash2, KeyRound, Bell, Award, MapPin, Search, Save,
+} from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { bookingService } from '../services/bookingService';
+import { artisanService } from '../services/artisanService';
+import { ambassadorService } from '../services/ambassadorService';
+import { userService } from '../services/userService';
+import { contactService } from '../services/contactService';
 import './Profile.css';
+import './ProfileHub.css';
+
+type Tab = 'overview' | 'activity' | 'settings';
 
 const Profile: React.FC = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [personalBookings, setPersonalBookings] = useState<any[]>([]);
+
+  const [tab, setTab] = useState<Tab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const [artisan, setArtisan] = useState<any | null>(null);
+  const [available, setAvailable] = useState(false);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [ambassador, setAmbassador] = useState<any | null>(null);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login');
+  // settings state
+  const [fullName, setFullName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameMsg, setNameMsg] = useState<string | null>(null);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => { if (!loading && !user) navigate('/login'); }, [user, loading, navigate]);
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setFullName(user.user_metadata?.full_name || '');
+    try {
+      try { await bookingService.syncGuestBookings(); } catch { /* non-blocking */ }
+      const [art, dispatch, board, ledger, amb] = await Promise.all([
+        artisanService.getMyProfile(),
+        artisanService.getDispatchJobs(),
+        Promise.resolve(null),
+        bookingService.getMyBookings(),
+        ambassadorService.getMyAmbassadorProfile(),
+      ]);
+      void board;
+      setArtisan(art);
+      setAvailable(!!art?.is_available);
+      setJobs(dispatch.jobs);
+      setBookings(ledger);
+      setAmbassador(amb);
+    } finally {
+      setIsLoading(false);
     }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      setIsLoading(true);
-      
-      try {
-        // 1. Sync old local orders (Isolated so failure doesn't block loading)
-        try {
-          await bookingService.syncGuestBookings();
-        } catch (syncErr) {
-          console.warn('Guest sync failed, continuing to load existing bookings:', syncErr);
-        }
-
-        // 2. Fetch using the service (Now standardized)
-        const bookings = await bookingService.getMyBookings();
-        setPersonalBookings(bookings);
-      } catch (err) {
-        console.error('Error loading profile data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
   }, [user]);
 
-  if (loading || !user) return <div className="loading-container">Loading profile...</div>;
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  if (loading || !user) return <div className="loading-container">Loading profile…</div>;
+
+  const handleSignOut = async () => { await signOut(); navigate('/'); };
+
+  const posted = jobs.filter((j) => j.iAmClient);
+  const assigned = jobs.filter((j) => j.iAmAssigned);
+  const activeCount = posted.filter((j) => ['open', 'assigned', 'in_progress'].includes(j.status)).length;
+  const completedCount = posted.filter((j) => j.status === 'completed').length;
+
+  const toggleAvailability = async () => {
+    const next = !available; setAvailable(next);
+    await artisanService.setAvailability(next);
   };
+
+  const saveName = async () => {
+    setSavingName(true); setNameMsg(null);
+    const res = await userService.updateMyProfile(fullName.trim());
+    setSavingName(false);
+    setNameMsg(res.success ? 'Saved!' : (res.error?.message || 'Failed to save.'));
+    setTimeout(() => setNameMsg(null), 3000);
+  };
+
+  const sendReset = async () => {
+    const res = await userService.sendPasswordReset(user.email!);
+    setResetMsg(res.success ? `Reset link sent to ${user.email}.` : (res.error?.message || 'Failed.'));
+    setTimeout(() => setResetMsg(null), 5000);
+  };
+
+  const exportData = async () => {
+    setExporting(true);
+    const payload = {
+      exported_at: new Date().toISOString(),
+      account: { id: user.id, email: user.email, full_name: user.user_metadata?.full_name },
+      artisan_profile: artisan,
+      dispatch_jobs: jobs,
+      service_bookings: bookings,
+      ambassador: ambassador,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `lezerv-my-data-${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url);
+    setExporting(false);
+  };
+
+  const requestDeletion = async () => {
+    if (!window.confirm('Request permanent deletion of your Lezerv account and data? Our team will process this within 30 days.')) return;
+    const res = await contactService.submitInquiry({
+      name: user.user_metadata?.full_name || 'User',
+      email: user.email!,
+      subject: 'Account Deletion Request (NDPA)',
+      message: `User ${user.email} (id ${user.id}) has requested deletion of their account and personal data.`,
+    });
+    alert(res.success ? 'Your deletion request has been received. We will process it within 30 days.' : 'Could not submit request. Please contact support.');
+  };
+
+  const initial = (user.user_metadata?.full_name || user.email || '?').charAt(0).toUpperCase();
 
   return (
     <div className="profile-page">
       <div className="container">
         <div className="profile-layout">
+          {/* Sidebar */}
           <aside className="profile-sidebar">
             <div className="user-brief">
-              <div className="user-avatar">{user.email?.charAt(0).toUpperCase()}</div>
+              <div className="user-avatar">{initial}</div>
               <div className="user-meta">
-                <h3>{user.user_metadata.full_name || 'User'}</h3>
+                <h3>{user.user_metadata?.full_name || 'User'}</h3>
                 <p>{user.email}</p>
               </div>
             </div>
+            <div className="role-chips">
+              <span className="role-chip client">Client</span>
+              {artisan && <span className={`role-chip artisan ${artisan.status}`}>Artisan · {artisan.status}</span>}
+              {ambassador?.status === 'approved' && <span className="role-chip amb">Ambassador</span>}
+            </div>
             <nav className="profile-nav">
-              <Button variant="text" fullWidth className="nav-item active" leftIcon={<User size={18} />}>My Profile</Button>
-              <Button variant="text" fullWidth className="nav-item" leftIcon={<Settings size={18} />}>Settings</Button>
+              <button className={`nav-item ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}><LayoutGrid size={18} /> Overview</button>
+              <button className={`nav-item ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}><ClipboardList size={18} /> Activity</button>
+              <button className={`nav-item ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}><Settings size={18} /> Settings</button>
               <hr />
-              <Button variant="text" fullWidth className="nav-item logout" leftIcon={<LogOut size={18} />} onClick={handleSignOut}>Sign Out</Button>
+              <button className="nav-item logout" onClick={handleSignOut}><LogOut size={18} /> Sign Out</button>
             </nav>
           </aside>
 
+          {/* Main */}
           <main className="profile-main">
-            <header className="profile-header">
-              <h1>My Account</h1>
-              <p>Manage your account settings and track your real-time service history.</p>
-            </header>
+            {isLoading ? (
+              <div className="profile-loading"><Loader2 className="animate-spin" size={28} /></div>
+            ) : tab === 'overview' ? (
+              <>
+                <header className="profile-header">
+                  <h1>Welcome back{user.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}</h1>
+                  <p>Your Lezerv account at a glance.</p>
+                </header>
 
-            <div className="profile-sections">
-              <section className="profile-section">
-                <div className="section-header">
-                  <h2>Booking History</h2>
-                  <Button variant="text" size="sm" onClick={() => navigate('/services')}>New Request</Button>
-                </div>
-                <div className="profile-bookings-list">
-                  {isLoading ? (
-                    <div className="loading-bookings">Fetching your bookings...</div>
-                  ) : personalBookings.length === 0 ? (
-                    <div className="empty-bookings">
-                      <Package size={48} className="empty-icon" />
-                      <p>You haven't made any bookings yet.</p>
-                      <Button variant="outline" size="sm" onClick={() => navigate('/services')}>Browse Services</Button>
+                {/* Artisan availability banner */}
+                {artisan?.status === 'approved' && (
+                  <div className="avail-banner">
+                    <div>
+                      <h3>Ready for work?</h3>
+                      <p>{available ? "You're visible and receiving jobs in your areas." : "You're offline — turn on to receive jobs."}</p>
                     </div>
-                  ) : (
-                    <div className="bookings-table-container">
-                      <table className="bookings-table">
-                        <thead>
-                          <tr>
-                            <th>Service</th>
-                            <th>Order Number</th>
-                            <th>Date & Time</th>
-                            <th>Status</th>
-                            <th>Amount</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {personalBookings.map((booking) => (
-                            <tr key={booking.id}>
-                              <td>
-                                <div className="service-cell">
-                                  <strong>{booking.service_name}</strong>
-                                  <span className="location-hint">{booking.location.city}</span>
-                                </div>
-                              </td>
-                              <td><span className="order-badge">{booking.order_number}</span></td>
-                              <td>{booking.date} at {booking.time}</td>
-                              <td>
-                                <span className={`status-pill status-${booking.status.replace(/ /g, '-').replace(/\//g, '-')}`}>
-                                  {booking.status}
-                                </span>
-                              </td>
-                              <td>
-                                <span className="price-text">{booking.amount_due || 'Pending'}</span>
-                              </td>
-                              <td>
-                                {booking.status === 'approved' && booking.payment_status === 'unpaid' ? (
-                                  <Link to={`/payment/${booking.id}`}>
-                                    <Button variant="primary" size="sm" leftIcon={<Wallet size={14} />}>Pay Now</Button>
-                                  </Link>
-                                ) : (
-                                  <span className="action-placeholder">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <button className={`toggle ${available ? 'on' : ''}`} onClick={toggleAvailability} aria-pressed={available}><span className="knob" /></button>
+                  </div>
+                )}
+                {artisan?.status === 'pending' && (
+                  <div className="pending-banner"><Clock size={18} /><span>Your artisan profile is under review. You'll be notified once approved.</span></div>
+                )}
+
+                {/* Stat cards */}
+                <div className="stat-row">
+                  <div className="pstat"><span className="pstat-num">{posted.length}</span><span className="pstat-label"><ClipboardList size={14} /> Jobs posted</span></div>
+                  <div className="pstat"><span className="pstat-num">{activeCount}</span><span className="pstat-label"><Clock size={14} /> Active</span></div>
+                  <div className="pstat"><span className="pstat-num">{completedCount}</span><span className="pstat-label"><Check size={14} /> Completed</span></div>
+                  {artisan && (
+                    <>
+                      <div className="pstat"><span className="pstat-num">{Number(artisan.avg_rating || 0).toFixed(1)}<Star size={16} className="inline-star" /></span><span className="pstat-label">Rating ({artisan.total_reviews || 0})</span></div>
+                      <div className="pstat"><span className="pstat-num">{artisan.completed_jobs || 0}</span><span className="pstat-label"><Briefcase size={14} /> Jobs done</span></div>
+                    </>
                   )}
                 </div>
-              </section>
 
-              <section className="profile-section">
-                <div className="section-header">
-                  <h2>Security</h2>
-                  <Button variant="outline" size="sm">Update</Button>
-                </div>
-                <div className="security-item">
-                  <div className="security-icon"><Shield size={20} /></div>
-                  <div className="security-info">
-                    <h4>Two-Factor Authentication</h4>
-                    <p>Add an extra layer of security to your account.</p>
+                {/* Quick actions */}
+                <section className="profile-section">
+                  <div className="section-header"><h2>Quick actions</h2></div>
+                  <div className="quick-grid">
+                    <Link to="/post-job" className="quick-card"><ClipboardList size={22} /><span>Post a job</span></Link>
+                    <Link to="/find-artisans" className="quick-card"><Search size={22} /><span>Find artisans</span></Link>
+                    <Link to="/my-jobs" className="quick-card"><Briefcase size={22} /><span>My jobs{assigned.length > 0 ? ` (${assigned.length})` : ''}</span></Link>
+                    <Link to="/become-artisan" className="quick-card"><ShieldCheck size={22} /><span>{artisan ? 'Manage artisan profile' : 'Become an artisan'}</span></Link>
+                    <Link to="/ambassador" className="quick-card"><Award size={22} /><span>{ambassador ? 'Ambassador dashboard' : 'Refer & earn'}</span></Link>
                   </div>
-                  <div className="security-action">Disabled</div>
-                </div>
-              </section>
-            </div>
+                </section>
+
+                {artisan && (artisan.areaSlugs?.length === 0) && (
+                  <div className="tip-banner"><MapPin size={18} /><span>Add the Lagos areas you cover so clients and jobs can find you. <Link to="/become-artisan">Add areas →</Link></span></div>
+                )}
+              </>
+            ) : tab === 'activity' ? (
+              <>
+                <header className="profile-header"><h1>Activity</h1><p>Your recent jobs and service history.</p></header>
+
+                <section className="profile-section">
+                  <div className="section-header"><h2>Recent jobs</h2><Link to="/my-jobs"><Button variant="text" size="sm">View all</Button></Link></div>
+                  {jobs.length === 0 ? (
+                    <div className="empty-bookings"><ClipboardList size={40} className="empty-icon" /><p>No jobs yet.</p><Link to="/post-job"><Button variant="outline" size="sm">Post a job</Button></Link></div>
+                  ) : (
+                    <div className="activity-list">
+                      {jobs.slice(0, 8).map((j) => (
+                        <Link to="/my-jobs" key={j.id} className="activity-row">
+                          <div><strong>{j.title}</strong><span className="activity-sub">{j.iAmClient ? 'Posted' : 'Assigned to you'}{j.category_name ? ` · ${j.category_name}` : ''}{j.area_name ? ` · ${j.area_name}` : ''}</span></div>
+                          <span className={`status-pill status-${j.status}`}>{j.status.replace('_', ' ')}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {bookings.length > 0 && (
+                  <section className="profile-section">
+                    <div className="section-header"><h2>Service bookings</h2></div>
+                    <div className="activity-list">
+                      {bookings.map((b) => (
+                        <div key={b.id} className="activity-row">
+                          <div><strong>{b.service_name}</strong><span className="activity-sub">{b.order_number} · {b.date}</span></div>
+                          <div className="activity-right">
+                            <span className={`status-pill status-${(b.status || '').replace(/[ /]/g, '-')}`}>{b.status}</span>
+                            {b.status === 'approved' && b.payment_status === 'unpaid' && <Link to={`/payment/${b.id}`}><Button variant="primary" size="sm">Pay</Button></Link>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
+                <header className="profile-header"><h1>Settings</h1><p>Manage your account, security and data.</p></header>
+
+                <section className="profile-section">
+                  <div className="section-header"><h2>Profile</h2></div>
+                  <div className="setting-field">
+                    <label>Display name</label>
+                    <div className="inline-edit">
+                      <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" />
+                      <Button variant="primary" size="sm" onClick={saveName} disabled={savingName} leftIcon={savingName ? <Loader2 className="animate-spin" size={15} /> : <Save size={15} />}>Save</Button>
+                    </div>
+                    {nameMsg && <span className="setting-msg">{nameMsg}</span>}
+                  </div>
+                  <div className="setting-field">
+                    <label>Email</label>
+                    <div className="readonly-field">{user.email}</div>
+                  </div>
+                </section>
+
+                <section className="profile-section">
+                  <div className="section-header"><h2>Security</h2></div>
+                  <div className="setting-row">
+                    <div className="setting-icon"><KeyRound size={20} /></div>
+                    <div className="setting-info"><h4>Password</h4><p>We'll email you a secure link to set a new password.</p></div>
+                    <Button variant="outline" size="sm" onClick={sendReset}>Send reset link</Button>
+                  </div>
+                  {resetMsg && <div className="setting-msg block">{resetMsg}</div>}
+                </section>
+
+                <section className="profile-section">
+                  <div className="section-header"><h2>Notifications</h2></div>
+                  <div className="setting-row">
+                    <div className="setting-icon"><Bell size={20} /></div>
+                    <div className="setting-info"><h4>In-app alerts</h4><p>You'll get a bell notification for new jobs, assignments and messages. SMS & email alerts are coming soon.</p></div>
+                    <span className="setting-tag on">On</span>
+                  </div>
+                </section>
+
+                <section className="profile-section">
+                  <div className="section-header"><h2>Your data &amp; privacy</h2></div>
+                  <div className="setting-row">
+                    <div className="setting-icon"><Download size={20} /></div>
+                    <div className="setting-info"><h4>Export my data</h4><p>Download a copy of your account, jobs and reviews (JSON).</p></div>
+                    <Button variant="outline" size="sm" onClick={exportData} disabled={exporting}>{exporting ? 'Preparing…' : 'Export'}</Button>
+                  </div>
+                  <div className="setting-row">
+                    <div className="setting-icon danger"><Trash2 size={20} /></div>
+                    <div className="setting-info"><h4>Delete my account</h4><p>Request permanent deletion of your account and personal data.</p></div>
+                    <Button variant="text" size="sm" className="danger-text" onClick={requestDeletion}>Request deletion</Button>
+                  </div>
+                </section>
+              </>
+            )}
           </main>
         </div>
       </div>
