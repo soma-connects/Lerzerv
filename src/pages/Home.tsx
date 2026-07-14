@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight as ArrowIcon, Eraser, Play, Zap, Droplets, Gift } from 'lucide-react';
+import { ArrowRight as ArrowIcon, Eraser, Zap, Droplets, Gift, ShieldCheck, MessageCircle, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import './Home.css';
@@ -38,13 +38,20 @@ const Home: React.FC = () => {
             <span className="headline-secondary">Your Life, Our Priority.</span>
           </motion.h1>
           <motion.p className="hero-text" variants={itemVariants}>
-            Reliable services to make your life easier every day. Connect with verified artisans and professional cleaners in Lagos, Abuja, and beyond.
+            Post a job and we'll match you with a verified artisan or cleaner near you — plumbing, power, cooling, repairs and more. Chat and pay safely, all on Lezerv.
           </motion.p>
           <motion.div className="hero-actions" variants={itemVariants}>
-            <Link to="/services">
-              <Button variant="primary" size="lg">Explore Services</Button>
+            <Link to="/post-job">
+              <Button variant="primary" size="lg" rightIcon={<ArrowIcon size={20} />}>Post a Job</Button>
             </Link>
-            <Button variant="outline" size="lg" leftIcon={<Play size={20} />}>Get the App</Button>
+            <Link to="/services">
+              <Button variant="outline" size="lg">Browse Services</Button>
+            </Link>
+          </motion.div>
+          <motion.div className="hero-trust" variants={itemVariants}>
+            <span><ShieldCheck size={16} /> Verified artisans</span>
+            <span><MessageCircle size={16} /> In-app chat</span>
+            <span><Lock size={16} /> Secure payments</span>
           </motion.div>
         </motion.div>
 
@@ -211,7 +218,10 @@ const Home: React.FC = () => {
         <div className="cta-banner">
           <h2>Ready for a stress-free Nigerian home?</h2>
           <p>Join thousands of property owners who trust Lezerv for their daily and emergency maintenance needs.</p>
-          <Button variant="secondary" size="lg">Join the Platform</Button>
+          <div className="cta-banner-actions">
+            <Link to="/post-job"><Button variant="secondary" size="lg">Post a Job</Button></Link>
+            <Link to="/become-artisan"><Button variant="outline" size="lg" className="cta-outline-light">Work as an Artisan</Button></Link>
+          </div>
         </div>
       </section>
     </div>

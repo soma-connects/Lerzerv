@@ -17,7 +17,7 @@ const PostJob: React.FC = () => {
   const [areas, setAreas] = useState<IServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(params.get('title') || '');
   const [category, setCategory] = useState(params.get('category') || '');
   const [area, setArea] = useState('');
   const [description, setDescription] = useState('');

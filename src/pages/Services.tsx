@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -295,8 +296,8 @@ const Services: React.FC = () => {
         <div className="container">
           <div className="cta-card">
             <h2>Need something else?</h2>
-            <p>We handle custom jobs too. Describe your problem and we will match you with the right expert.</p>
-            <Button variant="secondary" size="lg">Request Custom Quote</Button>
+            <p>We handle custom jobs too. Post a job describing what you need and we'll match you with the right verified artisan near you.</p>
+            <Link to="/post-job"><Button variant="secondary" size="lg" rightIcon={<ArrowRight size={18} />}>Post a Custom Job</Button></Link>
           </div>
         </div>
       </section>

@@ -524,3 +524,10 @@
   margin: 0 auto var(--spacing-xl);
   line-height: 1.6;
 }
+/* ── Hero trust strip + CTA polish ───────────────────── */
+.hero-trust { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); margin-top: var(--spacing-lg); }
+.hero-trust span { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-medium); color: var(--color-on-surface-variant); }
+.hero-trust svg { color: var(--color-secondary); }
+.cta-banner-actions { display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap; }
+.cta-outline-light { color: #fff !important; border-color: rgba(255,255,255,0.6) !important; }
+.cta-outline-light:hover { background: rgba(255,255,255,0.12) !important; }
