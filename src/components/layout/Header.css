@@ -112,3 +112,38 @@
   .nav-desktop { display: none; }
   .menu-toggle { display: block; }
 }
+
+/* ── Notification bell ───────────────────────────────── */
+.bell-btn {
+  position: relative; width: 40px; height: 40px; border-radius: var(--radius-full);
+  border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface-variant); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast);
+}
+.bell-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.bell-badge {
+  position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: var(--radius-full); background: var(--color-error); color: #fff;
+  font-size: 10px; font-weight: var(--font-weight-bold);
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--color-surface-container-lowest);
+}
+.notif-menu { width: 320px; max-height: 440px; overflow-y: auto; padding: 0; }
+.notif-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--spacing-md); border-bottom: 1px solid var(--color-outline-variant);
+  position: sticky; top: 0; background: var(--color-surface-container-lowest);
+}
+.notif-markall { background: none; border: none; color: var(--color-primary); font-size: var(--font-size-body-sm); cursor: pointer; font-weight: var(--font-weight-medium); }
+.notif-empty { padding: var(--spacing-xl); text-align: center; color: var(--color-on-surface-variant); font-size: var(--font-size-body-sm); }
+.notif-item {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+  padding: var(--spacing-md); border: none; background: none; cursor: pointer;
+  border-bottom: 1px solid var(--color-outline-variant); transition: background var(--transition-fast);
+}
+.notif-item:hover { background: var(--color-surface-container-low); }
+.notif-item.unread { background: var(--color-primary-fixed); }
+.notif-item.unread:hover { background: var(--color-primary-fixed-dim); }
+.notif-title { font-weight: var(--font-weight-semibold); font-size: var(--font-size-body-sm); color: var(--color-on-background); }
+.notif-body { font-size: var(--font-size-body-sm); color: var(--color-on-surface-variant); }
+.notif-time { font-size: var(--font-size-label); color: var(--color-outline); margin-top: 2px; }

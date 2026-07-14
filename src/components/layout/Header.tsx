@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, ChevronDown, LogOut, Briefcase, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, User, ChevronDown, LogOut, Briefcase, LayoutDashboard, Bell } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { notificationService, type INotification } from '../../services/notificationService';
 import './Header.css';
 
 // Primary links always visible on desktop
@@ -30,9 +31,39 @@ export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [notifications, setNotifications] = useState<INotification[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
   const moreRef = useRef<HTMLLIElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  const unread = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    if (!user) { setNotifications([]); return; }
+    let channel: any;
+    notificationService.list().then(setNotifications);
+    channel = notificationService.subscribe(user.id, (n) =>
+      setNotifications((prev) => (prev.some((p) => p.id === n.id) ? prev : [n, ...prev]))
+    );
+    return () => { if (channel) notificationService.unsubscribe(channel); };
+  }, [user]);
+
+  const openNotification = async (n: INotification) => {
+    setBellOpen(false);
+    if (!n.read) {
+      await notificationService.markRead(n.id);
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    }
+    if (n.link) navigate(n.link);
+  };
+
+  const markAll = async () => {
+    await notificationService.markAllRead();
+    setNotifications((prev) => prev.map((x) => ({ ...x, read: true })));
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -45,6 +76,7 @@ export const Header: React.FC = () => {
     const onClick = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
@@ -53,6 +85,7 @@ export const Header: React.FC = () => {
   useEffect(() => {
     setMoreOpen(false);
     setUserOpen(false);
+    setBellOpen(false);
     setIsMenuOpen(false);
   }, [location.pathname]);
 
@@ -89,6 +122,33 @@ export const Header: React.FC = () => {
           </ul>
 
           <div className="nav-actions">
+            {user && (
+              <div className="nav-dropdown" ref={bellRef}>
+                <button className="bell-btn" onClick={() => setBellOpen((v) => !v)} aria-label="Notifications">
+                  <Bell size={19} />
+                  {unread > 0 && <span className="bell-badge">{unread > 9 ? '9+' : unread}</span>}
+                </button>
+                {bellOpen && (
+                  <div className="dropdown-menu dropdown-right notif-menu">
+                    <div className="notif-head">
+                      <strong>Notifications</strong>
+                      {unread > 0 && <button className="notif-markall" onClick={markAll}>Mark all read</button>}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="notif-empty">You're all caught up.</div>
+                    ) : (
+                      notifications.slice(0, 12).map((n) => (
+                        <button key={n.id} className={`notif-item ${n.read ? '' : 'unread'}`} onClick={() => openNotification(n)}>
+                          <span className="notif-title">{n.title}</span>
+                          {n.body && <span className="notif-body">{n.body}</span>}
+                          <span className="notif-time">{new Date(n.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {user ? (
               <div className="nav-dropdown" ref={userRef}>
                 <button className="user-chip" onClick={() => setUserOpen((v) => !v)}>

@@ -105,7 +105,17 @@ export const artisanService = {
     await supabase.rpc('set_artisan_availability', { p_available: available });
   },
 
-  /** Geo-search for available artisans near a point. */
+  /** Area-based directory of approved artisans (dispatch model). */
+  browse: async (areaSlug?: string, categorySlug?: string): Promise<any[]> => {
+    const { data, error } = await supabase.rpc('browse_artisans', {
+      p_area_slug: areaSlug || null,
+      p_category_slug: categorySlug || null,
+    });
+    if (error) { console.warn('browse failed:', error); return []; }
+    return data || [];
+  },
+
+  /** Geo-search for available artisans near a point. (legacy) */
   search: async (
     lat: number,
     lng: number,
