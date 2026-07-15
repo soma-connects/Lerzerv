@@ -188,3 +188,4 @@
 .mega-menu::before, .nav-list .dropdown-menu::before {
   content: ""; position: absolute; left: 0; right: 0; top: -14px; height: 14px;
 }
+.user-avatar-img { width: 100%; height: 100%; border-radius: var(--radius-full); object-fit: cover; }

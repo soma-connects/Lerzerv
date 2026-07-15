@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings, LogOut, LayoutGrid, ClipboardList, Briefcase, Star, ShieldCheck,
-  Clock, Loader2, Check, Download, Trash2, KeyRound, Bell, Award, MapPin, Search, Save,
+  Clock, Loader2, Check, Download, Trash2, KeyRound, Bell, Award, MapPin, Search, Save, Camera,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,9 @@ const Profile: React.FC = () => {
 
   const [tab, setTab] = useState<Tab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const avatarInput = useRef<HTMLInputElement>(null);
   const [artisan, setArtisan] = useState<any | null>(null);
   const [available, setAvailable] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -41,6 +44,7 @@ const Profile: React.FC = () => {
     if (!user) return;
     setIsLoading(true);
     setFullName(user.user_metadata?.full_name || '');
+    setAvatarUrl(user.user_metadata?.avatar_url || null);
     try {
       try { await bookingService.syncGuestBookings(); } catch { /* non-blocking */ }
       const [art, dispatch, board, ledger, amb] = await Promise.all([
@@ -52,6 +56,7 @@ const Profile: React.FC = () => {
       ]);
       void board;
       setArtisan(art);
+      if (art?.avatar_url) setAvatarUrl(art.avatar_url);
       setAvailable(!!art?.is_available);
       setJobs(dispatch.jobs);
       setBookings(ledger);
@@ -75,6 +80,15 @@ const Profile: React.FC = () => {
   const toggleAvailability = async () => {
     const next = !available; setAvailable(next);
     await artisanService.setAvailability(next);
+  };
+
+  const onAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarBusy(true);
+    const url = await userService.uploadAvatar(file);
+    setAvatarBusy(false);
+    if (url) setAvatarUrl(`${url}?t=${Date.now()}`);
   };
 
   const saveName = async () => {
@@ -129,7 +143,12 @@ const Profile: React.FC = () => {
           {/* Sidebar */}
           <aside className="profile-sidebar">
             <div className="user-brief">
-              <div className="user-avatar">{initial}</div>
+              <button type="button" className="user-avatar avatar-editable" onClick={() => avatarInput.current?.click()}
+                title="Change profile photo" disabled={avatarBusy}>
+                {avatarBusy ? <Loader2 className="animate-spin" size={22} /> : avatarUrl ? <img src={avatarUrl} alt="Profile" /> : initial}
+                <span className="avatar-cam"><Camera size={13} /></span>
+                <input ref={avatarInput} type="file" accept="image/*" hidden onChange={onAvatarPick} />
+              </button>
               <div className="user-meta">
                 <h3>{user.user_metadata?.full_name || 'User'}</h3>
                 <p>{user.email}</p>

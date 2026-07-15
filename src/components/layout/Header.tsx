@@ -193,7 +193,11 @@ export const Header: React.FC = () => {
             {user ? (
               <div className={`nav-dropdown ${openMenu === 'user' ? 'open' : ''}`}>
                 <button className="user-chip" onClick={() => toggle('user')}>
-                  <span className="user-avatar"><User size={16} /></span>
+                  <span className="user-avatar">
+                    {user.user_metadata?.avatar_url
+                      ? <img src={user.user_metadata.avatar_url} alt="Me" className="user-avatar-img" />
+                      : <User size={16} />}
+                  </span>
                   <ChevronDown size={15} className={`chev ${openMenu === 'user' ? 'open' : ''}`} />
                 </button>
                 {openMenu === 'user' && (

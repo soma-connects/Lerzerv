@@ -31,6 +31,29 @@ export const userService = {
   },
 
   /**
+   * Upload a profile photo to the public 'avatars' bucket, save it to the
+   * profile + artisan card, and mirror it into auth metadata. Returns the URL.
+   */
+  uploadAvatar: async (file: File): Promise<string | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${user.id}/avatar_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      const url = data.publicUrl;
+      await supabase.rpc('set_avatar_url', { p_url: url });
+      await supabase.auth.updateUser({ data: { avatar_url: url } });
+      return url;
+    } catch (err: any) {
+      console.warn('avatar upload failed:', err);
+      return null;
+    }
+  },
+
+  /**
    * Send a password-reset link to the current user's email.
    */
   sendPasswordReset: async (email: string): Promise<IApiResponse<null>> => {
