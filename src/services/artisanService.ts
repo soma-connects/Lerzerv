@@ -51,6 +51,11 @@ export const artisanService = {
         p_address: o.address ?? null,
         p_category_slugs: o.categorySlugs,
         p_area_slugs: o.areaSlugs,
+        p_id_type: o.idType ?? null,
+        p_id_number: o.idNumber ?? null,
+        p_id_doc_path: o.idDocPath ?? null,
+        p_bill_doc_path: o.billDocPath ?? null,
+        p_passport_path: o.passportPath ?? null,
       }).single();
       if (error) throw error;
       return { success: true, data: data as any };
@@ -85,7 +90,7 @@ export const artisanService = {
         .eq('artisan_id', data.id),
       supabase
         .from('artisan_private')
-        .select('phone, nin, address')
+        .select('phone, nin, address, id_type, id_number, id_doc_path, bill_doc_path, passport_path')
         .eq('artisan_id', data.id)
         .maybeSingle(),
     ]);
@@ -98,6 +103,25 @@ export const artisanService = {
       .filter(Boolean);
 
     return { ...data, categorySlugs, areaSlugs, ...(priv || {}) };
+  },
+
+  /** Upload a KYC document to the private 'kyc' bucket; returns its storage path. */
+  uploadKyc: async (kind: 'id' | 'bill' | 'passport', file: File): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const path = `${user.id}/${kind}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('kyc').upload(path, file, { upsert: true });
+    if (error) { console.warn('kyc upload failed:', error); return null; }
+    return path;
+  },
+
+  /** Admin/owner: get a temporary signed URL to view a KYC document. */
+  kycSignedUrl: async (path: string): Promise<string | null> => {
+    if (!path) return null;
+    const { data, error } = await supabase.storage.from('kyc').createSignedUrl(path, 3600);
+    if (error) { console.warn('signed url failed:', error); return null; }
+    return data?.signedUrl ?? null;
   },
 
   /** Toggle "ready for work" (server enforces approved status). */
@@ -325,7 +349,7 @@ export const artisanService = {
   adminFetchArtisans: async (): Promise<any[]> => {
     const { data, error } = await supabase
       .from('artisans')
-      .select('*, artisan_private(phone, nin, nin_verified, address), artisan_categories(service_categories(name))')
+      .select('*, artisan_private(phone, nin, nin_verified, address, id_type, id_number, id_doc_path, bill_doc_path, passport_path), artisan_categories(service_categories(name))')
       .order('created_at', { ascending: false });
     if (error) {
       console.warn('adminFetchArtisans failed:', error);

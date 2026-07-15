@@ -215,6 +215,12 @@ const Admin: React.FC = () => {
     setLoadingApplicants(false);
   };
 
+  const viewKyc = async (path: string) => {
+    const url = await artisanService.kycSignedUrl(path);
+    if (url) window.open(url, '_blank', 'noopener');
+    else triggerToast('Error', 'Could not open document.');
+  };
+
   const assignJob = async (jobId: string, artisanId: string, name: string) => {
     const res = await artisanService.adminAssignJob(jobId, artisanId);
     if (res.success) {
@@ -483,7 +489,7 @@ const Admin: React.FC = () => {
               )}
             </button>
             <button className={activeTab === 'dispatch' ? 'active' : ''} onClick={() => setActiveTab('dispatch')}>
-              Dispatch
+              Applications
               {dispatchJobs.filter((j) => j.status === 'open').length > 0 && (
                 <span className="tab-badge">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
               )}
@@ -1429,11 +1435,22 @@ const Admin: React.FC = () => {
                                       <Phone size={14} /><span>{priv.phone}</span>
                                     </a>
                                   )}
-                                  {priv.nin && (
-                                    <span className="candidate-link-icon" title="NIN">
-                                      <Hash size={14} /><span>{priv.nin}</span>
+                                  {priv.id_number && (
+                                    <span className="candidate-link-icon" title="ID number">
+                                      <Hash size={14} /><span>{priv.id_number}</span>
                                     </span>
                                   )}
+                                </div>
+                                <div className="kyc-links">
+                                  {priv.id_doc_path
+                                    ? <button type="button" className="kyc-link" onClick={() => viewKyc(priv.id_doc_path)}>ID{priv.id_type ? ` · ${priv.id_type.replace('_', ' ')}` : ''}</button>
+                                    : <span className="kyc-missing">No ID</span>}
+                                  {priv.bill_doc_path
+                                    ? <button type="button" className="kyc-link" onClick={() => viewKyc(priv.bill_doc_path)}>Bill</button>
+                                    : <span className="kyc-missing">No bill</span>}
+                                  {priv.passport_path
+                                    ? <button type="button" className="kyc-link" onClick={() => viewKyc(priv.passport_path)}>Photo</button>
+                                    : <span className="kyc-missing">No photo</span>}
                                 </div>
                               </div>
                             </td>
@@ -1530,7 +1547,7 @@ const Admin: React.FC = () => {
 
             <div className="admin-content-card">
               <div className="card-header">
-                <h2>Job Dispatch Queue</h2>
+                <h2>Service Applications</h2>
                 <p className="card-desc">Assign posted jobs to interested artisans. After assigning, call the artisan to confirm availability.</p>
               </div>
 

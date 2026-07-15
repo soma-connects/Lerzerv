@@ -191,7 +191,7 @@ const Profile: React.FC = () => {
                 <section className="profile-section">
                   <div className="section-header"><h2>Quick actions</h2></div>
                   <div className="quick-grid">
-                    <Link to="/post-job" className="quick-card"><ClipboardList size={22} /><span>Post a job</span></Link>
+                    <Link to="/post-job" className="quick-card"><ClipboardList size={22} /><span>Apply for Service</span></Link>
                     <Link to="/find-artisans" className="quick-card"><Search size={22} /><span>Find artisans</span></Link>
                     <Link to="/my-jobs" className="quick-card"><Briefcase size={22} /><span>My jobs{assigned.length > 0 ? ` (${assigned.length})` : ''}</span></Link>
                     <Link to="/become-artisan" className="quick-card"><ShieldCheck size={22} /><span>{artisan ? 'Manage artisan profile' : 'Become an artisan'}</span></Link>
@@ -210,7 +210,7 @@ const Profile: React.FC = () => {
                 <section className="profile-section">
                   <div className="section-header"><h2>Recent jobs</h2><Link to="/my-jobs"><Button variant="text" size="sm">View all</Button></Link></div>
                   {jobs.length === 0 ? (
-                    <div className="empty-bookings"><ClipboardList size={40} className="empty-icon" /><p>No jobs yet.</p><Link to="/post-job"><Button variant="outline" size="sm">Post a job</Button></Link></div>
+                    <div className="empty-bookings"><ClipboardList size={40} className="empty-icon" /><p>No jobs yet.</p><Link to="/post-job"><Button variant="outline" size="sm">Apply for Service</Button></Link></div>
                   ) : (
                     <div className="activity-list">
                       {jobs.slice(0, 8).map((j) => (

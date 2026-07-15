@@ -38,11 +38,11 @@ const Home: React.FC = () => {
             <span className="headline-secondary">Your Life, Our Priority.</span>
           </motion.h1>
           <motion.p className="hero-text" variants={itemVariants}>
-            Post a job and we'll match you with a verified artisan or cleaner near you — plumbing, power, cooling, repairs and more. Chat and pay safely, all on Lezerv.
+            Apply for a service and we'll match you with a verified artisan or cleaner near you — plumbing, power, cooling, repairs and more. Chat and pay safely, all on Lezerv.
           </motion.p>
           <motion.div className="hero-actions" variants={itemVariants}>
             <Link to="/post-job">
-              <Button variant="primary" size="lg" rightIcon={<ArrowIcon size={20} />}>Post a Job</Button>
+              <Button variant="primary" size="lg" rightIcon={<ArrowIcon size={20} />}>Apply for Service</Button>
             </Link>
             <Link to="/services">
               <Button variant="outline" size="lg">Browse Services</Button>
@@ -219,7 +219,7 @@ const Home: React.FC = () => {
           <h2>Ready for a stress-free Nigerian home?</h2>
           <p>Join thousands of property owners who trust Lezerv for their daily and emergency maintenance needs.</p>
           <div className="cta-banner-actions">
-            <Link to="/post-job"><Button variant="secondary" size="lg">Post a Job</Button></Link>
+            <Link to="/post-job"><Button variant="secondary" size="lg">Apply for Service</Button></Link>
             <Link to="/become-artisan"><Button variant="outline" size="lg" className="cta-outline-light">Work as an Artisan</Button></Link>
           </div>
         </div>

@@ -60,6 +60,8 @@ export interface IServiceArea {
   name: string;
 }
 
+export type IdType = 'nin' | 'voters_card' | 'intl_passport';
+
 export interface IArtisanOnboarding {
   displayName: string;
   city: string;
@@ -71,6 +73,12 @@ export interface IArtisanOnboarding {
   address?: string;
   categorySlugs: string[];
   areaSlugs: string[];
+  // KYC
+  idType?: IdType;
+  idNumber?: string;
+  idDocPath?: string;
+  billDocPath?: string;
+  passportPath?: string;
 }
 
 export interface IServiceRequest {

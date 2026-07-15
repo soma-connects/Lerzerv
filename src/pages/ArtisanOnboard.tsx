@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Hammer, User, MapPin, Phone, IdCard, Briefcase, Loader2, ArrowRight,
-  Check, Clock, ShieldCheck, AlertCircle, Plus,
+  Hammer, User, Phone, IdCard, Briefcase, Loader2, ArrowRight,
+  Check, Clock, ShieldCheck, AlertCircle, Plus, Upload, FileText, Camera,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,8 +31,15 @@ const ArtisanOnboard: React.FC = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [phone, setPhone] = useState('');
-  const [nin, setNin] = useState('');
-  const [address, setAddress] = useState('');
+  // KYC
+  const [idType, setIdType] = useState<'nin' | 'voters_card' | 'intl_passport'>('nin');
+  const [idNumber, setIdNumber] = useState('');
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [billFile, setBillFile] = useState<File | null>(null);
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [idDocPath, setIdDocPath] = useState<string | null>(null);
+  const [billDocPath, setBillDocPath] = useState<string | null>(null);
+  const [passportPath, setPassportPath] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +66,11 @@ const ArtisanOnboard: React.FC = () => {
           setSelected(mine.categorySlugs || []);
           setSelectedAreas(mine.areaSlugs || []);
           setPhone(mine.phone || '');
-          setNin(mine.nin || '');
-          setAddress(mine.address || '');
+          setIdType(mine.id_type || 'nin');
+          setIdNumber(mine.id_number || mine.nin || '');
+          setIdDocPath(mine.id_doc_path || null);
+          setBillDocPath(mine.bill_doc_path || null);
+          setPassportPath(mine.passport_path || null);
         } else {
           setEditing(true);
           setDisplayName(user.user_metadata?.full_name || '');
@@ -93,23 +103,39 @@ const ArtisanOnboard: React.FC = () => {
     if (!displayName.trim()) return setError('Please enter your name.');
     if (selected.length === 0) return setError('Select at least one service you offer.');
     if (selectedAreas.length === 0) return setError('Select at least one area you work in.');
-    if (!phone.trim()) return setError('A phone number is required for verification.');
+    if (!phone.trim()) return setError('A phone number is required.');
+    if (!idNumber.trim()) return setError('Enter your ID number.');
+    if (!idFile && !idDocPath) return setError('Upload a photo of your primary ID.');
+    if (!billFile && !billDocPath) return setError('Upload a utility bill / receipt for proof of address.');
+    if (!passportFile && !passportPath) return setError('Upload a passport photograph of yourself.');
 
     setSubmitting(true);
+    // Upload any newly selected documents to the private KYC bucket
+    let idP = idDocPath, billP = billDocPath, passP = passportPath;
+    if (idFile) { idP = await artisanService.uploadKyc('id', idFile); if (!idP) { setSubmitting(false); return setError('ID upload failed. Please try again.'); } }
+    if (billFile) { billP = await artisanService.uploadKyc('bill', billFile); if (!billP) { setSubmitting(false); return setError('Bill upload failed. Please try again.'); } }
+    if (passportFile) { passP = await artisanService.uploadKyc('passport', passportFile); if (!passP) { setSubmitting(false); return setError('Passport photo upload failed. Please try again.'); } }
+
     const res = await artisanService.saveProfile({
       displayName: displayName.trim(),
       city,
       bio: bio.trim() || undefined,
       yearsExperience: years,
       phone: phone.trim(),
-      nin: nin.trim() || undefined,
-      address: address.trim() || undefined,
+      nin: idType === 'nin' ? idNumber.trim() : undefined,
       categorySlugs: selected,
       areaSlugs: selectedAreas,
+      idType,
+      idNumber: idNumber.trim(),
+      idDocPath: idP || undefined,
+      billDocPath: billP || undefined,
+      passportPath: passP || undefined,
     });
     setSubmitting(false);
 
     if (res.success) {
+      setIdDocPath(idP); setBillDocPath(billP); setPassportPath(passP);
+      setIdFile(null); setBillFile(null); setPassportFile(null);
       setSavedStatus(res.data?.status || 'pending');
       setExisting({
         ...(existing || {}),
@@ -299,32 +325,64 @@ const ArtisanOnboard: React.FC = () => {
           </section>
 
           <section className="form-section">
-            <h2>Verification</h2>
-            <p className="section-hint">🔒 Private — used only for identity checks and payouts. Never shown to clients.</p>
+            <h2>Verification (KYC)</h2>
+            <p className="section-hint">🔒 Private — used only to verify your identity. Never shown to clients. All three documents are required for approval.</p>
+
             <div className="form-group">
               <label htmlFor="phone">Phone number</label>
               <div className={`input-with-icon ${phone ? 'has-value' : ''}`}>
                 <Phone size={18} className="input-icon" />
-                <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-                  placeholder="080..." required />
+                <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="080..." required />
               </div>
             </div>
-            <div className="form-group">
-              <label htmlFor="nin">NIN <span className="optional">(optional now, required to verify)</span></label>
-              <div className={`input-with-icon ${nin ? 'has-value' : ''}`}>
-                <IdCard size={18} className="input-icon" />
-                <input id="nin" value={nin} onChange={(e) => setNin(e.target.value)}
-                  placeholder="National Identification Number" />
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="idtype">Primary ID type</label>
+                <select id="idtype" className="select-input" value={idType} onChange={(e) => setIdType(e.target.value as any)}>
+                  <option value="nin">NIN (National ID)</option>
+                  <option value="voters_card">Voter's Card</option>
+                  <option value="intl_passport">International Passport</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="idnum">ID number</label>
+                <div className={`input-with-icon ${idNumber ? 'has-value' : ''}`}>
+                  <IdCard size={18} className="input-icon" />
+                  <input id="idnum" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="Number on the ID" required />
+                </div>
               </div>
             </div>
-            <div className="form-group">
-              <label htmlFor="address">Home / workshop address <span className="optional">(optional)</span></label>
-              <div className={`input-with-icon ${address ? 'has-value' : ''}`}>
-                <MapPin size={18} className="input-icon" />
-                <input id="address" value={address} onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street, area" />
+
+            <label className={`upload-row ${idFile || idDocPath ? 'done' : ''}`}>
+              <div className="upload-icon"><IdCard size={20} /></div>
+              <div className="upload-text">
+                <strong>1. Photo of your ID</strong>
+                <span>{idFile ? idFile.name : idDocPath ? 'Uploaded ✓ — tap to replace' : "NIN slip, voter's card or passport data page"}</span>
               </div>
-            </div>
+              <span className="upload-btn"><Upload size={16} /> {idFile || idDocPath ? 'Change' : 'Upload'}</span>
+              <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setIdFile(e.target.files?.[0] || null)} />
+            </label>
+
+            <label className={`upload-row ${billFile || billDocPath ? 'done' : ''}`}>
+              <div className="upload-icon"><FileText size={20} /></div>
+              <div className="upload-text">
+                <strong>2. Proof of address</strong>
+                <span>{billFile ? billFile.name : billDocPath ? 'Uploaded ✓ — tap to replace' : 'Any recent utility bill or receipt'}</span>
+              </div>
+              <span className="upload-btn"><Upload size={16} /> {billFile || billDocPath ? 'Change' : 'Upload'}</span>
+              <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setBillFile(e.target.files?.[0] || null)} />
+            </label>
+
+            <label className={`upload-row ${passportFile || passportPath ? 'done' : ''}`}>
+              <div className="upload-icon"><Camera size={20} /></div>
+              <div className="upload-text">
+                <strong>3. Passport photograph</strong>
+                <span>{passportFile ? passportFile.name : passportPath ? 'Uploaded ✓ — tap to replace' : 'A clear photo of your face'}</span>
+              </div>
+              <span className="upload-btn"><Upload size={16} /> {passportFile || passportPath ? 'Change' : 'Upload'}</span>
+              <input type="file" accept="image/*" hidden onChange={(e) => setPassportFile(e.target.files?.[0] || null)} />
+            </label>
           </section>
 
           {error && <div className="onboard-note error"><AlertCircle size={18} /><span>{error}</span></div>}

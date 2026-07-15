@@ -313,8 +313,8 @@ const Services: React.FC = () => {
         <div className="container">
           <div className="cta-card">
             <h2>Need something else?</h2>
-            <p>We handle custom jobs too. Post a job describing what you need and we'll match you with the right verified artisan near you.</p>
-            <Link to="/post-job"><Button variant="secondary" size="lg" rightIcon={<ArrowRight size={18} />}>Post a Custom Job</Button></Link>
+            <p>We handle custom jobs too. Apply for a service describing what you need and we'll match you with the right verified artisan near you.</p>
+            <Link to="/post-job"><Button variant="secondary" size="lg" rightIcon={<ArrowRight size={18} />}>Apply for a Service</Button></Link>
           </div>
         </div>
       </section>

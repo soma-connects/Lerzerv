@@ -108,7 +108,7 @@ const ArtisanProfile: React.FC = () => {
           <div className="ap-cta">
             <Button variant="primary" size="lg" leftIcon={<Send size={18} />}
               onClick={() => navigate(`/post-job${profile.categories[0] ? `?category=${profile.categories[0].slug}` : ''}`)}>
-              Post a job
+              Apply for Service
             </Button>
           </div>
         </motion.div>
