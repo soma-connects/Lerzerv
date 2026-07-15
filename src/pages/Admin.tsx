@@ -1547,7 +1547,7 @@ const Admin: React.FC = () => {
 
             <div className="admin-content-card">
               <div className="card-header">
-                <h2>Service Applications</h2>
+                <h2>Service Requests</h2>
                 <p className="card-desc">Assign posted jobs to interested artisans. After assigning, call the artisan to confirm availability.</p>
               </div>
 

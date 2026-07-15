@@ -57,7 +57,7 @@ const FindArtisans: React.FC = () => {
       <div className="fa-hero">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="fa-hero-inner">
           <h1>Browse verified artisans</h1>
-          <p>See trusted professionals across Lagos. Ready to hire? Apply for a service and we'll match you with the right one.</p>
+          <p>See trusted professionals across Lagos. Ready to hire? Request for a service and we'll match you with the right one.</p>
           <div className="fa-bar">
             <div className="fa-select-wrap">
               <MapPin size={16} />
@@ -67,7 +67,7 @@ const FindArtisans: React.FC = () => {
               </select>
             </div>
             <Link to="/post-job" className="fa-post-cta">
-              <Button variant="primary" leftIcon={<ClipboardList size={18} />}>Apply for Service</Button>
+              <Button variant="primary" leftIcon={<ClipboardList size={18} />}>Request for Service</Button>
             </Link>
           </div>
         </motion.div>
@@ -89,8 +89,8 @@ const FindArtisans: React.FC = () => {
           <div className="fa-empty">
             <Hammer size={36} style={{ opacity: 0.3 }} />
             <h3>No artisans here yet</h3>
-            <p>Try another area or service. You can still apply for a service — we'll match you as artisans come on board.</p>
-            <Link to="/post-job"><Button variant="primary" leftIcon={<ClipboardList size={16} />}>Apply for Service</Button></Link>
+            <p>Try another area or service. You can still request for a service — we'll match you as artisans come on board.</p>
+            <Link to="/post-job"><Button variant="primary" leftIcon={<ClipboardList size={16} />}>Request for Service</Button></Link>
           </div>
         ) : (
           <>

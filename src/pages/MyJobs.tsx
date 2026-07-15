@@ -218,13 +218,13 @@ const MyJobs: React.FC = () => {
         {/* Client's posted jobs */}
         <section className="mj-section">
           <div className="mj-section-head">
-            <h2><ClipboardList size={18} /> Your service applications</h2>
-            <Link to="/post-job"><Button size="sm" variant="primary">Apply for Service</Button></Link>
+            <h2><ClipboardList size={18} /> Your service requests</h2>
+            <Link to="/post-job"><Button size="sm" variant="primary">Request for Service</Button></Link>
           </div>
           {posted.length === 0 ? (
             <div className="mj-empty">
-              <p>You haven't applied for any service yet.</p>
-              <Link to="/post-job"><Button variant="primary" leftIcon={<ClipboardList size={16} />}>Apply for a service</Button></Link>
+              <p>You haven't requested any service yet.</p>
+              <Link to="/post-job"><Button variant="primary" leftIcon={<ClipboardList size={16} />}>Request for a service</Button></Link>
             </div>
           ) : (
             <div className="mj-list">

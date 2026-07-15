@@ -22,9 +22,9 @@ export const Footer: React.FC = () => {
         <div className="container footer-cta-inner">
           <div>
             <h3>Need something fixed?</h3>
-            <p>Apply for a service and we'll match you with a verified artisan near you.</p>
+            <p>Request for a service and we'll match you with a verified artisan near you.</p>
           </div>
-          <Link to="/post-job"><Button variant="secondary" size="lg" leftIcon={<ClipboardList size={18} />}>Apply for Service</Button></Link>
+          <Link to="/post-job"><Button variant="secondary" size="lg" leftIcon={<ClipboardList size={18} />}>Request for Service</Button></Link>
         </div>
       </div>
 

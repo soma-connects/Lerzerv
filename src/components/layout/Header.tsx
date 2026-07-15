@@ -124,7 +124,7 @@ export const Header: React.FC = () => {
                   </div>
                   <div className="mega-foot">
                     <Link to="/find-artisans" className="mega-foot-link"><Search size={16} /> Browse all artisans</Link>
-                    <Link to="/post-job"><Button variant="primary" size="sm" leftIcon={<ClipboardList size={15} />}>Apply for Service</Button></Link>
+                    <Link to="/post-job"><Button variant="primary" size="sm" leftIcon={<ClipboardList size={15} />} >Request for Service</Button></Link>
                   </div>
                 </div>
               )}
@@ -188,7 +188,7 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            <Link to="/post-job" className="cta-desktop"><Button variant="primary" size="md" leftIcon={<ClipboardList size={17} />}>Apply for Service</Button></Link>
+            <Link to="/post-job" className="cta-desktop"><Button variant="primary" size="md" leftIcon={<ClipboardList size={17} />}>Request for Service</Button></Link>
 
             {user ? (
               <div className={`nav-dropdown ${openMenu === 'user' ? 'open' : ''}`}>
@@ -242,7 +242,7 @@ export const Header: React.FC = () => {
             {isAdmin && <Link to="/admin" className="nav-mobile-link" onClick={() => setIsMenuOpen(false)}>Admin</Link>}</>}
 
           <div className="nav-mobile-cta">
-            <Link to="/post-job" onClick={() => setIsMenuOpen(false)}><Button variant="primary" size="lg" fullWidth>Apply for Service</Button></Link>
+            <Link to="/post-job" onClick={() => setIsMenuOpen(false)}><Button variant="primary" size="lg" fullWidth>Request for Service</Button></Link>
             {user ? (
               <Button variant="outline" size="lg" fullWidth onClick={() => { signOut(); setIsMenuOpen(false); }}>Log out</Button>
             ) : (

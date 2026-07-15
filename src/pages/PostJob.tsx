@@ -71,7 +71,7 @@ const PostJob: React.FC = () => {
       <div className="post-job">
         <motion.div className="pj-gate" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <div className="pj-gate-icon"><ClipboardList size={30} color="var(--color-primary)" /></div>
-          <h1>Apply for a Service</h1>
+          <h1>Request for a Service</h1>
           <p>Tell us what you need and we'll match you with a verified artisan in your area. Please log in to continue.</p>
           <div className="pj-gate-actions">
             <Link to="/login"><Button variant="outline" size="lg">Login</Button></Link>
@@ -87,11 +87,11 @@ const PostJob: React.FC = () => {
       <div className="post-job">
         <motion.div className="pj-done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
           <div className="pj-done-icon"><Check size={34} /></div>
-          <h1>Application received!</h1>
+          <h1>Request received!</h1>
           <p>We're matching you with verified artisans in your area. Once one is assigned, you'll be able to chat with them here on Lezerv.</p>
           <div className="pj-done-actions">
             <Button variant="primary" size="lg" onClick={() => navigate('/my-jobs')}>Track my requests</Button>
-            <Button variant="text" onClick={() => { setDone(false); setTitle(''); setDescription(''); }}>Apply for another</Button>
+            <Button variant="text" onClick={() => { setDone(false); setTitle(''); setDescription(''); }}>Request another</Button>
           </div>
         </motion.div>
       </div>
@@ -104,7 +104,7 @@ const PostJob: React.FC = () => {
         <header className="pj-head">
           <div className="pj-gate-icon sm"><ClipboardList size={22} color="var(--color-primary)" /></div>
           <div>
-            <h1>Apply for a Service</h1>
+            <h1>Request for a Service</h1>
             <p>Describe what you need. We'll match you with a verified artisan nearby.</p>
           </div>
         </header>
@@ -162,7 +162,7 @@ const PostJob: React.FC = () => {
 
           <Button type="submit" variant="primary" size="lg" fullWidth disabled={submitting}
             rightIcon={submitting ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}>
-            {submitting ? 'Submitting…' : 'Submit application'}
+            {submitting ? 'Submitting…' : 'Submit request'}
           </Button>
           <p className="pj-note">🔒 Our team reviews every job and assigns a verified artisan. You'll chat and pay safely on Lezerv.</p>
         </form>
