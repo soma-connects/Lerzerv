@@ -7,6 +7,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { contactService } from '../services/contactService';
 import './Contact.css';
+import { useSEO } from '../hooks/useSEO';
 
 interface FormData {
   name: string;
@@ -33,6 +34,12 @@ const SUBJECT_OPTIONS = [
 ];
 
 const Contact: React.FC = () => {
+  useSEO({
+    title: 'Contact Us | Lezerv Home Services & Support Nigeria',
+    description: 'Get in touch with Lezerv. Contact our support team for cleaning, plumbing, electrical, and other home service bookings or partnerships in Lagos and Abuja.',
+    keywords: 'contact lezerv, lezerv phone number, support home services nigeria, cleaning service contact, local artisan support lagos'
+  });
+
   const [formData, setFormData] = useState<FormData>(INITIAL_DATA);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);

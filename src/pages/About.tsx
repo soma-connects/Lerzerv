@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Award, Clock, Users, MapPin, Phone } from 'lucide-react';
+import { useSEO } from '../hooks/useSEO';
 import './About.css';
 
 const About: React.FC = () => {
+  useSEO({
+    title: "About Us | Nigeria's Trusted Home Services Network - Lezerv",
+    description: "Learn about Lezerv, the leading platform connecting homes and businesses with verified cleaners, plumbers, electricians, and carpenters in Lagos, Abuja, and beyond.",
+    keywords: 'about lezerv, home services platform nigeria, verified cleaning company lagos, trusted artisans abuja, handyman network nigeria'
+  });
+
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
 
   const handleImageLoad = (key: string) => {

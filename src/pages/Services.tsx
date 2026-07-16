@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useSEO } from '../hooks/useSEO';
 import './Services.css';
 
 // Best-effort map from a catalog service to a dispatch category slug
@@ -49,21 +50,22 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     color: 'var(--color-primary)',
     tiers: [
       {
-        name: 'Standard Home Clean',
-        price: '₦5,000 - ₦10,000',
-        description: 'Perfect for regular upkeep of your flat or duplex.',
+        name: 'Standard Clean',
+        price: '₦25,000',
+        description: 'Perfect for regular maintenance and keeping your space fresh.',
         features: [
-          'Detailed Floor Mopping',
-          'Kitchen & Bathroom Sanitization',
-          'Dusting of All Surfaces',
-          'Trash Disposal',
-          'Window Internal Wiping'
+          'Dusting & Vacuuming',
+          'Mopping & Floor Cleaning',
+          'Bathroom Sanitization',
+          'Kitchen Surface Cleaning',
+          'Trash Emptying'
         ]
       },
       {
-        name: 'Premium Service',
-        price: '₦10,000 - ₦20,000',
+        name: 'Deep Clean',
+        price: '₦55,000',
         description: 'Comprehensive deep cleaning for new or renovated properties.',
+        recommended: true,
         features: [
           'Paint & Cement Stain Removal',
           'Deep Floor Scrubbing',
@@ -71,34 +73,34 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
           'Window & Frame Detailing',
           'Sanitization of All Fixtures',
           'De-webbing & Wall Cleaning'
-        ],
-        recommended: true
+        ]
       }
     ]
   },
   {
-    id: 'power-water',
-    title: 'Power & Water Utilities',
-    description: 'Specialized maintenance for the essential systems that keep your home running.',
-    icon: <Zap size={28} />,
+    id: 'plumbing',
+    title: 'Water Systems',
+    description: 'Borehole repairs, plumbing fixtures, and storage tank maintenance.',
+    icon: <Wrench size={28} />,
     color: 'var(--color-tertiary)',
     tiers: [
       {
-        name: 'Generator Servicing',
-        price: '₦10,000',
-        description: 'Routine maintenance for your Mikano, Perkins, or small portable sets.',
+        name: 'Minor Fixes',
+        price: '₦12,000',
+        description: 'Quick repairs for leaks, taps, and bathroom fixtures.',
         features: [
-          'Oil & Filter Change',
-          'Plug Replacement',
-          'Control Panel Inspection',
-          'Battery Health Check',
-          'Performance Tuning'
+          'Tap & Shower Installation',
+          'Leak Detection & Repair',
+          'WC & Flush Kit Fixes',
+          'Drainage Clearing',
+          '1-Month Service Guarantee'
         ]
       },
       {
-        name: 'Borehole & Plumbing',
-        price: '₦25,000',
+        name: 'Borehole & Tank Service',
+        price: '₦45,000',
         description: 'Pump repairs, tank cleaning, and full plumbing diagnostics.',
+        recommended: true,
         features: [
           'Submersible Pump Repair',
           'Overhead Tank Cleaning',
@@ -110,16 +112,16 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     ]
   },
   {
-    id: 'artisan-work',
-    title: 'Expert Artisans',
-    description: 'Verified professionals for structural repairs and technical installations.',
-    icon: <Wrench size={28} />,
+    id: 'power',
+    title: 'Power & Cooling',
+    description: 'AC servicing, generator maintenance, and solar power support.',
+    icon: <Zap size={28} />,
     color: 'var(--color-secondary)',
     tiers: [
       {
-        name: 'Technical Repairs',
-        price: '₦12,000',
-        description: 'AC servicing, electrical faults, and carpentry fixes.',
+        name: 'AC / Appliance Servicing',
+        price: '₦15,000',
+        description: 'Preventative cleaning and minor checks for ACs and machines.',
         features: [
           'AC Gas Refilling & Cleaning',
           'Electrical Fault Tracing',
@@ -129,9 +131,10 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
         ]
       },
       {
-        name: 'Full Estate Maintenance',
-        price: 'Negotiable',
-        description: 'End-to-end maintenance for property owners and estate managers.',
+        name: 'Full System Check & Repair',
+        price: '₦35,000',
+        description: 'Advanced troubleshooting and parts installation.',
+        recommended: true,
         features: [
           'Interlocking Tile Repair',
           'Fumigation & Pest Control',
@@ -145,6 +148,12 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
 ];
 
 const Services: React.FC = () => {
+  useSEO({
+    title: 'Professional Cleaning & Home Services Pricing | Lezerv Nigeria',
+    description: 'Compare upfront, transparent pricing for professional cleaning, plumbing, electrical installations, generator servicing, AC repair, and carpentry across Lagos and Abuja.',
+    keywords: 'cleaning price Lagos, plumber price Abuja, hire AC technician Nigeria, generator servicing costs, home repair services pricing Nigeria, list of artisans Lagos'
+  });
+
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
 

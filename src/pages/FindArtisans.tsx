@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Star, ShieldCheck, Loader2, Hammer, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { artisanService } from '../services/artisanService';
+import { useSEO } from '../hooks/useSEO';
 import type { IServiceCategory, IServiceArea } from '../types/marketplace';
 import './FindArtisans.css';
 
@@ -26,8 +27,17 @@ const FindArtisans: React.FC = () => {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const areaName = (slug: string) => areas.find((a) => a.slug === slug)?.name || slug;
-  const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name || slug;
+  const areaName = (slug: string) => areas.find((a) => a.slug === slug)?.name || '';
+  const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name || '';
+
+  const displayCat = catName(activeCat) || 'Artisans, Cleaners & Plumbers';
+  const displayArea = areaName(activeArea) || 'Nigeria';
+
+  useSEO({
+    title: `Find Verified ${displayCat} in ${displayArea} | Lezerv`,
+    description: `Hire verified and background-checked ${displayCat.toLowerCase()} in ${displayArea}. Get transparent pricing, customer reviews, and trusted home service professionals on Lezerv.`,
+    keywords: `hire ${displayCat.toLowerCase()} ${displayArea}, verified ${displayCat.toLowerCase()} near me, home services ${displayArea}, lezerv ${displayCat.toLowerCase()}`
+  });
 
   const run = useCallback(async (area: string, cat: string) => {
     setLoading(true);

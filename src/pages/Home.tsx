@@ -3,9 +3,16 @@ import { motion } from 'framer-motion';
 import { ArrowRight as ArrowIcon, Eraser, Zap, Droplets, Gift, ShieldCheck, MessageCircle, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
+import { useSEO } from '../hooks/useSEO';
 import './Home.css';
 
 const Home: React.FC = () => {
+  useSEO({
+    title: 'Lezerv | #1 Verified Home Services & Artisans in Nigeria',
+    description: "Nigeria's #1 platform for verified home services and local artisans. Hire professional cleaners, plumbers, electricians, AC technicians, generator repairers, and carpenters in Lagos and Abuja.",
+    keywords: 'home services Nigeria, cleaning services Lagos, verified cleaners Abuja, hire plumber Nigeria, electrician Lagos, generator repair Lagos, AC technician Abuja, local artisans Nigeria, professional cleaners Lagos, house cleaning Nigeria, handyman services Nigeria'
+  });
+
   const [heroLoaded, setHeroLoaded] = useState(false);
 
   const containerVariants = {

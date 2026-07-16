@@ -8,6 +8,7 @@ import { applicationService } from '../services/applicationService';
 import { jobService } from '../services/jobService';
 import type { TJob } from '../services/jobService';
 import './Careers.css';
+import { useSEO } from '../hooks/useSEO';
 
 const fallbackJobs: TJob[] = [
   {
@@ -111,6 +112,12 @@ const getJobDetailsFallback = (job: TJob | null) => {
 };
 
 const Careers: React.FC = () => {
+  useSEO({
+    title: 'Careers | Join Lezerv Home Services Network',
+    description: "Explore job opportunities, corporate roles, and artisan positions at Lezerv. Join Nigeria's #1 home services network and build a rewarding career.",
+    keywords: 'lezerv careers, jobs in lagos, artisan jobs nigeria, join cleaning company, marketing jobs lagos'
+  });
+
   const [activeTab, setActiveTab] = useState<'artisan' | 'corporate'>('corporate');
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
   const [jobs, setJobs] = useState<TJob[]>([]);

@@ -25,8 +25,15 @@ import {
 } from '../services/ambassadorService';
 import { emailService } from '../services/emailService';
 import './Ambassador.css';
+import { useSEO } from '../hooks/useSEO';
 
 const Ambassador: React.FC = () => {
+  useSEO({
+    title: 'Refer & Earn | Lezerv Ambassador Program Nigeria',
+    description: "Join the Lezerv Ambassador Program. Refer friends, family, and businesses to Nigeria's leading home services network and earn commissions on every successful service completed.",
+    keywords: 'lezerv ambassador, refer and earn nigeria, make money online lagos, affiliate program nigeria, cleaning referrals'
+  });
+
   const { user, loading: authLoading } = useAuth();
   const [ambassador, setAmbassador] = useState<TAmbassador | null>(null);
   const [referrals, setReferrals] = useState<TReferral[]>([]);
