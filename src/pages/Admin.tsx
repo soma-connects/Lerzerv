@@ -19,7 +19,9 @@ import {
   Database,
   Eye,
   Award,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Copy
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -458,6 +460,101 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleExportUsersCSV = () => {
+    if (users.length === 0) {
+      triggerToast('No Users', 'There are no users to export.');
+      return;
+    }
+    const headers = ['ID', 'Email', 'Full Name', 'Role', 'Created At'];
+    const csvRows = [
+      headers.join(','),
+      ...users.map(u => [
+        u.id,
+        `"${u.email.replace(/"/g, '""')}"`,
+        `"${(u.full_name || '').replace(/"/g, '""')}"`,
+        u.role,
+        u.created_at || ''
+      ].join(','))
+    ];
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "lezerv_registered_users.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast('Export Successful', 'Registered users exported as CSV.');
+  };
+
+  const handleCopyUserEmails = () => {
+    if (users.length === 0) {
+      triggerToast('No Users', 'There are no user emails to copy.');
+      return;
+    }
+    const emailList = users.map(u => u.email).filter(Boolean).join(', ');
+    navigator.clipboard.writeText(emailList);
+    triggerToast('Copied to Clipboard', 'All user email addresses copied to clipboard.');
+  };
+
+  const handleExportArtisansCSV = () => {
+    if (artisans.length === 0) {
+      triggerToast('No Artisans', 'There are no artisans to export.');
+      return;
+    }
+    const headers = ['ID', 'User ID', 'Display Name', 'Email', 'Phone', 'City', 'Experience', 'Verified', 'Status', 'Joined At'];
+    const csvRows = [
+      headers.join(','),
+      ...artisans.map(a => {
+        const priv = a.artisan_private || {};
+        const matchingUser = users.find(u => u.id === a.user_id);
+        const email = matchingUser ? matchingUser.email : '';
+        return [
+          a.id,
+          a.user_id,
+          `"${a.display_name.replace(/"/g, '""')}"`,
+          `"${email.replace(/"/g, '""')}"`,
+          `"${(priv.phone || '').replace(/"/g, '""')}"`,
+          `"${a.city.replace(/"/g, '""')}"`,
+          `${a.years_experience || 0}y`,
+          a.is_verified ? 'Yes' : 'No',
+          a.status,
+          a.created_at || ''
+        ].join(',');
+      })
+    ];
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "lezerv_artisans.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast('Export Successful', 'Artisans exported as CSV.');
+  };
+
+  const handleCopyArtisanEmails = () => {
+    if (artisans.length === 0) {
+      triggerToast('No Artisans', 'There are no artisan emails to copy.');
+      return;
+    }
+    const emails = artisans.map(a => {
+      const matchingUser = users.find(u => u.id === a.user_id);
+      return matchingUser ? matchingUser.email : null;
+    }).filter(Boolean);
+
+    if (emails.length === 0) {
+      triggerToast('No Emails Found', 'No email addresses found for the artisans.');
+      return;
+    }
+
+    navigator.clipboard.writeText(emails.join(', '));
+    triggerToast('Copied to Clipboard', `All (${emails.length}) artisan email addresses copied.`);
+  };
+
   if (loading) return <div>Loading...</div>;
   if (!isAdmin) return <Navigate to="/login" replace />;
 
@@ -852,6 +949,24 @@ const Admin: React.FC = () => {
               <div>
                 <h2>Registered Users</h2>
                 <p className="card-desc">Monitor accounts, manage roles, and toggle administrator credentials.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  onClick={handleExportUsersCSV}
+                  leftIcon={<Download size={14} />}
+                >
+                  Export CSV
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  onClick={handleCopyUserEmails}
+                  leftIcon={<Copy size={14} />}
+                >
+                  Copy Emails
+                </Button>
               </div>
             </div>
             <div className="admin-table-container">
@@ -1396,8 +1511,28 @@ const Admin: React.FC = () => {
 
             <div className="admin-content-card">
               <div className="card-header">
-                <h2>Artisan Verification Queue</h2>
-                <p className="card-desc">Review new artisan applications, verify identity (NIN), and approve them to go live in search.</p>
+                <div>
+                  <h2>Artisan Verification Queue</h2>
+                  <p className="card-desc">Review new artisan applications, verify identity (NIN), and approve them to go live in search.</p>
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={handleExportArtisansCSV}
+                    leftIcon={<Download size={14} />}
+                  >
+                    Export CSV
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={handleCopyArtisanEmails}
+                    leftIcon={<Copy size={14} />}
+                  >
+                    Copy Emails
+                  </Button>
+                </div>
               </div>
 
               <div className="admin-table-container">
@@ -1435,6 +1570,17 @@ const Admin: React.FC = () => {
                                       <Phone size={14} /><span>{priv.phone}</span>
                                     </a>
                                   )}
+                                  {(() => {
+                                    const matchingUser = users.find(u => u.id === a.user_id);
+                                    if (matchingUser && matchingUser.email) {
+                                      return (
+                                        <a href={`mailto:${matchingUser.email}`} title="Email" className="candidate-link-icon">
+                                          <Mail size={14} /><span>{matchingUser.email}</span>
+                                        </a>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                   {priv.id_number && (
                                     <span className="candidate-link-icon" title="ID number">
                                       <Hash size={14} /><span>{priv.id_number}</span>
