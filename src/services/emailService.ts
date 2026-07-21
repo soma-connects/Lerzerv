@@ -83,7 +83,7 @@ export const emailService = {
         </table>
 
         <div style="margin-top: 30px; padding: 15px; background-color: #f9fafb; border-radius: 6px; font-size: 0.9rem; color: #6b7280; text-align: center;">
-          Need to make changes? Contact us at <a href="mailto:support@lezserv.com" style="color: #4f46e5; text-decoration: none;">support@lezserv.com</a>.
+          Need to make changes? Contact us at <a href="mailto:support@lezerv.com" style="color: #4f46e5; text-decoration: none;">support@lezerv.com</a>.
         </div>
       </div>
     `;

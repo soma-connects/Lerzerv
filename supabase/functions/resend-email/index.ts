@@ -30,7 +30,7 @@ serve(async (req) => {
         to,
         subject,
         html,
-        reply_to: replyTo || 'support@lezserv.com'
+        reply_to: replyTo || 'support@lezerv.com'
       }),
     })
 
