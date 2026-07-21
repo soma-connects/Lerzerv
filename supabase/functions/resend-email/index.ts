@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, html, from = 'Lezerv <onboarding@resend.dev>' } = await req.json()
+    const { to, subject, html, from = 'Lezerv <onboarding@resend.dev>', replyTo } = await req.json()
     const apiKey = Deno.env.get('RESEND_API_KEY')
 
     if (!apiKey) {
@@ -30,6 +30,7 @@ serve(async (req) => {
         to,
         subject,
         html,
+        reply_to: replyTo || 'support@lezserv.com'
       }),
     })
 
