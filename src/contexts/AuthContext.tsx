@@ -19,30 +19,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    let done = false;
+    const finish = () => { if (!done) { done = true; setLoading(false); } };
+
+    // Failsafe: never leave the whole app stuck on a spinner if the auth
+    // network request stalls (common in in-app browsers with flaky storage).
+    const failsafe = setTimeout(finish, 6000);
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
-        await checkAdminStatus(session?.user ?? null);
-      } catch (err) {
-        console.error('Error initializing auth session:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        // Admin check runs in the background — must NOT block app render.
+        checkAdminStatus(session?.user ?? null);
+      })
+      .catch((err) => console.error('Error initializing auth session:', err))
+      .finally(finish);
 
-    initializeAuth();
-
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      await checkAdminStatus(session?.user ?? null);
-      setLoading(false);
+      checkAdminStatus(session?.user ?? null);
+      finish();
     });
 
-    return () => subscription.unsubscribe();
+    return () => { clearTimeout(failsafe); subscription.unsubscribe(); };
   }, []);
 
   const checkAdminStatus = async (user: User | null) => {

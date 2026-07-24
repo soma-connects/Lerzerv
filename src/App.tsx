@@ -1,34 +1,55 @@
 import React, { Suspense, lazy, useEffect } from 'react';
+import type { ComponentType } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout/Layout';
+import { ChunkErrorBoundary } from './components/ChunkErrorBoundary';
+
+// Lazy import with recovery: if a chunk fails to load (flaky network / a new
+// deploy invalidated old chunk names), reload the app once to fetch fresh
+// assets instead of hanging forever on the Suspense fallback.
+function lazyWithRetry<T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    factory().catch((err) => {
+      const key = 'lz_chunk_reloaded';
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {}); // halt while reloading
+      }
+      throw err;
+    })
+  );
+}
 
 // Lazy load pages for performance
-const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
-const Careers = lazy(() => import('./pages/Careers'));
-const Contact = lazy(() => import('./pages/Contact'));
-const Services = lazy(() => import('./pages/Services'));
-const Login = lazy(() => import('./pages/Login'));
-const Signup = lazy(() => import('./pages/Signup'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Admin = lazy(() => import('./pages/Admin'));
-const Payment = lazy(() => import('./pages/Payment'));
-const TrackOrder = lazy(() => import('./pages/TrackOrder'));
-const Terms = lazy(() => import('./pages/Terms'));
-const Privacy = lazy(() => import('./pages/Privacy'));
-const Ambassador = lazy(() => import('./pages/Ambassador'));
-const ArtisanOnboard = lazy(() => import('./pages/ArtisanOnboard'));
-const FindArtisans = lazy(() => import('./pages/FindArtisans'));
-const ArtisanProfile = lazy(() => import('./pages/ArtisanProfile'));
-const MyJobs = lazy(() => import('./pages/MyJobs'));
-const PostJob = lazy(() => import('./pages/PostJob'));
+const Home = lazyWithRetry(() => import('./pages/Home'));
+const About = lazyWithRetry(() => import('./pages/About'));
+const Careers = lazyWithRetry(() => import('./pages/Careers'));
+const Contact = lazyWithRetry(() => import('./pages/Contact'));
+const Services = lazyWithRetry(() => import('./pages/Services'));
+const Login = lazyWithRetry(() => import('./pages/Login'));
+const Signup = lazyWithRetry(() => import('./pages/Signup'));
+const Profile = lazyWithRetry(() => import('./pages/Profile'));
+const Admin = lazyWithRetry(() => import('./pages/Admin'));
+const Payment = lazyWithRetry(() => import('./pages/Payment'));
+const TrackOrder = lazyWithRetry(() => import('./pages/TrackOrder'));
+const Terms = lazyWithRetry(() => import('./pages/Terms'));
+const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
+const Ambassador = lazyWithRetry(() => import('./pages/Ambassador'));
+const ArtisanOnboard = lazyWithRetry(() => import('./pages/ArtisanOnboard'));
+const FindArtisans = lazyWithRetry(() => import('./pages/FindArtisans'));
+const ArtisanProfile = lazyWithRetry(() => import('./pages/ArtisanProfile'));
+const MyJobs = lazyWithRetry(() => import('./pages/MyJobs'));
+const PostJob = lazyWithRetry(() => import('./pages/PostJob'));
 
 import { ambassadorService } from './services/ambassadorService';
 
 const App: React.FC = () => {
   // Capture referral code from URL on any page load
   useEffect(() => {
+    // A successful load means chunks are healthy — clear the reload guard.
+    sessionStorage.removeItem('lz_chunk_reloaded');
     ambassadorService.captureReferralCode();
     // Track the click if a code was captured
     const code = ambassadorService.getReferralCode();
@@ -41,6 +62,7 @@ const App: React.FC = () => {
     <Router>
       <AuthProvider>
         <Layout>
+        <ChunkErrorBoundary>
         <Suspense fallback={<div className="loading">Loading...</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -64,6 +86,7 @@ const App: React.FC = () => {
             <Route path="/post-job" element={<PostJob />} />
           </Routes>
         </Suspense>
+        </ChunkErrorBoundary>
       </Layout>
     </AuthProvider>
     </Router>
