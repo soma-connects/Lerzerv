@@ -106,6 +106,44 @@ export const emailService = {
   },
 
   /**
+   * Welcome email when a new user registers an account.
+   */
+  sendWelcomeEmail: async (name: string, email: string): Promise<boolean> => {
+    const first = name ? name.split(' ')[0] : 'there';
+    const subject = 'Welcome to Lezerv 🎉';
+    const html = `
+      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #e2e2e5; border-radius: 12px;">
+        <h2 style="color: #002a42; margin-top: 0;">Welcome, ${first}!</h2>
+        <p>Your Lezerv account is ready. Apply for a service and we'll match you with a verified artisan near you — plumbing, power, cooling, cleaning and more.</p>
+        <p>Chat and pay safely, all in one place.</p>
+        <a href="https://www.lezerv.com/post-job" style="display:inline-block;margin-top:16px;background:#002a42;color:#fff;text-decoration:none;padding:12px 24px;border-radius:9999px;font-weight:bold;">Apply for a service</a>
+      </div>`;
+    return await emailService.sendEmailViaResend(email, subject, html);
+  },
+
+  /**
+   * Confirmation email when someone applies to become an artisan.
+   */
+  sendArtisanApplicationEmail: async (name: string, email: string): Promise<boolean> => {
+    const first = name ? name.split(' ')[0] : 'there';
+    const subject = 'We received your artisan application ✅';
+    const html = `
+      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #e2e2e5; border-radius: 12px;">
+        <h2 style="color: #002a42; margin-top: 0;">Thanks, ${first}!</h2>
+        <p>We've received your application to become a Lezerv artisan. Our team will review your details and verify your documents.</p>
+        <p>You'll get another email once you're approved — then you can turn on availability and start receiving jobs in your areas.</p>
+        <a href="https://www.lezerv.com/become-artisan" style="display:inline-block;margin-top:16px;background:#002a42;color:#fff;text-decoration:none;padding:12px 24px;border-radius:9999px;font-weight:bold;">View my application</a>
+      </div>`;
+    // Also alert admins that a new artisan applied
+    await emailService.sendEmailViaResend(
+      ['Lezervlimited@gmail.com', 'pauljizy@gmail.com'],
+      `[New Artisan Application] ${name}`,
+      html
+    );
+    return await emailService.sendEmailViaResend(email, subject, html);
+  },
+
+  /**
    * Sends a welcome email containing their referral code.
    */
   sendAmbassadorWelcomeEmail: async (name: string, email: string, referralCode: string): Promise<boolean> => {

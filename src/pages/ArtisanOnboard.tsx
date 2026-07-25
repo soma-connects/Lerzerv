@@ -8,6 +8,7 @@ import {
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { artisanService } from '../services/artisanService';
+import { emailService } from '../services/emailService';
 import type { IServiceCategory, IServiceArea } from '../types/marketplace';
 import './ArtisanOnboard.css';
 import { useSEO } from '../hooks/useSEO';
@@ -106,6 +107,7 @@ const ArtisanOnboard: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const wasNewApplication = !existing;
 
     if (!displayName.trim()) return setError('Please enter your name.');
     if (selected.length === 0) return setError('Select at least one service you offer.');
@@ -141,6 +143,10 @@ const ArtisanOnboard: React.FC = () => {
     setSubmitting(false);
 
     if (res.success) {
+      // Confirmation email on a first-time application (fire-and-forget)
+      if (wasNewApplication && user?.email) {
+        emailService.sendArtisanApplicationEmail(displayName.trim(), user.email).catch(() => {});
+      }
       setIdDocPath(idP); setBillDocPath(billP); setPassportPath(passP);
       setIdFile(null); setBillFile(null); setPassportFile(null);
       setSavedStatus(res.data?.status || 'pending');
