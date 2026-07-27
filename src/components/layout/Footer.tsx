@@ -53,6 +53,7 @@ export const Footer: React.FC = () => {
           <div className="footer-col">
             <span className="footer-col-title">Company</span>
             <Link to="/about" className="footer-link">About us</Link>
+            <Link to="/blog" className="footer-link">Blog &amp; Events</Link>
             <Link to="/careers" className="footer-link">Careers</Link>
             <Link to="/contact" className="footer-link">Contact</Link>
             <Link to="/track" className="footer-link">Track order</Link>

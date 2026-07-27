@@ -1179,3 +1179,19 @@
 }
 .kyc-link:hover { background: var(--color-primary-fixed-dim); }
 .kyc-missing { font-size: 11px; color: var(--color-error); padding: 3px 8px; border-radius: var(--radius-full); background: var(--color-error-container); }
+
+/* ── Blog editor ─────────────────────────────────────── */
+.blog-editor { padding: var(--spacing-lg); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-xl); margin: 0 var(--spacing-lg) var(--spacing-lg); background: var(--color-surface-container-low); }
+.blog-editor .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--spacing-md); }
+.blog-editor label { font-size: var(--font-size-body-sm); font-weight: var(--font-weight-medium); color: var(--color-on-surface-variant); }
+.blog-editor input, .blog-editor textarea {
+  border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg);
+  padding: 0.6rem var(--spacing-md); font-size: var(--font-size-body-md); outline: none;
+  background: var(--color-surface-container-lowest); color: var(--color-on-background); width: 100%;
+  font-family: var(--font-family-body);
+}
+.blog-editor input:focus, .blog-editor textarea:focus { border-color: var(--color-primary); }
+.blog-editor-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; margin-top: var(--spacing-sm); }
+.blog-publish { display: inline-flex; align-items: center; gap: 8px; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-medium); color: var(--color-on-background); cursor: pointer; }
+.blog-publish input { width: auto; }
+@media (max-width: 700px) { .blog-editor .form-row { grid-template-columns: 1fr !important; } }

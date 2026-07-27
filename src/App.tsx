@@ -42,6 +42,8 @@ const FindArtisans = lazyWithRetry(() => import('./pages/FindArtisans'));
 const ArtisanProfile = lazyWithRetry(() => import('./pages/ArtisanProfile'));
 const MyJobs = lazyWithRetry(() => import('./pages/MyJobs'));
 const PostJob = lazyWithRetry(() => import('./pages/PostJob'));
+const Blog = lazyWithRetry(() => import('./pages/Blog'));
+const BlogPost = lazyWithRetry(() => import('./pages/BlogPost'));
 
 import { ambassadorService } from './services/ambassadorService';
 
@@ -84,6 +86,8 @@ const App: React.FC = () => {
             <Route path="/artisan/:id" element={<ArtisanProfile />} />
             <Route path="/my-jobs" element={<MyJobs />} />
             <Route path="/post-job" element={<PostJob />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
           </Routes>
         </Suspense>
         </ChunkErrorBoundary>

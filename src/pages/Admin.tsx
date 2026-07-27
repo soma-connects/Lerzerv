@@ -40,6 +40,7 @@ import { userService } from '../services/userService';
 import type { TUserProfile } from '../services/userService';
 import { ambassadorService } from '../services/ambassadorService';
 import { artisanService } from '../services/artisanService';
+import { blogService, slugify, type IBlogPost } from '../services/blogService';
 import './Admin.css';
 
 type TBooking = {
@@ -78,7 +79,7 @@ type TToast = {
 
 const Admin: React.FC = () => {
   const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch' | 'blog'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
@@ -88,6 +89,9 @@ const Admin: React.FC = () => {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [artisans, setArtisans] = useState<any[]>([]);
   const [dispatchJobs, setDispatchJobs] = useState<any[]>([]);
+  const [blogPosts, setBlogPosts] = useState<IBlogPost[]>([]);
+  const [blogDraft, setBlogDraft] = useState<Partial<IBlogPost> | null>(null);
+  const [savingBlog, setSavingBlog] = useState(false);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
@@ -180,7 +184,7 @@ const Admin: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes, artisansRes, dispatchRes] = await Promise.all([
+      const [bookingsRes, servicesRes, settingsRes, applicationsRes, jobsRes, usersRes, ambassadorsRes, referralsRes, artisansRes, dispatchRes, blogRes] = await Promise.all([
         supabase.from('bookings').select('*').order('created_at', { ascending: false }),
         pricingService.fetchServices(),
         pricingService.fetchPaymentSettings(),
@@ -190,7 +194,8 @@ const Admin: React.FC = () => {
         supabase.from('ambassadors').select('*').order('created_at', { ascending: false }),
         supabase.from('referrals').select('*, ambassadors(name, referral_code)').order('created_at', { ascending: false }),
         artisanService.adminFetchArtisans(),
-        artisanService.adminFetchJobs()
+        artisanService.adminFetchJobs(),
+        blogService.adminList()
       ]);
 
       if (bookingsRes.data) setBookings(bookingsRes.data as TBooking[]);
@@ -203,6 +208,7 @@ const Admin: React.FC = () => {
       if (referralsRes.data) setReferrals(referralsRes.data);
       if (artisansRes) setArtisans(artisansRes);
       if (dispatchRes) setDispatchJobs(dispatchRes);
+      if (blogRes) setBlogPosts(blogRes);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -215,6 +221,24 @@ const Admin: React.FC = () => {
     const list = await artisanService.adminGetApplicants(jobId);
     setApplicants(list);
     setLoadingApplicants(false);
+  };
+
+  const newBlogPost = () => setBlogDraft({ title: '', slug: '', excerpt: '', content: '', cover_image_url: '', category: 'Event', author: 'Lezerv Team', published: false });
+
+  const saveBlogPost = async () => {
+    if (!blogDraft?.title?.trim()) { triggerToast('Error', 'Title is required.'); return; }
+    const draft = { ...blogDraft, slug: (blogDraft.slug || slugify(blogDraft.title)).trim() };
+    setSavingBlog(true);
+    const res = await blogService.save(draft);
+    setSavingBlog(false);
+    if (res.ok) { triggerToast('Saved', `Post "${draft.title}" saved.`); setBlogDraft(null); fetchData(); }
+    else triggerToast('Error', res.error || 'Failed to save.');
+  };
+
+  const deleteBlogPost = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    if (await blogService.remove(id)) { triggerToast('Deleted', 'Post removed.'); fetchData(); }
+    else triggerToast('Error', 'Failed to delete.');
   };
 
   const viewKyc = async (path: string) => {
@@ -591,6 +615,7 @@ const Admin: React.FC = () => {
                 <span className="tab-badge">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
               )}
             </button>
+            <button className={activeTab === 'blog' ? 'active' : ''} onClick={() => setActiveTab('blog')}>Blog</button>
           </nav>
         </header>
 
@@ -1759,6 +1784,88 @@ const Admin: React.FC = () => {
                       ))
                     ) : (
                       <tr><td colSpan={7} className="empty-table-cell"><Briefcase size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} /><p>No jobs posted yet.</p></td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'blog' && (
+          <>
+            <div className="admin-content-card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2>Blog &amp; Events</h2>
+                  <p className="card-desc">Publish posts and events. Published posts appear at /blog and can be indexed by Google.</p>
+                </div>
+                <Button variant="primary" size="sm" leftIcon={<Plus size={16} />} onClick={newBlogPost}>New post</Button>
+              </div>
+
+              {blogDraft && (
+                <div className="blog-editor">
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label>Title</label>
+                      <input value={blogDraft.title || ''} onChange={(e) => setBlogDraft({ ...blogDraft, title: e.target.value, slug: blogDraft.id ? blogDraft.slug : slugify(e.target.value) })} placeholder="Post title" />
+                    </div>
+                    <div className="form-group">
+                      <label>Category</label>
+                      <input value={blogDraft.category || ''} onChange={(e) => setBlogDraft({ ...blogDraft, category: e.target.value })} placeholder="Event / News / Tips" />
+                    </div>
+                  </div>
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group">
+                      <label>URL slug</label>
+                      <input value={blogDraft.slug || ''} onChange={(e) => setBlogDraft({ ...blogDraft, slug: slugify(e.target.value) })} placeholder="post-url-slug" />
+                    </div>
+                    <div className="form-group">
+                      <label>Cover image URL <span style={{ opacity: 0.6 }}>(optional)</span></label>
+                      <input value={blogDraft.cover_image_url || ''} onChange={(e) => setBlogDraft({ ...blogDraft, cover_image_url: e.target.value })} placeholder="https://..." />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Short summary (excerpt)</label>
+                    <textarea rows={2} value={blogDraft.excerpt || ''} onChange={(e) => setBlogDraft({ ...blogDraft, excerpt: e.target.value })} placeholder="One or two sentences shown on the blog list & in Google results." />
+                  </div>
+                  <div className="form-group">
+                    <label>Content <span style={{ opacity: 0.6 }}>(HTML — use &lt;p&gt;, &lt;h2&gt;, &lt;ul&gt;&lt;li&gt;, &lt;img&gt;, &lt;a&gt;)</span></label>
+                    <textarea rows={10} style={{ fontFamily: 'monospace' }} value={blogDraft.content || ''} onChange={(e) => setBlogDraft({ ...blogDraft, content: e.target.value })} placeholder="<p>Write your post here...</p>" />
+                  </div>
+                  <div className="blog-editor-foot">
+                    <label className="blog-publish">
+                      <input type="checkbox" checked={!!blogDraft.published} onChange={(e) => setBlogDraft({ ...blogDraft, published: e.target.checked })} />
+                      Published (visible to everyone)
+                    </label>
+                    <div className="table-actions">
+                      <Button variant="text" size="sm" onClick={() => setBlogDraft(null)}>Cancel</Button>
+                      <Button variant="primary" size="sm" disabled={savingBlog} onClick={saveBlogPost}>{savingBlog ? 'Saving…' : 'Save post'}</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {blogPosts.length > 0 ? blogPosts.map((p) => (
+                      <tr key={p.id}>
+                        <td><strong>{p.title}</strong><div className="text-sm" style={{ color: 'var(--color-outline)' }}>/blog/{p.slug}</div></td>
+                        <td className="text-sm">{p.category || '—'}</td>
+                        <td><span className={`status-pill status-${p.published ? 'confirmed' : 'pending'}`}>{p.published ? 'Published' : 'Draft'}</span></td>
+                        <td className="text-sm whitespace-nowrap">{new Date(p.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
+                        <td className="table-actions">
+                          <Button size="sm" variant="outline" onClick={() => setBlogDraft(p)}>Edit</Button>
+                          {p.published && <a href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer"><Button size="sm" variant="text">View</Button></a>}
+                          <Button size="sm" variant="text" className="danger-text" onClick={() => deleteBlogPost(p.id, p.title)}>Delete</Button>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={5} className="empty-table-cell"><FileText size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} /><p>No posts yet. Create your first one.</p></td></tr>
                     )}
                   </tbody>
                 </table>

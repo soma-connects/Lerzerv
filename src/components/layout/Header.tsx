@@ -27,6 +27,7 @@ const serviceGroups: { label: string; icon: React.ReactNode; items: [string, str
 
 const companyLinks = [
   { name: 'About', path: '/about' },
+  { name: 'Blog & Events', path: '/blog' },
   { name: 'How it works', path: '/services' },
   { name: 'Careers', path: '/careers' },
   { name: 'Track Order', path: '/track' },
