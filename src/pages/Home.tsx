@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight as ArrowIcon, Eraser, Zap, Droplets, Gift, ShieldCheck, MessageCircle, Lock } from 'lucide-react';
+import { ArrowRight as ArrowIcon, Eraser, Zap, Droplets, Gift, ShieldCheck, MessageCircle, Lock, ChefHat, Shirt } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
@@ -144,6 +144,42 @@ const Home: React.FC = () => {
               <p>Borehole pump repairs, tank cleaning, and plumbing fixes across all major estates.</p>
               <Link to="/services" className="service-link">
                 <Button variant="text" rightIcon={<ArrowIcon size={18} />}>Book Artisan</Button>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              className="service-card"
+              whileHover={{ y: -10 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              role="article"
+              aria-label="Cooking and catering service"
+              tabIndex={0}
+            >
+              <div className="service-icon icon-primary">
+                <ChefHat size={28} />
+              </div>
+              <h3>Cooking & Catering</h3>
+              <p>Hire professional chefs for custom meal prep, family dinners, or special home events.</p>
+              <Link to="/services" className="service-link">
+                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>View Tiers</Button>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              className="service-card"
+              whileHover={{ y: -10 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              role="article"
+              aria-label="Laundry and dry cleaning service"
+              tabIndex={0}
+            >
+              <div className="service-icon icon-tertiary">
+                <Shirt size={28} />
+              </div>
+              <h3>Laundry & Pressing</h3>
+              <p>Premium laundry, dry cleaning, and ironing with convenient home pickup and delivery.</p>
+              <Link to="/services" className="service-link">
+                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>View Pricing</Button>
               </Link>
             </motion.div>
           </div>

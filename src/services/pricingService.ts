@@ -71,6 +71,38 @@ export const defaultServices: TNewService[] = [
     description: 'End-to-end maintenance for property owners and estate managers.',
     features: ['Interlocking Tile Repair', 'Fumigation & Pest Control', 'Compound Cleaning', 'Gate Automation Support', '24/7 Priority Response'],
     recommended: false
+  },
+  {
+    title: 'Standard Cooking',
+    category: 'Cooking & Catering',
+    price: '₦15,000',
+    description: 'Daily cooking and meal preparation for families and homes.',
+    features: ['3 Freshly Cooked Meals', 'Kitchen Cleanup Included', 'Menu Planning Support', 'Standard Local Dishes', 'Ingredient Checklist Provided'],
+    recommended: false
+  },
+  {
+    title: 'Gourmet Private Chef',
+    category: 'Cooking & Catering',
+    price: '₦40,000',
+    description: 'Professional chef service for events, parties, or special dinners.',
+    features: ['Custom Gourmet Menu', 'Multi-Course Meal Preparation', 'Elegant Plating & Service', 'Complete Kitchen Cleanup', 'Post-Event Kitchen Sanitization', 'Premium Ingredients Sourcing'],
+    recommended: true
+  },
+  {
+    title: 'Laundry Wash & Fold',
+    category: 'Laundry Services',
+    price: '₦8,000',
+    description: 'Standard machine wash and fold service for regular clothes.',
+    features: ['Up to 15kg of Laundry', 'Color Sorting & Care', 'Eco-Friendly Detergent', 'Neat Folding & Packing', 'Next-Day Delivery Option'],
+    recommended: false
+  },
+  {
+    title: 'Laundry Wash, Iron & Starch',
+    category: 'Laundry Services',
+    price: '₦18,000',
+    description: 'Deep wash, professional pressing, and starching for native wear.',
+    features: ['Up to 25kg of Laundry', 'Professional Ironing & Pressing', 'Starching for Kaftans & Native Wears', 'Garment Hanger Packing', 'Free Pickup & Return Delivery', 'Delicate Fabric Hand Wash'],
+    recommended: true
   }
 ];
 

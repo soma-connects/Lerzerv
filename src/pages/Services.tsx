@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Zap, Wrench, Shield, Clock, Star, ChefHat, Shirt } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useSEO } from '../hooks/useSEO';
 import './Services.css';
@@ -11,6 +11,8 @@ import './Services.css';
 const guessCategory = (text: string): string | undefined => {
   const t = text.toLowerCase();
   if (t.includes('clean')) return 'cleaning';
+  if (t.includes('cook') || t.includes('chef') || t.includes('cater')) return 'cooking';
+  if (t.includes('laundr') || t.includes('dry clean') || t.includes('press') || t.includes('wash')) return 'laundry';
   if (t.includes('solar') || t.includes('inverter')) return 'solar-inverter';
   if (t.includes('generator') || t.includes('power')) return 'generator-power';
   if (t.includes('borehole') || t.includes('plumb') || t.includes('tank') || t.includes('water')) return 'plumbing';
@@ -141,6 +143,76 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
           'Compound Cleaning',
           'Gate Automation Support',
           '24/7 Priority Response'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'cooking',
+    title: 'Cooking & Catering',
+    description: 'Hire professional home cooks and chefs for custom meal prep, family dinners, or events.',
+    icon: <ChefHat size={28} />,
+    color: 'var(--color-tertiary)',
+    tiers: [
+      {
+        name: 'Daily Meal Prep',
+        price: '₦15,000',
+        description: 'Standard cooking and meal prep for individuals or families.',
+        features: [
+          '3 Freshly Cooked Meals',
+          'Kitchen Cleanup Included',
+          'Menu Planning Support',
+          'Standard Local Dishes',
+          'Ingredient Checklist Provided'
+        ]
+      },
+      {
+        name: 'Premium Chef Service',
+        price: '₦40,000',
+        description: 'Multi-course menu prepared by a professional chef for special events or parties.',
+        recommended: true,
+        features: [
+          'Custom Gourmet Menu',
+          'Multi-Course Meal Preparation',
+          'Elegant Plating & Service',
+          'Complete Kitchen Cleanup',
+          'Post-Event Kitchen Sanitization',
+          'Premium Ingredients Sourcing'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'laundry',
+    title: 'Laundry & Pressing',
+    description: 'Convenient laundry, dry cleaning, and ironing services with home pickup.',
+    icon: <Shirt size={28} />,
+    color: 'var(--color-primary)',
+    tiers: [
+      {
+        name: 'Wash & Fold',
+        price: '₦8,000',
+        description: 'Standard machine wash and fold service for regular clothes.',
+        features: [
+          'Up to 15kg of Laundry',
+          'Color Sorting & Care',
+          'Eco-Friendly Detergent',
+          'Neat Folding & Packing',
+          'Next-Day Delivery Option'
+        ]
+      },
+      {
+        name: 'Wash, Iron & Starch',
+        price: '₦18,000',
+        description: 'Deep wash, professional pressing, and optional starching for formal wear.',
+        recommended: true,
+        features: [
+          'Up to 25kg of Laundry',
+          'Professional Ironing & Pressing',
+          'Starching for Kaftans & Native Wears',
+          'Garment Hanger Packing',
+          'Free Pickup & Return Delivery',
+          'Delicate Fabric Hand Wash'
         ]
       }
     ]

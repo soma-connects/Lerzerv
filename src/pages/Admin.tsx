@@ -1919,6 +1919,8 @@ const Admin: React.FC = () => {
                       <option value="Professional Cleaning">Professional Cleaning</option>
                       <option value="Power & Water Utilities">Power & Water Utilities</option>
                       <option value="Expert Artisans">Expert Artisans</option>
+                      <option value="Cooking & Catering">Cooking & Catering</option>
+                      <option value="Laundry Services">Laundry Services</option>
                     </select>
                   </div>
                 </div>

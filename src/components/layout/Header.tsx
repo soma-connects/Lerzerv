@@ -12,7 +12,7 @@ import './Header.css';
 // Artisan categories grouped for the Services mega-menu
 const serviceGroups: { label: string; icon: React.ReactNode; items: [string, string][] }[] = [
   { label: 'Home Care', icon: <Sparkles size={16} />, items: [
-    ['cleaning', 'Cleaning'], ['painting', 'Painting'], ['pest-control', 'Pest Control'], ['landscaping', 'Gardening & Landscaping'],
+    ['cleaning', 'Cleaning'], ['laundry', 'Laundry'], ['cooking', 'Cooking'], ['painting', 'Painting'], ['pest-control', 'Pest Control'], ['landscaping', 'Gardening & Landscaping'],
   ] },
   { label: 'Repairs & Fittings', icon: <Wrench size={16} />, items: [
     ['plumbing', 'Plumbing'], ['carpentry', 'Carpentry'], ['masonry-tiling', 'Masonry & Tiling'], ['appliance-repair', 'Appliance Repair'],

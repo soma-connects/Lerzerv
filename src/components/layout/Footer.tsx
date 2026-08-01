@@ -6,6 +6,8 @@ import './Footer.css';
 
 const serviceLinks: [string, string][] = [
   ['Cleaning', '/find-artisans?category=cleaning'],
+  ['Laundry', '/find-artisans?category=laundry'],
+  ['Cooking', '/find-artisans?category=cooking'],
   ['Plumbing', '/find-artisans?category=plumbing'],
   ['Electrical', '/find-artisans?category=electrical'],
   ['Generator & Power', '/find-artisans?category=generator-power'],
