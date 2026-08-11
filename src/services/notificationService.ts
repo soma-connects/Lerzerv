@@ -14,9 +14,13 @@ export interface INotification {
 
 export const notificationService = {
   list: async (limit = 20): Promise<INotification[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) { console.warn('notifications list failed:', error); return []; }
@@ -24,7 +28,9 @@ export const notificationService = {
   },
 
   markRead: async (id: string): Promise<void> => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id);
   },
 
   markAllRead: async (): Promise<void> => {
@@ -39,7 +45,12 @@ export const notificationService = {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => onInsert(payload.new as INotification)
+        (payload) => {
+          const notif = payload.new as INotification;
+          if (notif && notif.user_id === userId) {
+            onInsert(notif);
+          }
+        }
       )
       .subscribe();
   },
