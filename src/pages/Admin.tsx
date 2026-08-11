@@ -40,6 +40,7 @@ import { userService } from '../services/userService';
 import type { TUserProfile } from '../services/userService';
 import { ambassadorService } from '../services/ambassadorService';
 import { artisanService } from '../services/artisanService';
+import { emailService } from '../services/emailService';
 import { blogService, slugify, type IBlogPost } from '../services/blogService';
 import './Admin.css';
 
@@ -1653,8 +1654,18 @@ const Admin: React.FC = () => {
                                 <Button size="sm" variant="primary"
                                   onClick={async () => {
                                     const res = await artisanService.adminSetStatus(a.id, 'approved');
-                                    if (res.success) { triggerToast('Artisan Approved', `${a.display_name} is now live.`); fetchData(); }
-                                    else triggerToast('Error', res.error?.message || 'Failed.');
+                                    if (res.success) {
+                                      triggerToast('Artisan Approved', `${a.display_name} is now live.`);
+                                      const matchingUser = users.find(u => u.id === a.user_id);
+                                      if (matchingUser && matchingUser.email) {
+                                        emailService.sendArtisanApprovedEmail(a.display_name, matchingUser.email).catch((err) => {
+                                          console.error('Failed to send artisan approval email:', err);
+                                        });
+                                      }
+                                      fetchData();
+                                    } else {
+                                      triggerToast('Error', res.error?.message || 'Failed.');
+                                    }
                                   }}>Approve</Button>
                               )}
                               {a.status === 'pending' && (

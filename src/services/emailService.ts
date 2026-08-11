@@ -144,6 +144,36 @@ export const emailService = {
   },
 
   /**
+   * Approval email sent when an admin approves an artisan application.
+   */
+  sendArtisanApprovedEmail: async (name: string, email: string): Promise<boolean> => {
+    const first = name ? name.split(' ')[0] : 'there';
+    const subject = 'Congratulations! Your Lezerv Artisan Profile is Approved 🎉';
+    const html = `
+      <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #e2e2e5; border-radius: 12px;">
+        <h2 style="color: #002a42; margin-top: 0;">Congratulations, ${first}! 🚀</h2>
+        <p>Your application to become a verified Lezerv artisan has been <strong>approved</strong>.</p>
+        <p>Your profile is now live! Customers in your service areas can now discover and book your services.</p>
+        
+        <h3 style="color: #1f2937; margin-top: 20px;">Next Steps:</h3>
+        <ol style="color: #4b5563; line-height: 1.6;">
+          <li>Log in to your Lezerv account.</li>
+          <li>Go to your artisan profile or dashboard.</li>
+          <li>Toggle your availability switch to <strong>Available</strong> to start receiving job matches.</li>
+        </ol>
+        
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="https://www.lezerv.com/become-artisan" style="display:inline-block;background:#002a42;color:#fff;text-decoration:none;padding:12px 28px;border-radius:9999px;font-weight:bold;">Go to My Artisan Profile</a>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 0.9rem;">Need help getting started? Reply to this email or reach us at <a href="mailto:support@lezerv.com" style="color: #002a42;">support@lezerv.com</a>.</p>
+      </div>`;
+
+    console.log('[Email Service] Sending artisan approval email to:', email);
+    return await emailService.sendEmailViaResend(email, subject, html);
+  },
+
+  /**
    * Sends a welcome email containing their referral code.
    */
   sendAmbassadorWelcomeEmail: async (name: string, email: string, referralCode: string): Promise<boolean> => {
