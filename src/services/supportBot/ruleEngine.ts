@@ -108,6 +108,7 @@ function withinOneEdit(a: string, b: string): boolean {
   return edits + (long.length - j) + (short.length - i) <= 1;
 }
 
+/** True when `target` appears among `tokens`, tolerating a single typo. */
 function hasToken(tokens: string[], target: string): boolean {
   return tokens.some((t) => withinOneEdit(t, target));
 }
@@ -132,6 +133,16 @@ interface IScored {
   confidence: number;
 }
 
+/**
+ * How well one knowledge-base entry matches the question.
+ *
+ * Three signals, weighted by how much they actually tell us:
+ *   - a decisive keyword hit (strongest — these are what identify a topic);
+ *   - how much of a known phrasing the question reproduces;
+ *   - whether the question essentially *is* a known phrasing.
+ *
+ * Unbounded on purpose; `toConfidence` does the squashing.
+ */
 function scoreEntry(entry: IKbEntry, query: string, tokens: string[]): number {
   let score = 0;
 
@@ -184,6 +195,10 @@ function toConfidence(score: number): number {
   return score <= 0 ? 0 : score / (score + 6);
 }
 
+/**
+ * Every entry that matched at all, best first. An empty result means the
+ * question shared nothing with the knowledge base — straight to a human.
+ */
 function rank(question: string): IScored[] {
   const query = normalise(question);
   const tokens = tokenise(question);
@@ -210,6 +225,11 @@ const DEFAULT_SUGGESTIONS = [
   'How do I become an artisan?',
 ];
 
+/**
+ * Handle greetings, thanks and goodbyes before scoring, so "hi" opens a
+ * conversation rather than being escalated as an unanswerable question.
+ * Returns null when the input is not small talk.
+ */
 function smallTalk(question: string): IBotAnswer | null {
   const query = normalise(question);
   if (!query) return null;
@@ -273,6 +293,10 @@ function fromEntry(entry: IKbEntry, confidence: number): IBotAnswer {
   };
 }
 
+/**
+ * The honest dead end: say we don't know, offer a human, and surface any
+ * near-misses so the user can self-serve if one of them is what they meant.
+ */
 function unresolved(suggestions: string[], topic: string | null): IBotAnswer {
   return {
     id: 'unresolved',

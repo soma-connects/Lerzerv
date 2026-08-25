@@ -72,6 +72,14 @@ const RichText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+/**
+ * The floating support assistant.
+ *
+ * Answers from the knowledge base, offers in-app navigation, and hands off
+ * to a human when it cannot resolve something — carrying the transcript so
+ * the customer never has to explain twice. Guests can escalate too; they
+ * are replied to by email rather than the notification bell.
+ */
 export const SupportBot: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
