@@ -58,8 +58,13 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 
 ### Phase 3 — Polish + store launch
 - [x] In-app notifications (bell + realtime) on job posted/assigned/message/approval (0009)
-- [ ] External delivery channels reading the notifications table via an Edge Function:
-      SMS/WhatsApp (Termii/Twilio), push (Capacitor/FCM+APNs), email (Zoho SMTP) — need accounts/keys
+- [x] **Email alerts to the team** on every event that needs a human — service requests,
+      artisan + careers applications, contact messages, support escalations (migration 0017).
+      Fired by database triggers via pg_net -> the `resend-email` Edge Function, so they
+      survive the customer closing the tab. Alerts are recorded in `admin_alerts` even
+      before the project is configured, so nothing is lost. Setup: `supabase/ADMIN_ALERTS.md`
+- [ ] Remaining external channels: SMS/WhatsApp (Termii/Twilio), push (Capacitor/FCM+APNs)
+      — need accounts/keys
 - [x] Smart support assistant: in-app bot answering navigation/product questions from a
       curated knowledge base, escalating what it cannot resolve to a human via support
       tickets + an Admin -> Support inbox (0016). WhatsApp stays as an alternative channel.
@@ -84,7 +89,10 @@ Penalties: **2% of annual turnover or ₦10m, whichever is higher.**
 ## Known cleanup carried from the old build
 
 - `apiClient.ts` is fully mocked (dead AWS-era layer) — remove or repurpose
-- `emailService.ts` only `console.log`s — replaced by real notifications in Phase 3
+- `emailService.ts` DOES send real mail via the `resend-email` Edge Function (the old
+  "only console.logs" note was out of date). Its remaining weakness is that it runs
+  client-side and swallows errors; admin alerts have moved to DB triggers (0017),
+  booking + customer-facing mail still goes through it
 - Hardcoded admin emails in client code — move authorization behind RLS/roles
 - Leaderboard intentionally mixes in mock participants so it never looks empty
   (owner's choice) — phase them out naturally once real ambassador volume grows
