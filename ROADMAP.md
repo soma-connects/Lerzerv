@@ -61,8 +61,10 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [x] **Email alerts to the team** on every event that needs a human — service requests,
       artisan + careers applications, contact messages, support escalations (migration 0017).
       Fired by database triggers via pg_net -> the `resend-email` Edge Function, so they
-      survive the customer closing the tab. Alerts are recorded in `admin_alerts` even
-      before the project is configured, so nothing is lost. Setup: `supabase/ADMIN_ALERTS.md`
+      survive the customer closing the tab. Every alert is recorded in `admin_alerts`, and
+      because pg_net sends after commit, a row only becomes `sent` once its response is
+      read back — a 401 or timeout lands as `failed` and is retryable, never a silent
+      success. Setup: `supabase/ADMIN_ALERTS.md`
 - [ ] Remaining external channels: SMS/WhatsApp (Termii/Twilio), push (Capacitor/FCM+APNs)
       — need accounts/keys
 - [x] Smart support assistant: in-app bot answering navigation/product questions from a

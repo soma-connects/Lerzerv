@@ -48,6 +48,8 @@ export const SupportInbox: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const threadRef = useRef<HTMLDivElement>(null);
+  /** Sequence number of the latest openTicket call; stale loads are dropped. */
+  const openRequestRef = useRef(0);
 
   const selected = useMemo(
     () => tickets.find((t) => t.id === selectedId) ?? null,
@@ -86,11 +88,19 @@ export const SupportInbox: React.FC = () => {
   }, []);
 
   const openTicket = useCallback(async (ticketId: string) => {
+    // Guard against out-of-order responses. Clicking ticket A then B can
+    // resolve A last, which would leave B selected while A's messages are
+    // on screen — and a reply typed there would go to the wrong customer.
+    const request = ++openRequestRef.current;
     setSelectedId(ticketId);
     setReply('');
     setError(null);
     setThreadLoading(true);
-    setThread(await supportService.getMessages(ticketId));
+
+    const messages = await supportService.getMessages(ticketId);
+    if (request !== openRequestRef.current) return; // a newer ticket won
+
+    setThread(messages);
     setThreadLoading(false);
   }, []);
 

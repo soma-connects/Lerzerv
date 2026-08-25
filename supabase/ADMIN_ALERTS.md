@@ -14,6 +14,11 @@ something needs a human:
 Alerts fire from database triggers, not the browser, so they still arrive
 if the customer closes the tab the moment they hit submit.
 
+Delivery is asynchronous: `pg_net` performs the HTTP request *after* the
+transaction commits, so an alert is not called `sent` until its response
+has been read back. That is what stops a wrong service key from showing
+up as a green `sent` while no email ever arrives.
+
 ## One-time setup
 
 Nothing sends until these two secrets exist. Until then every alert is
@@ -69,14 +74,23 @@ order by created_at desc
 limit 20;
 ```
 
-- `sent` — handed to Resend.
+- `sent` — Resend accepted it (confirmed by reading the response).
+- `dispatched` — handed to `pg_net`, response not read back yet. Normal for
+  a few seconds; it settles on the next alert or when you run
+  `select public.reconcile_admin_alerts();`.
 - `unconfigured` — secrets from step 2 are missing.
 - `failed` — see `error`. Common causes: `RESEND_API_KEY` unset, a wrong
-  service key (401), or no active recipients.
+  service key (401), a timeout, or no active recipients.
+
+Statuses settle themselves: every new alert reconciles outstanding ones
+first, so no `pg_cron` job is required. A row stuck in `dispatched` for
+more than a day (because `pg_net` pruned its response before it was read)
+is marked `failed` so it stays visible and retryable.
 
 A `failed` alert never affects the customer: the service request,
 application or message is committed regardless. Re-send with
-`retry_pending_admin_alerts()` after fixing the cause.
+`retry_pending_admin_alerts()` after fixing the cause — it reconciles
+first, so genuinely-failed requests are retried rather than skipped.
 
 ## Notes
 

@@ -118,8 +118,16 @@ begin
     raise exception 'please describe the issue in a few more words';
   end if;
 
-  -- Cheap flood guard: the widget is open to anonymous visitors, so cap
-  -- how many tickets one identity can open per hour.
+  -- The transcript is caller-supplied and gets replayed row-by-row into
+  -- support_ticket_messages, so an unbounded array would let one
+  -- anonymous call insert unbounded rows. Cap both count and total size.
+  if jsonb_array_length(coalesce(p_transcript, '[]'::jsonb)) > 100
+     or length(coalesce(p_transcript, '[]'::jsonb)::text) > 65536 then
+    raise exception 'conversation is too long to send — please summarise the issue';
+  end if;
+
+  -- Flood guard, per identity: signed-in users are keyed on their id,
+  -- guests on the email they typed.
   select count(*) into v_recent
   from public.support_tickets
   where created_at > now() - interval '1 hour'
@@ -129,6 +137,21 @@ begin
     );
   if v_recent >= 5 then
     raise exception 'too many support requests — please wait a moment before sending another';
+  end if;
+
+  -- The per-identity guard above keys on a value the caller controls, so a
+  -- guest who varies the email walks straight past it. This ceiling does not
+  -- depend on anything the caller can change. It is deliberately generous:
+  -- real volume sits far below it, and a visitor who does hit it is still
+  -- offered WhatsApp by the widget. Proper per-IP limiting belongs at the
+  -- edge — SQL cannot see the client address.
+  if v_uid is null then
+    select count(*) into v_recent
+    from public.support_tickets
+    where created_at > now() - interval '1 hour' and user_id is null;
+    if v_recent >= 200 then
+      raise exception 'support is busy right now — please try again shortly or reach us on WhatsApp';
+    end if;
   end if;
 
   insert into public.support_tickets

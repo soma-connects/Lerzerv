@@ -13,10 +13,13 @@
 -- Two safety properties this file is built around:
 --   1. Sending mail must NEVER break the user's action. Every alert is
 --      wrapped so a mail failure cannot roll back a service request.
---   2. Nothing is lost before the project is configured. Alerts are
---      always recorded in `admin_alerts`; if the endpoint/key are not
---      set yet they queue as 'unconfigured' and can be flushed later
---      with retry_pending_admin_alerts().
+--   2. Nothing is lost and nothing is mislabelled. Alerts are always
+--      recorded in `admin_alerts`. If the endpoint/key are not set yet
+--      they park as 'unconfigured'. Because pg_net sends after commit,
+--      a row is only 'dispatched' until its response is read back by
+--      reconcile_admin_alerts() — a 401 or timeout becomes 'failed',
+--      never a silent 'sent'. retry_pending_admin_alerts() re-sends
+--      both 'unconfigured' and 'failed'.
 -- ═══════════════════════════════════════════════════════════════════
 
 -- pg_net gives us a non-blocking HTTP POST from Postgres. It is async by
@@ -50,8 +53,13 @@ create table if not exists public.admin_alerts (
   subject text not null,
   html text not null,
   recipients text[] not null default '{}',
-  status text not null default 'queued',  -- queued | sent | unconfigured | failed
+  -- queued -> dispatched -> sent | failed, plus 'unconfigured' when the
+  -- Vault secrets are not set yet. 'dispatched' means pg_net accepted the
+  -- request; only reconciliation against the response promotes it to 'sent'.
+  status text not null default 'queued',
   error text,
+  -- pg_net request id, reconciled against net._http_response.
+  net_request_id bigint,
   created_at timestamptz not null default now(),
   dispatched_at timestamptz
 );
@@ -98,6 +106,63 @@ $$;
 
 revoke execute on function public.admin_alert_setting(text) from public, anon, authenticated;
 
+-- ── 3b. Settle asynchronous results ─────────────────────────────────
+-- pg_net performs the request after commit and writes the outcome to
+-- net._http_response. Until that is read back, a 401 from a wrong service
+-- key looks identical to a delivered email — so nothing is called 'sent'
+-- until its response says so.
+create or replace function public.reconcile_admin_alerts()
+returns int
+language plpgsql volatile security definer set search_path = public
+as $$
+declare v_updated int := 0;
+begin
+  begin
+    with resolved as (
+      select a.id,
+             r.status_code,
+             r.timed_out,
+             r.error_msg
+      from public.admin_alerts a
+      join net._http_response r on r.id = a.net_request_id
+      where a.status = 'dispatched'
+    )
+    update public.admin_alerts a
+    set status = case
+          when resolved.status_code between 200 and 299 then 'sent'
+          else 'failed'
+        end,
+        error = case
+          when resolved.status_code between 200 and 299 then null
+          when resolved.timed_out then 'request timed out'
+          else coalesce(
+            nullif(resolved.error_msg, ''),
+            'HTTP ' || coalesce(resolved.status_code::text, 'unknown')
+          )
+        end
+    from resolved
+    where a.id = resolved.id;
+    get diagnostics v_updated = row_count;
+  exception when others then
+    -- pg_net (or its response table) unavailable — leave rows untouched
+    -- rather than mislabelling them.
+    v_updated := 0;
+  end;
+
+  -- pg_net prunes net._http_response, so a response can age out before it
+  -- is ever read. Fail those rather than leaving them 'dispatched' forever,
+  -- so they surface in the outbox and retry_pending_admin_alerts() can
+  -- pick them up.
+  update public.admin_alerts
+  set status = 'failed',
+      error = coalesce(error, 'no response recorded before pg_net pruned it')
+  where status = 'dispatched'
+    and created_at < now() - interval '1 day';
+
+  return v_updated;
+end;
+$$;
+
 -- ── 4. Queue + dispatch one alert ───────────────────────────────────
 create or replace function public.queue_admin_alert(
   p_event_type text,
@@ -112,7 +177,12 @@ declare
   v_recipients text[];
   v_endpoint text;
   v_key text;
+  v_request_id bigint;
 begin
+  -- Settle outstanding requests as we go. Alerts are low-frequency, so this
+  -- keeps statuses honest without requiring pg_cron to be enabled.
+  perform public.reconcile_admin_alerts();
+
   select coalesce(array_agg(email), '{}')
     into v_recipients
   from public.admin_alert_recipients
@@ -142,9 +212,13 @@ begin
   end if;
 
   -- pg_net queues this and returns straight away, so the user's insert
-  -- is never waiting on Resend.
+  -- is never waiting on Resend. That also means success is NOT known yet:
+  -- http_post returns a request id, and the actual HTTP call happens after
+  -- commit. Marking the row 'sent' here would hide a 401 from a bad service
+  -- key behind a green status, so it goes to 'dispatched' and is promoted
+  -- only once the response is reconciled.
   begin
-    perform net.http_post(
+    v_request_id := net.http_post(
       url := v_endpoint,
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
@@ -159,7 +233,7 @@ begin
     );
 
     update public.admin_alerts
-    set status = 'sent', dispatched_at = now()
+    set status = 'dispatched', net_request_id = v_request_id, dispatched_at = now()
     where id = v_alert_id;
   exception when others then
     -- Never propagate: a broken mail path must not roll back the job
@@ -183,6 +257,10 @@ as $$
 declare v_row record; v_count int := 0;
 begin
   if not public.is_admin() then raise exception 'admin only'; end if;
+
+  -- Resolve anything still in flight first, so a request that actually
+  -- failed is retried rather than skipped.
+  perform public.reconcile_admin_alerts();
 
   for v_row in
     select * from public.admin_alerts

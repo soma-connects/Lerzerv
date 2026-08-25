@@ -43,6 +43,21 @@ export const EscalationSchema = z.object({
 export type TEscalation = z.infer<typeof EscalationSchema>;
 
 /**
+ * Pull a human-readable message off an unknown thrown value. Supabase
+ * returns plain `{ message, code }` objects rather than Error instances,
+ * so an `instanceof Error` check alone would discard the useful text.
+ */
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+  return '';
+}
+
+
+/**
  * Support tickets — the bot's handoff to a human.
  *
  * Writes all go through SECURITY DEFINER RPCs (migration 0016) so the
@@ -75,7 +90,7 @@ export const supportService = {
 
       if (error) throw error;
       return { success: true, data: data as ISupportTicket };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create support ticket:', err);
       return {
         success: false,
@@ -84,7 +99,7 @@ export const supportService = {
           message:
             err instanceof z.ZodError
               ? err.issues[0]?.message ?? 'Please check the form and try again.'
-              : err.message || 'Could not reach our support team. Please try again.',
+              : errorMessage(err) || 'Could not reach our support team. Please try again.',
         },
       };
     }
@@ -139,11 +154,11 @@ export const supportService = {
         .single();
       if (error) throw error;
       return { success: true, data: data as ISupportTicketMessage };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to reply to ticket:', err);
       return {
         success: false,
-        error: { code: 'DATABASE_ERROR', message: err.message || 'Could not send your reply.' },
+        error: { code: 'DATABASE_ERROR', message: errorMessage(err) || 'Could not send your reply.' },
       };
     }
   },
@@ -157,11 +172,11 @@ export const supportService = {
       });
       if (error) throw error;
       return { success: true, data: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update ticket status:', err);
       return {
         success: false,
-        error: { code: 'DATABASE_ERROR', message: err.message || 'Could not update the ticket.' },
+        error: { code: 'DATABASE_ERROR', message: errorMessage(err) || 'Could not update the ticket.' },
       };
     }
   },

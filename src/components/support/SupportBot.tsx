@@ -300,7 +300,13 @@ export const SupportBot: React.FC = () => {
           {/* ── Conversation ─────────────────────────────────────── */}
           {view === 'chat' && (
             <>
-              <div className="sb-scroll" ref={scrollRef}>
+              <div
+                className="sb-scroll"
+                ref={scrollRef}
+                role="log"
+                aria-live="polite"
+                aria-atomic="false"
+              >
                 {entries.map((entry) => (
                   <div key={entry.key} className={`sb-turn sb-turn-${entry.role}`}>
                     <span className="sb-turn-avatar" aria-hidden="true">

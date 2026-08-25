@@ -104,9 +104,8 @@ describe('honest failure', () => {
 
   it('offers suggestions when it is unsure instead of asserting', async () => {
     const answer = await ask('artisan');
-    if (answer.id === 'ambiguous') {
-      expect(answer.followUps.length).toBeGreaterThan(0);
-      expect(answer.resolved).toBe(false);
-    }
+    expect(answer.id).toBe('ambiguous');
+    expect(answer.followUps.length).toBeGreaterThan(0);
+    expect(answer.resolved).toBe(false);
   });
 });
