@@ -60,6 +60,11 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [x] In-app notifications (bell + realtime) on job posted/assigned/message/approval (0009)
 - [ ] External delivery channels reading the notifications table via an Edge Function:
       SMS/WhatsApp (Termii/Twilio), push (Capacitor/FCM+APNs), email (Zoho SMTP) — need accounts/keys
+- [x] Smart support assistant: in-app bot answering navigation/product questions from a
+      curated knowledge base, escalating what it cannot resolve to a human via support
+      tickets + an Admin -> Support inbox (0016). WhatsApp stays as an alternative channel.
+      Answer engine is pluggable (`IBotEngine`) — an AI backend can replace the rule
+      engine without touching the UI or the ticket flow.
 - [ ] Admin / trust-&-safety ops (disputes, suspensions, moderation)
 - [ ] App Store + Play Store submission
 
