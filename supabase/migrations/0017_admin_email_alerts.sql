@@ -153,11 +153,17 @@ begin
   -- is ever read. Fail those rather than leaving them 'dispatched' forever,
   -- so they surface in the outbox and retry_pending_admin_alerts() can
   -- pick them up.
+  --
+  -- Measure the age from when the request was actually sent, not when the
+  -- row was created: the two coincide today only because dispatch happens
+  -- in the same transaction as the insert. The coalesce keeps the sweep
+  -- total — a null dispatched_at would make the predicate null and strand
+  -- the row in 'dispatched', which is the exact state this exists to clear.
   update public.admin_alerts
   set status = 'failed',
       error = coalesce(error, 'no response recorded before pg_net pruned it')
   where status = 'dispatched'
-    and created_at < now() - interval '1 day';
+    and coalesce(dispatched_at, created_at) < now() - interval '1 day';
 
   return v_updated;
 end;
