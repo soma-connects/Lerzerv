@@ -134,12 +134,10 @@ export const emailService = {
         <p>You'll get another email once you're approved — then you can turn on availability and start receiving jobs in your areas.</p>
         <a href="https://www.lezerv.com/become-artisan" style="display:inline-block;margin-top:16px;background:#002a42;color:#fff;text-decoration:none;padding:12px 24px;border-radius:9999px;font-weight:bold;">View my application</a>
       </div>`;
-    // Also alert admins that a new artisan applied
-    await emailService.sendEmailViaResend(
-      ['Lezervlimited@gmail.com', 'pauljizy@gmail.com'],
-      `[New Artisan Application] ${name}`,
-      html
-    );
+    // The admin alert for this is no longer sent from here. A database
+    // trigger (migration 0017) emails the team on insert into `artisans`,
+    // which fires even if the applicant closes the tab. Sending it here
+    // too would just duplicate every alert.
     return await emailService.sendEmailViaResend(email, subject, html);
   },
 

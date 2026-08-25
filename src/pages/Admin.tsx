@@ -34,6 +34,7 @@ import type {
   TNewService, 
   TPaymentSettings 
 } from '../services/pricingService';
+import { SupportInbox } from '../components/support/SupportInbox';
 import { jobService } from '../services/jobService';
 import type { TJob, TNewJob } from '../services/jobService';
 import { userService } from '../services/userService';
@@ -80,7 +81,7 @@ type TToast = {
 
 const Admin: React.FC = () => {
   const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch' | 'blog'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch' | 'blog' | 'support'>('bookings');
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
@@ -616,6 +617,7 @@ const Admin: React.FC = () => {
                 <span className="tab-badge">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
               )}
             </button>
+            <button className={activeTab === 'support' ? 'active' : ''} onClick={() => setActiveTab('support')}>Support</button>
             <button className={activeTab === 'blog' ? 'active' : ''} onClick={() => setActiveTab('blog')}>Blog</button>
           </nav>
         </header>
@@ -1802,6 +1804,8 @@ const Admin: React.FC = () => {
             </div>
           </>
         )}
+
+        {activeTab === 'support' && <SupportInbox />}
 
         {activeTab === 'blog' && (
           <>

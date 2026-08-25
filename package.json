@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/generate-sitemap.mjs",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "cap:sync": "npm run build && cap sync",
     "cap:android": "npm run build && cap sync android && cap open android",
