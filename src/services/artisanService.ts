@@ -315,6 +315,84 @@ export const artisanService = {
   },
 
   /**
+   * Client: upload photos of the place, then record them on the job.
+   * Photos travel to a private bucket the assigned artisan can read —
+   * they cut out a good share of wasted trips across Lagos before
+   * anyone gets in a car.
+   */
+  uploadJobPhotos: async (jobId: string, files: File[]): Promise<IApiResponse<string[]>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You need to be signed in.');
+      if (files.length > 10) throw new Error('You can attach up to 10 photos.');
+
+      const paths: string[] = [];
+      for (const [i, file] of files.entries()) {
+        // Path convention matters: the storage policy reads the job id
+        // out of the second folder segment to let the artisan see it.
+        const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_').slice(-60);
+        const path = `${user.id}/${jobId}/${Date.now()}-${i}-${safe}`;
+        const { error } = await supabase.storage.from('job-photos').upload(path, file, { upsert: true });
+        if (error) throw error;
+        paths.push(path);
+      }
+
+      const { error: attachError } = await supabase.rpc('attach_job_photos', {
+        p_job_id: jobId,
+        p_paths: paths,
+      });
+      if (attachError) throw attachError;
+
+      return { success: true, data: paths };
+    } catch (err: unknown) {
+      console.error('uploadJobPhotos failed:', err);
+      return {
+        success: false,
+        error: { code: 'STORAGE_ERROR', message: rpcErrorMessage(err) || 'Could not upload the photos.' },
+      };
+    }
+  },
+
+  /** A viewable URL for a job photo. The bucket is private, so sign it. */
+  getJobPhotoUrl: async (path: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage.from('job-photos').createSignedUrl(path, 3600);
+    if (error) { console.warn('getJobPhotoUrl failed:', error); return null; }
+    return data?.signedUrl ?? null;
+  },
+
+  /** Artisan: propose a time to come and see the place. */
+  scheduleSiteVisit: async (jobId: string, when: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('schedule_site_visit', { p_job_id: jobId, p_when: new Date(when).toISOString() })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('scheduleSiteVisit failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not schedule the visit.' },
+      };
+    }
+  },
+
+  /** Artisan: confirm they have seen the place. Unlocks a firm price. */
+  confirmSiteVisited: async (jobId: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('confirm_site_visited', { p_job_id: jobId }).single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('confirmSiteVisited failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not record the visit.' },
+      };
+    }
+  },
+
+  /**
    * Artisan: put a price on an assigned job. The client then accepts or
    * declines — acceptance is what records `agreed_amount`, which is the
    * basis for commission, payout and any later dispute.

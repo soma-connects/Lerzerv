@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, MessageSquare, Send, X, Check, Star, Briefcase, Ban, Play, MapPin, Hand, ClipboardList,
-  Receipt, ThumbsUp, ThumbsDown,
+  Receipt, ThumbsUp, ThumbsDown, CalendarClock, Eye, Camera,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -140,6 +140,52 @@ const QuoteModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }
   );
 };
 
+// ── Site visit modal (artisan) ─────────────────────────────
+const VisitModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
+  const [when, setWhen] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (fn: () => Promise<{ success: boolean; error?: { message: string } }>) => {
+    setBusy(true); setError(null);
+    const res = await fn();
+    setBusy(false);
+    if (res.success) onDone(); else setError(res.error?.message || 'That did not work.');
+  };
+
+  return (
+    <div className="review-overlay" onClick={onClose}>
+      <motion.div className="review-modal" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+        <button className="review-close" onClick={onClose}><X size={18} /></button>
+        <h3>See the place first</h3>
+        <p className="review-sub">
+          Scope changes once you are standing there. Record the visit and your next price is
+          sent as a firm one rather than an estimate.
+        </p>
+
+        <label className="quote-label">
+          Propose a time to visit
+          <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+        </label>
+        <Button variant="outline" size="md" fullWidth disabled={busy || !when}
+          leftIcon={<CalendarClock size={16} />}
+          onClick={() => run(() => artisanService.scheduleSiteVisit(job.id, when))}>
+          Propose this time
+        </Button>
+
+        <p className="visit-or">or</p>
+
+        <Button variant="primary" size="lg" fullWidth disabled={busy}
+          leftIcon={busy ? <Loader2 className="animate-spin" size={18} /> : <Eye size={18} />}
+          onClick={() => run(() => artisanService.confirmSiteVisited(job.id))}>
+          I have seen the place
+        </Button>
+        {error && <div className="review-error">{error}</div>}
+      </motion.div>
+    </div>
+  );
+};
+
 // ── Review modal ───────────────────────────────────────────
 const ReviewModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
   const [rating, setRating] = useState(5);
@@ -186,6 +232,7 @@ const MyJobs: React.FC = () => {
   const [board, setBoard] = useState<any[]>([]);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [quoteJob, setQuoteJob] = useState<any>(null);
+  const [visitJob, setVisitJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [chatJob, setChatJob] = useState<any | null>(null);
   const [reviewJob, setReviewJob] = useState<any | null>(null);
@@ -291,12 +338,31 @@ const MyJobs: React.FC = () => {
                         <span>No price sent yet. Send one so the client can approve the work.</span>
                       </div>
                     )}
+                    {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
+                      <div className={`visit-strip ${j.visited_at ? 'done' : ''}`}>
+                        {j.visited_at ? (
+                          <><Eye size={14} /><span>Site seen — your prices go out as firm</span></>
+                        ) : j.visit_scheduled_for ? (
+                          <><CalendarClock size={14} /><span>Visit proposed for {new Date(j.visit_scheduled_for).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></>
+                        ) : (
+                          <><CalendarClock size={14} /><span>Not seen yet — anything you send is an estimate</span></>
+                        )}
+                        {(j.photos?.length ?? 0) > 0 && (
+                          <span className="visit-photos"><Camera size={13} /> {j.photos.length} photo{j.photos.length === 1 ? '' : 's'} attached</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="job-actions">
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
+                    {!j.agreed_amount && !j.visited_at && ['assigned', 'in_progress'].includes(j.status) && (
+                      <Button size="sm" variant="outline" leftIcon={<CalendarClock size={16} />} onClick={() => setVisitJob(j)}>
+                        Site visit
+                      </Button>
+                    )}
                     {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
                       <Button size="sm" variant={j.quoted_amount ? 'outline' : 'primary'} leftIcon={<Receipt size={16} />} onClick={() => setQuoteJob(j)}>
-                        {j.quoted_amount ? 'Revise price' : 'Send price'}
+                        {j.quoted_amount ? 'Revise price' : j.visited_at ? 'Send firm price' : 'Send estimate'}
                       </Button>
                     )}
                     {j.status === 'assigned' && <Button size="sm" variant="primary" leftIcon={<Play size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'in_progress'), j.id)}>Start job</Button>}
@@ -341,8 +407,19 @@ const MyJobs: React.FC = () => {
                       <div className="quote-offer">
                         <div className="quote-offer-head">
                           <Receipt size={16} />
-                          <span>{j.artisan_name || 'Your artisan'} quoted <strong>{naira(j.quoted_amount)}</strong></span>
+                          <span>
+                            {j.artisan_name || 'Your artisan'} quoted <strong>{naira(j.quoted_amount)}</strong>
+                            <span className={`quote-tag ${j.quote_is_firm ? 'firm' : 'estimate'}`}>
+                              {j.quote_is_firm ? 'firm — after site visit' : 'estimate'}
+                            </span>
+                          </span>
                         </div>
+                        {!j.quote_is_firm && (
+                          <p className="quote-offer-warn">
+                            This is priced from your description. Once your artisan sees the place the
+                            real scope can differ, so the final price may change.
+                          </p>
+                        )}
                         {j.quote_note && <p className="quote-offer-note">{j.quote_note}</p>}
                         <div className="quote-offer-actions">
                           <Button size="sm" variant="primary" leftIcon={<ThumbsUp size={15} />} disabled={busyId === j.id}
@@ -375,6 +452,7 @@ const MyJobs: React.FC = () => {
       <AnimatePresence>{chatJob && <ChatPanel job={chatJob} myUserId={myUserId!} onClose={() => setChatJob(null)} />}</AnimatePresence>
       <AnimatePresence>{reviewJob && <ReviewModal job={reviewJob} onClose={() => setReviewJob(null)} onDone={() => { setReviewJob(null); load(); }} />}</AnimatePresence>
       <AnimatePresence>{quoteJob && <QuoteModal job={quoteJob} onClose={() => setQuoteJob(null)} onDone={() => { setQuoteJob(null); load(); }} />}</AnimatePresence>
+      <AnimatePresence>{visitJob && <VisitModal job={visitJob} onClose={() => setVisitJob(null)} onDone={() => { setVisitJob(null); load(); }} />}</AnimatePresence>
     </div>
   );
 };
