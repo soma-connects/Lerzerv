@@ -229,3 +229,70 @@
   color: var(--color-on-surface-variant);
   text-align: left;
 }
+
+/* ── Site visits ─────────────────────────────────────────────────── */
+.visit-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+}
+
+.visit-strip.done {
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+}
+
+.visit-photos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  opacity: 0.85;
+}
+
+.visit-or {
+  margin: 0.7rem 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-outline);
+}
+
+/* Estimate vs firm — the client must not mistake one for the other. */
+.quote-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.quote-tag.firm {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+}
+
+.quote-tag.estimate {
+  background: var(--color-tertiary-fixed);
+  color: var(--color-on-tertiary-fixed);
+}
+
+.quote-offer-warn {
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-tertiary-fixed);
+  color: var(--color-on-tertiary-fixed);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}

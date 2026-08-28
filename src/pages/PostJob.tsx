@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ClipboardList, MapPin, Loader2, ArrowRight, Check, AlertCircle, Calendar } from 'lucide-react';
+import { ClipboardList, MapPin, Loader2, ArrowRight, Check, AlertCircle, Calendar, Camera, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { artisanService } from '../services/artisanService';
@@ -25,6 +25,7 @@ const PostJob: React.FC = () => {
   const [scheduledFor, setScheduledFor] = useState('');
   const [budget, setBudget] = useState('');
   const [phone, setPhone] = useState('');
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +58,30 @@ const PostJob: React.FC = () => {
       budgetNote: budget.trim() || undefined,
       clientContact: { name: user.user_metadata?.full_name || '', phone: phone.trim() },
     });
+    if (!res.success) {
+      setSubmitting(false);
+      setError(res.error?.message || 'Could not submit your request. Please try again.');
+      return;
+    }
+
+    // Photos are attached after the job exists, because the storage path
+    // carries the job id — that is what lets the assigned artisan see them.
+    // A failed upload must not lose the request itself, so it only warns.
+    if (photos.length > 0 && res.data?.id) {
+      const up = await artisanService.uploadJobPhotos(res.data.id, photos);
+      if (!up.success) {
+        console.warn('Job posted but photos failed to upload:', up.error);
+      }
+    }
+
     setSubmitting(false);
-    if (res.success) setDone(true);
-    else setError(res.error?.message || 'Could not submit your request. Please try again.');
+    setDone(true);
+  };
+
+  const addPhotos = (list: FileList | null) => {
+    if (!list) return;
+    const picked = Array.from(list).filter((f) => f.type.startsWith('image/'));
+    setPhotos((prev) => [...prev, ...picked].slice(0, 10));
   };
 
   if (loading || authLoading) {
@@ -134,6 +156,41 @@ const PostJob: React.FC = () => {
             <label>Details <span className="optional">(optional)</span></label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               placeholder="Describe the job, timing, materials, anything useful." />
+          </div>
+
+          <div className="form-group">
+            <label><Camera size={13} /> Photos <span className="optional">(optional, up to 10)</span></label>
+            <p className="pj-photo-help">
+              A photo of the actual tap, generator or room gets you a far more accurate price —
+              and often saves a trip. Your artisan sees these; nobody else does.
+            </p>
+            <label className="pj-photo-drop">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
+              />
+              <Camera size={18} />
+              <span>{photos.length > 0 ? 'Add more photos' : 'Add photos'}</span>
+            </label>
+
+            {photos.length > 0 && (
+              <ul className="pj-photo-list">
+                {photos.map((f, i) => (
+                  <li key={`${f.name}-${i}`}>
+                    <img src={URL.createObjectURL(f)} alt="" />
+                    <button
+                      type="button"
+                      aria-label={`Remove ${f.name}`}
+                      onClick={() => setPhotos((prev) => prev.filter((_, n) => n !== i))}
+                    >
+                      <X size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="pj-row">
