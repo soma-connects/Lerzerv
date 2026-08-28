@@ -143,7 +143,7 @@ export const knowledgeBase: IKbEntry[] = [
       'can i get a quote',
     ],
     answer:
-      'Indicative pricing:\n\n• **Standard home clean** — ₦5,000 – ₦10,000\n• **Premium / deep clean** — ₦10,000 – ₦20,000\n• **Generator servicing** — from ₦10,000\n• **Borehole & plumbing** — from ₦25,000\n• **Technical repairs** (AC, electrical, carpentry) — from ₦12,000\n• **Full estate maintenance** — negotiable\n\nBigger or unusual jobs are quoted after the artisan sees the scope. You can also state your own budget when you post the job.',
+      'Indicative pricing — these are starting prices, and the artisan quotes the real figure once they know the scope:\n\n• **Standard home clean** (1–2 bed) — from ₦25,000\n• **Premium / deep clean** — from ₦45,000\n• **Generator servicing** — from ₦20,000\n• **Borehole & plumbing** — from ₦15,000\n• **Technical repairs** (AC, electrical, carpentry) — from ₦15,000\n• **Cooking** — from ₦18,000 per day\n• **Laundry** — from ₦12,000\n• **Full estate maintenance** — custom quote\n\nFor generator, plumbing and technical work there is a ₦5,000 diagnostic call-out, and it comes off the bill if you go ahead with the repair. You can state your own budget when you post the job.',
     actions: [
       { label: 'Full pricing page', to: '/services' },
       { label: 'Request a service', to: '/post-job' },

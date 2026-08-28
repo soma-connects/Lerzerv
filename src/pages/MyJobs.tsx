@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, MessageSquare, Send, X, Check, Star, Briefcase, Ban, Play, MapPin, Hand, ClipboardList,
+  Receipt, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +14,13 @@ import './MyJobs.css';
 const STATUS_LABEL: Record<string, string> = {
   open: 'Finding an artisan', assigned: 'Assigned', in_progress: 'In progress',
   completed: 'Completed', cancelled: 'Cancelled',
+};
+
+/** ₦ with thousands separators, e.g. 52000 -> "₦52,000". */
+const naira = (amount: number | string | null | undefined): string => {
+  const n = Number(amount);
+  if (!isFinite(n)) return '—';
+  return '₦' + n.toLocaleString('en-NG', { maximumFractionDigits: 0 });
 };
 
 // ── Chat panel ─────────────────────────────────────────────
@@ -77,6 +85,61 @@ const ChatPanel: React.FC<{ job: any; myUserId: string; onClose: () => void }> =
   );
 };
 
+// ── Quote modal (artisan) ──────────────────────────────────
+const QuoteModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
+  const [amount, setAmount] = useState(job.quoted_amount ? String(Math.round(Number(job.quoted_amount))) : '');
+  const [note, setNote] = useState(job.quote_note || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const value = Number(amount);
+  const valid = isFinite(value) && value > 0;
+
+  const submit = async () => {
+    if (!valid) { setError('Enter the amount you are charging.'); return; }
+    setSubmitting(true); setError(null);
+    const res = await artisanService.submitQuote(job.id, value, note.trim() || undefined);
+    setSubmitting(false);
+    if (res.success) onDone(); else setError(res.error?.message || 'Could not send the quote.');
+  };
+
+  return (
+    <div className="review-overlay" onClick={onClose}>
+      <motion.div className="review-modal" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+        <button className="review-close" onClick={onClose}><X size={18} /></button>
+        <h3>{job.quoted_amount ? 'Revise your price' : 'Send your price'}</h3>
+        <p className="review-sub">For "{job.title}". The client accepts before any work is charged.</p>
+
+        <label className="quote-label">
+          Your price (₦)
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="52000"
+            autoFocus
+          />
+        </label>
+        {valid && <p className="quote-preview">Client sees {naira(value)}</p>}
+
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={3}
+          placeholder="What's included? e.g. materials, number of cleaners, hours (optional)"
+        />
+        {error && <div className="review-error">{error}</div>}
+        <Button variant="primary" size="lg" fullWidth disabled={submitting || !valid} onClick={submit}
+          rightIcon={submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}>
+          {submitting ? 'Sending…' : 'Send price to client'}
+        </Button>
+      </motion.div>
+    </div>
+  );
+};
+
 // ── Review modal ───────────────────────────────────────────
 const ReviewModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
   const [rating, setRating] = useState(5);
@@ -122,6 +185,7 @@ const MyJobs: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [board, setBoard] = useState<any[]>([]);
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [quoteJob, setQuoteJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [chatJob, setChatJob] = useState<any | null>(null);
   const [reviewJob, setReviewJob] = useState<any | null>(null);
@@ -203,9 +267,38 @@ const MyJobs: React.FC = () => {
                       <span>For {j.client_contact?.name || 'a client'}</span>
                     </div>
                     {j.description && <p className="job-desc">{j.description}</p>}
+                    {j.agreed_amount ? (
+                      <div className="quote-strip agreed">
+                        <Check size={15} />
+                        <span>Agreed <strong>{naira(j.agreed_amount)}</strong></span>
+                        {j.commission_amount != null && (
+                          <span className="quote-takehome">You receive {naira(Number(j.agreed_amount) - Number(j.commission_amount))} after commission</span>
+                        )}
+                      </div>
+                    ) : j.quoted_amount ? (
+                      <div className="quote-strip pending">
+                        <Receipt size={15} />
+                        <span>You quoted <strong>{naira(j.quoted_amount)}</strong> — waiting on the client</span>
+                      </div>
+                    ) : j.quote_declined_at ? (
+                      <div className="quote-strip declined">
+                        <ThumbsDown size={15} />
+                        <span>Client declined your last price — send a revised one</span>
+                      </div>
+                    ) : (
+                      <div className="quote-strip prompt">
+                        <Receipt size={15} />
+                        <span>No price sent yet. Send one so the client can approve the work.</span>
+                      </div>
+                    )}
                   </div>
                   <div className="job-actions">
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
+                    {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
+                      <Button size="sm" variant={j.quoted_amount ? 'outline' : 'primary'} leftIcon={<Receipt size={16} />} onClick={() => setQuoteJob(j)}>
+                        {j.quoted_amount ? 'Revise price' : 'Send price'}
+                      </Button>
+                    )}
                     {j.status === 'assigned' && <Button size="sm" variant="primary" leftIcon={<Play size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'in_progress'), j.id)}>Start job</Button>}
                     {j.status === 'in_progress' && <Button size="sm" variant="primary" leftIcon={<Check size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'completed'), j.id)}>Mark complete</Button>}
                   </div>
@@ -239,6 +332,33 @@ const MyJobs: React.FC = () => {
                       <span className="job-date">{new Date(j.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     </div>
                     {j.description && <p className="job-desc">{j.description}</p>}
+                    {j.agreed_amount ? (
+                      <div className="quote-strip agreed">
+                        <Check size={15} />
+                        <span>Price agreed: <strong>{naira(j.agreed_amount)}</strong></span>
+                      </div>
+                    ) : j.quoted_amount ? (
+                      <div className="quote-offer">
+                        <div className="quote-offer-head">
+                          <Receipt size={16} />
+                          <span>{j.artisan_name || 'Your artisan'} quoted <strong>{naira(j.quoted_amount)}</strong></span>
+                        </div>
+                        {j.quote_note && <p className="quote-offer-note">{j.quote_note}</p>}
+                        <div className="quote-offer-actions">
+                          <Button size="sm" variant="primary" leftIcon={<ThumbsUp size={15} />} disabled={busyId === j.id}
+                            onClick={() => act(() => artisanService.respondToQuote(j.id, true), j.id)}>
+                            Accept {naira(j.quoted_amount)}
+                          </Button>
+                          <Button size="sm" variant="outline" leftIcon={<ThumbsDown size={15} />} disabled={busyId === j.id}
+                            onClick={() => {
+                              const reason = window.prompt('Let the artisan know why (optional) — they can send a revised price:') ?? undefined;
+                              act(() => artisanService.respondToQuote(j.id, false, reason), j.id);
+                            }}>
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="job-actions">
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
@@ -254,6 +374,7 @@ const MyJobs: React.FC = () => {
 
       <AnimatePresence>{chatJob && <ChatPanel job={chatJob} myUserId={myUserId!} onClose={() => setChatJob(null)} />}</AnimatePresence>
       <AnimatePresence>{reviewJob && <ReviewModal job={reviewJob} onClose={() => setReviewJob(null)} onDone={() => { setReviewJob(null); load(); }} />}</AnimatePresence>
+      <AnimatePresence>{quoteJob && <QuoteModal job={quoteJob} onClose={() => setQuoteJob(null)} onDone={() => { setQuoteJob(null); load(); }} />}</AnimatePresence>
     </div>
   );
 };

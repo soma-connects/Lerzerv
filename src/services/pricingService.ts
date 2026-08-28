@@ -23,51 +23,57 @@ export type TService = z.infer<typeof ServiceSchema> & { id: string };
 export type TNewService = z.infer<typeof ServiceSchema>;
 export type TPaymentSettings = z.infer<typeof PaymentSettingsSchema>;
 
+// Indicative Lagos rates, benchmarked August 2026 against local cleaning
+// companies, generator technicians and plumbing/AC providers. Most of these
+// are "from" prices on purpose: the Lagos market charges by scope, size and
+// severity, so a flat figure either scares off clients or loses artisans.
+// The artisan's quote on the job is what the client actually pays.
+// Admins can edit all of this in Admin -> Pricing without a deploy.
 export const defaultServices: TNewService[] = [
   {
     title: 'Standard Home Clean',
     category: 'Professional Cleaning',
-    price: '₦5,000 - ₦10,000',
-    description: 'Perfect for regular upkeep of your flat or duplex.',
+    price: 'From ₦25,000',
+    description: 'Regular upkeep for a 1–2 bedroom flat. Larger homes quoted after the artisan sees the scope.',
     features: ['Detailed Floor Mopping', 'Kitchen & Bathroom Sanitization', 'Dusting of All Surfaces', 'Trash Disposal', 'Window Internal Wiping'],
     recommended: false
   },
   {
     title: 'Premium Service',
     category: 'Professional Cleaning',
-    price: '₦10,000 - ₦20,000',
-    description: 'Comprehensive deep cleaning for new or renovated properties.',
+    price: 'From ₦45,000',
+    description: 'Deep clean for new, renovated or move-in properties. Priced on size and condition.',
     features: ['Paint & Cement Stain Removal', 'Deep Floor Scrubbing', 'Full Kitchen Degreasing', 'Window & Frame Detailing', 'Sanitization of All Fixtures', 'De-webbing & Wall Cleaning'],
     recommended: true
   },
   {
     title: 'Generator Servicing',
     category: 'Power & Water Utilities',
-    price: '₦10,000',
-    description: 'Routine maintenance for your Mikano, Perkins, or small portable sets.',
+    price: 'From ₦20,000',
+    description: 'Routine servicing for Mikano, Perkins, or portable sets. Diagnostic call-out ₦5,000, credited to the job.',
     features: ['Oil & Filter Change', 'Plug Replacement', 'Control Panel Inspection', 'Battery Health Check', 'Performance Tuning'],
     recommended: false
   },
   {
     title: 'Borehole & Plumbing',
     category: 'Power & Water Utilities',
-    price: '₦25,000',
-    description: 'Pump repairs, tank cleaning, and full plumbing diagnostics.',
+    price: 'From ₦15,000',
+    description: 'Pump repairs, tank cleaning and plumbing diagnostics. Diagnostic call-out ₦5,000, credited to the job.',
     features: ['Submersible Pump Repair', 'Overhead Tank Cleaning', 'Pipe Leak Detection', 'Pressure Pump Calibration', 'Water Treatment Check'],
     recommended: false
   },
   {
     title: 'Technical Repairs',
     category: 'Expert Artisans',
-    price: '₦12,000',
-    description: 'AC servicing, electrical faults, and carpentry fixes.',
+    price: 'From ₦15,000',
+    description: 'AC servicing, electrical faults and carpentry. Diagnostic call-out ₦5,000, credited to the job.',
     features: ['AC Gas Refilling & Cleaning', 'Electrical Fault Tracing', 'Inverter & Solar Check-up', 'Furniture & Cabinet Repair', 'Door Lock Installations'],
     recommended: false
   },
   {
     title: 'Full Estate Maintenance',
     category: 'Expert Artisans',
-    price: 'Negotiable',
+    price: 'Custom quote',
     description: 'End-to-end maintenance for property owners and estate managers.',
     features: ['Interlocking Tile Repair', 'Fumigation & Pest Control', 'Compound Cleaning', 'Gate Automation Support', '24/7 Priority Response'],
     recommended: false
@@ -75,7 +81,7 @@ export const defaultServices: TNewService[] = [
   {
     title: 'Standard Cooking',
     category: 'Cooking & Catering',
-    price: '₦15,000',
+    price: 'From ₦18,000 / day',
     description: 'Daily cooking and meal preparation for families and homes.',
     features: ['3 Freshly Cooked Meals', 'Kitchen Cleanup Included', 'Menu Planning Support', 'Standard Local Dishes', 'Ingredient Checklist Provided'],
     recommended: false
@@ -83,7 +89,7 @@ export const defaultServices: TNewService[] = [
   {
     title: 'Gourmet Private Chef',
     category: 'Cooking & Catering',
-    price: '₦40,000',
+    price: 'From ₦60,000',
     description: 'Professional chef service for events, parties, or special dinners.',
     features: ['Custom Gourmet Menu', 'Multi-Course Meal Preparation', 'Elegant Plating & Service', 'Complete Kitchen Cleanup', 'Post-Event Kitchen Sanitization', 'Premium Ingredients Sourcing'],
     recommended: true
@@ -91,7 +97,7 @@ export const defaultServices: TNewService[] = [
   {
     title: 'Laundry Wash & Fold',
     category: 'Laundry Services',
-    price: '₦8,000',
+    price: 'From ₦12,000',
     description: 'Standard machine wash and fold service for regular clothes.',
     features: ['Up to 15kg of Laundry', 'Color Sorting & Care', 'Eco-Friendly Detergent', 'Neat Folding & Packing', 'Next-Day Delivery Option'],
     recommended: false
@@ -99,7 +105,7 @@ export const defaultServices: TNewService[] = [
   {
     title: 'Laundry Wash, Iron & Starch',
     category: 'Laundry Services',
-    price: '₦18,000',
+    price: 'From ₦25,000',
     description: 'Deep wash, professional pressing, and starching for native wear.',
     features: ['Up to 25kg of Laundry', 'Professional Ironing & Pressing', 'Starching for Kaftans & Native Wears', 'Garment Hanger Packing', 'Free Pickup & Return Delivery', 'Delicate Fabric Hand Wash'],
     recommended: true

@@ -51,6 +51,14 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 
 ### Phase 2 — Trust + money
 - [x] In-app **chat** (Supabase Realtime) with contact-info **redaction** (migration 0007)
+- [x] **Quote -> accept on a job** (migration 0018): the assigned artisan sends a price, the
+      client accepts or declines, and acceptance records `agreed_amount` plus a *snapshot* of
+      the commission rate. Until this, a job carried only the client's free-text `budget_note`,
+      so the platform never learned what a job was worth — which blocked commission, escrow
+      (Paystack needs an amount to hold) and dispute evidence. Rate lives in `settings`,
+      editable without a deploy; `admin_revenue_summary()` reports gross, commission and payouts.
+- [x] Pricing rebenchmarked to Lagos market rates (Aug 2026) and moved to "from" pricing —
+      the old flat figures sat far below what artisans accept, so jobs went unfilled.
 - [ ] **Paystack escrow**: client pays in → held → released to artisan on completion − commission
       ⛔ BLOCKED — waiting on Paystack API keys from company team
 - [ ] Artisan payout KYC (bank account + BVN)

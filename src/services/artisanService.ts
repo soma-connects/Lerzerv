@@ -14,6 +14,20 @@ import type {
  * the client never writes marketplace rows directly (RLS blocks it), and
  * sensitive data (phone/NIN/bank) never comes back to the browser.
  */
+/**
+ * Pull a readable message off an unknown thrown value. Supabase rejects with
+ * plain `{ message, code }` objects rather than Error instances, so an
+ * `instanceof Error` check alone would throw the useful text away.
+ */
+function rpcErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+  }
+  return '';
+}
+
 export const artisanService = {
   /** Public list of service categories for filters/onboarding. */
   fetchCategories: async (): Promise<IServiceCategory[]> => {
@@ -298,6 +312,52 @@ export const artisanService = {
       iAmAssigned: j.artisans?.user_id === user.id,
     }));
     return { jobs, myUserId: user.id };
+  },
+
+  /**
+   * Artisan: put a price on an assigned job. The client then accepts or
+   * declines — acceptance is what records `agreed_amount`, which is the
+   * basis for commission, payout and any later dispute.
+   */
+  submitQuote: async (jobId: string, amount: number, note?: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('submit_job_quote', {
+          p_job_id: jobId,
+          p_amount: amount,
+          p_note: note?.trim() || null,
+        })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('submitQuote failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not send the quote.' },
+      };
+    }
+  },
+
+  /** Client: accept or decline the artisan's quote. */
+  respondToQuote: async (jobId: string, accept: boolean, reason?: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('respond_job_quote', {
+          p_job_id: jobId,
+          p_accept: accept,
+          p_reason: reason?.trim() || null,
+        })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('respondToQuote failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not respond to the quote.' },
+      };
+    }
   },
 
   /** Advance a dispatch job: in_progress / completed (artisan) or cancelled (client). */
