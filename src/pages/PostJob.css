@@ -76,7 +76,27 @@
   color: var(--color-primary);
 }
 
-.pj-photo-drop input { display: none; }
+/* Visually hidden rather than display:none — the latter drops the input out
+   of the tab order, and the wrapping label cannot take focus itself, which
+   left the picker unreachable by keyboard. */
+.pj-photo-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pj-photo-drop:focus-within {
+  border-style: solid;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+}
 
 .pj-photo-list {
   list-style: none;

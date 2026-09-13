@@ -140,6 +140,43 @@ const QuoteModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }
   );
 };
 
+// ── Job photos ─────────────────────────────────────────────
+/**
+ * The client's photos of the place. The bucket is private, so each path is
+ * exchanged for a short-lived signed URL. This is the whole point of the
+ * attachment: an artisan judging scope needs to see the tap, not a count.
+ */
+const JobPhotos: React.FC<{ paths: string[] }> = ({ paths }) => {
+  const [urls, setUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const signed = await Promise.all(paths.map((p) => artisanService.getJobPhotoUrl(p)));
+      if (cancelled) return;
+      setUrls(signed.filter((u): u is string => Boolean(u)));
+    })();
+    return () => { cancelled = true; };
+  }, [paths]);
+
+  if (urls.length === 0) return null;
+
+  return (
+    <div className="job-photos">
+      <span className="job-photos-label"><Camera size={13} /> Photos from the client</span>
+      <ul>
+        {urls.map((url, i) => (
+          <li key={url}>
+            <a href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
+              <img src={url} alt={`Job photo ${i + 1}`} loading="lazy" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 // ── Site visit modal (artisan) ─────────────────────────────
 const VisitModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
   const [when, setWhen] = useState('');
@@ -156,7 +193,7 @@ const VisitModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }
   return (
     <div className="review-overlay" onClick={onClose}>
       <motion.div className="review-modal" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
-        <button className="review-close" onClick={onClose}><X size={18} /></button>
+        <button className="review-close" aria-label="Close site visit dialog" onClick={onClose}><X size={18} /></button>
         <h3>See the place first</h3>
         <p className="review-sub">
           Scope changes once you are standing there. Record the visit and your next price is
@@ -338,6 +375,7 @@ const MyJobs: React.FC = () => {
                         <span>No price sent yet. Send one so the client can approve the work.</span>
                       </div>
                     )}
+                    {(j.photos?.length ?? 0) > 0 && <JobPhotos paths={j.photos} />}
                     {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
                       <div className={`visit-strip ${j.visited_at ? 'done' : ''}`}>
                         {j.visited_at ? (
@@ -346,9 +384,6 @@ const MyJobs: React.FC = () => {
                           <><CalendarClock size={14} /><span>Visit proposed for {new Date(j.visit_scheduled_for).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></>
                         ) : (
                           <><CalendarClock size={14} /><span>Not seen yet — anything you send is an estimate</span></>
-                        )}
-                        {(j.photos?.length ?? 0) > 0 && (
-                          <span className="visit-photos"><Camera size={13} /> {j.photos.length} photo{j.photos.length === 1 ? '' : 's'} attached</span>
                         )}
                       </div>
                     )}
@@ -398,6 +433,7 @@ const MyJobs: React.FC = () => {
                       <span className="job-date">{new Date(j.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     </div>
                     {j.description && <p className="job-desc">{j.description}</p>}
+                    {(j.photos?.length ?? 0) > 0 && <JobPhotos paths={j.photos} />}
                     {j.agreed_amount ? (
                       <div className="quote-strip agreed">
                         <Check size={15} />

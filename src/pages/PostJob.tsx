@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ClipboardList, MapPin, Loader2, ArrowRight, Check, AlertCircle, Calendar, Camera, X } from 'lucide-react';
@@ -75,8 +75,13 @@ const PostJob: React.FC = () => {
     }
 
     setSubmitting(false);
+    setPhotos([]);   // "Request another" must not re-attach this job's photos
     setDone(true);
   };
+
+  // One URL per file, revoked when the selection changes or the page unmounts.
+  const previews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
+  useEffect(() => () => { previews.forEach((url) => URL.revokeObjectURL(url)); }, [previews]);
 
   const addPhotos = (list: FileList | null) => {
     if (!list) return;
@@ -179,7 +184,7 @@ const PostJob: React.FC = () => {
               <ul className="pj-photo-list">
                 {photos.map((f, i) => (
                   <li key={`${f.name}-${i}`}>
-                    <img src={URL.createObjectURL(f)} alt="" />
+                    <img src={previews[i]} alt="" />
                     <button
                       type="button"
                       aria-label={`Remove ${f.name}`}

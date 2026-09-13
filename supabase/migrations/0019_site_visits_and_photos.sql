@@ -46,9 +46,18 @@ $$;
 -- ── Photos on the request ───────────────────────────────────────────
 -- Private bucket; the client uploads, and the artisan assigned to that
 -- job can read them. Path convention: <client_uid>/<job_id>/<file>.
-insert into storage.buckets (id, name, public)
-values ('job-photos', 'job-photos', false)
-on conflict (id) do nothing;
+-- Constraints live on the bucket, not just in the picker: the client-side
+-- image filter is a convenience, and anything holding a session token can
+-- POST straight to storage.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'job-photos', 'job-photos', false,
+  5242880,  -- 5MB; phone photos of a tap do not need more
+  array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+)
+on conflict (id) do update
+  set file_size_limit    = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "job_photos_upload" on storage.objects;
 create policy "job_photos_upload" on storage.objects
@@ -124,7 +133,7 @@ begin
   if not (v_artisan_user = auth.uid() or public.is_admin()) then
     raise exception 'only the assigned artisan can schedule the visit';
   end if;
-  if p_when is null or p_when < now() - interval '1 day' then
+  if p_when is null or p_when < now() then
     raise exception 'pick a visit time in the future';
   end if;
 
