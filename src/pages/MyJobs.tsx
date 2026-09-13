@@ -140,6 +140,13 @@ const QuoteModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }
   );
 };
 
+/**
+ * A price is only settled once a FIRM quote has been accepted. An accepted
+ * estimate is provisional — the artisan may still supersede it with a real
+ * price after seeing the place, which is the point of the visit.
+ */
+const priceSettled = (job: any): boolean => Boolean(job.agreed_amount && job.quote_is_firm);
+
 // ── Job photos ─────────────────────────────────────────────
 /**
  * The client's photos of the place. The bucket is private, so each path is
@@ -352,11 +359,17 @@ const MyJobs: React.FC = () => {
                     </div>
                     {j.description && <p className="job-desc">{j.description}</p>}
                     {j.agreed_amount ? (
-                      <div className="quote-strip agreed">
+                      <div className={`quote-strip ${priceSettled(j) ? 'agreed' : 'pending'}`}>
                         <Check size={15} />
-                        <span>Agreed <strong>{naira(j.agreed_amount)}</strong></span>
+                        <span>
+                          {priceSettled(j) ? 'Agreed' : 'Provisionally agreed (estimate)'}{' '}
+                          <strong>{naira(j.agreed_amount)}</strong>
+                        </span>
                         {j.commission_amount != null && (
-                          <span className="quote-takehome">You receive {naira(Number(j.agreed_amount) - Number(j.commission_amount))} after commission</span>
+                          <span className="quote-takehome">
+                            You receive {naira(Number(j.agreed_amount) - Number(j.commission_amount))} after commission
+                            {!priceSettled(j) && ' — send a firm price once you have seen the place'}
+                          </span>
                         )}
                       </div>
                     ) : j.quoted_amount ? (
@@ -376,7 +389,7 @@ const MyJobs: React.FC = () => {
                       </div>
                     )}
                     {(j.photos?.length ?? 0) > 0 && <JobPhotos paths={j.photos} />}
-                    {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
+                    {!priceSettled(j) && ['assigned', 'in_progress'].includes(j.status) && (
                       <div className={`visit-strip ${j.visited_at ? 'done' : ''}`}>
                         {j.visited_at ? (
                           <><Eye size={14} /><span>Site seen — your prices go out as firm</span></>
@@ -390,14 +403,14 @@ const MyJobs: React.FC = () => {
                   </div>
                   <div className="job-actions">
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
-                    {!j.agreed_amount && !j.visited_at && ['assigned', 'in_progress'].includes(j.status) && (
+                    {!priceSettled(j) && !j.visited_at && ['assigned', 'in_progress'].includes(j.status) && (
                       <Button size="sm" variant="outline" leftIcon={<CalendarClock size={16} />} onClick={() => setVisitJob(j)}>
                         Site visit
                       </Button>
                     )}
-                    {!j.agreed_amount && ['assigned', 'in_progress'].includes(j.status) && (
+                    {!priceSettled(j) && ['assigned', 'in_progress'].includes(j.status) && (
                       <Button size="sm" variant={j.quoted_amount ? 'outline' : 'primary'} leftIcon={<Receipt size={16} />} onClick={() => setQuoteJob(j)}>
-                        {j.quoted_amount ? 'Revise price' : j.visited_at ? 'Send firm price' : 'Send estimate'}
+                        {j.agreed_amount ? 'Send firm price' : j.quoted_amount ? 'Revise price' : j.visited_at ? 'Send firm price' : 'Send estimate'}
                       </Button>
                     )}
                     {j.status === 'assigned' && <Button size="sm" variant="primary" leftIcon={<Play size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'in_progress'), j.id)}>Start job</Button>}
@@ -435,9 +448,13 @@ const MyJobs: React.FC = () => {
                     {j.description && <p className="job-desc">{j.description}</p>}
                     {(j.photos?.length ?? 0) > 0 && <JobPhotos paths={j.photos} />}
                     {j.agreed_amount ? (
-                      <div className="quote-strip agreed">
+                      <div className={`quote-strip ${priceSettled(j) ? 'agreed' : 'pending'}`}>
                         <Check size={15} />
-                        <span>Price agreed: <strong>{naira(j.agreed_amount)}</strong></span>
+                        <span>
+                          {priceSettled(j)
+                            ? <>Price agreed: <strong>{naira(j.agreed_amount)}</strong></>
+                            : <>Estimate accepted: <strong>{naira(j.agreed_amount)}</strong> — your artisan will confirm a firm price after seeing the place</>}
+                        </span>
                       </div>
                     ) : j.quoted_amount ? (
                       <div className="quote-offer">

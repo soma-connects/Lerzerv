@@ -226,6 +226,7 @@ declare
   v_artisan_user uuid;
   v_conv uuid;
   v_firm boolean;
+  v_superseding boolean;
 begin
   select * into v_job from public.service_jobs where id = p_job_id;
   if v_job.id is null then raise exception 'job not found'; end if;
@@ -245,11 +246,22 @@ begin
   if p_amount > 50000000 then
     raise exception 'that amount looks wrong — please check it';
   end if;
+  -- A firm price is final. An accepted ESTIMATE is only provisional: once
+  -- the artisan has actually seen the place, a firm price supersedes it and
+  -- the client accepts again. Without this the whole visit step is pointless
+  -- — a client who accepts a 12,000 estimate would lock the artisan into it
+  -- for what turns out, on seeing the pipe run, to be an 85,000 job.
   if v_job.agreed_amount is not null then
-    raise exception 'a price has already been agreed for this job';
+    if coalesce(v_job.quote_is_firm, false) then
+      raise exception 'a firm price has already been agreed for this job';
+    end if;
+    if v_job.visited_at is null then
+      raise exception 'a price is already agreed — record your site visit first if the scope has changed';
+    end if;
   end if;
 
   v_firm := v_job.visited_at is not null;
+  v_superseding := v_job.agreed_amount is not null;
 
   update public.service_jobs
   set quoted_amount = round(p_amount, 2),
@@ -257,6 +269,12 @@ begin
       quoted_at = now(),
       quote_declined_at = null,
       quote_is_firm = v_firm,
+      -- Drop any provisional agreement and its commission: the client
+      -- accepts the real figure, and commission follows that, not the guess.
+      agreed_amount = null,
+      agreed_at = null,
+      commission_rate = null,
+      commission_amount = null,
       updated_at = now()
   where id = p_job_id
   returning * into v_job;
@@ -265,7 +283,11 @@ begin
   if v_conv is not null then
     insert into public.messages (conversation_id, sender_id, body, is_system)
     values (v_conv, null,
-            case when v_firm then 'Firm price after site visit: ₦' else 'Estimate (before site visit): ₦' end
+            case
+              when v_superseding then 'Revised firm price after the site visit (replaces the earlier estimate): ₦'
+              when v_firm then 'Firm price after site visit: ₦'
+              else 'Estimate (before site visit): ₦'
+            end
             || to_char(round(p_amount, 2), 'FM999,999,999.00')
             || coalesce(' — ' || nullif(trim(coalesce(p_note, '')), ''), ''),
             true);
@@ -273,7 +295,11 @@ begin
 
   perform public.notify(
     v_job.client_id, 'job_quote',
-    case when v_firm then 'You have a firm price' else 'You have an estimate' end,
+    case
+      when v_superseding then 'Your price was revised after the visit'
+      when v_firm then 'You have a firm price'
+      else 'You have an estimate'
+    end,
     v_job.title || ' — ₦' || to_char(round(p_amount, 2), 'FM999,999,999.00'),
     '/my-jobs'
   );
