@@ -19,6 +19,15 @@
 alter table public.service_jobs
   add column if not exists rebooked_from_job_id uuid references public.service_jobs(id) on delete set null;
 
+-- Who the client actually asked for. `rebooked_from_job_id` records that
+-- the job began as a rebook and stays true forever, but the artisan can
+-- decline and be replaced — and the replacement was not asked for by
+-- name. Keeping the requested artisan separately is what lets the UI tell
+-- "this client wanted you" from "you were matched to a job that started
+-- as someone else's rebook".
+alter table public.service_jobs
+  add column if not exists rebooked_artisan_id uuid references public.artisans(id) on delete set null;
+
 create index if not exists idx_service_jobs_rebooked_from
   on public.service_jobs(rebooked_from_job_id) where rebooked_from_job_id is not null;
 
@@ -74,7 +83,7 @@ begin
   insert into public.service_jobs
     (client_id, category_id, area_id, title, description, address_text,
      scheduled_for, budget_note, client_contact, status,
-     assigned_artisan_id, assigned_at, rebooked_from_job_id)
+     assigned_artisan_id, assigned_at, rebooked_from_job_id, rebooked_artisan_id)
   values
     (auth.uid(), v_prev.category_id, v_prev.area_id, trim(p_title),
      nullif(trim(coalesce(p_description, '')), ''),
@@ -82,7 +91,8 @@ begin
      p_scheduled_for,
      nullif(trim(coalesce(p_budget_note, '')), ''),
      coalesce(p_client_contact, v_prev.client_contact),
-     'assigned', v_prev.assigned_artisan_id, now(), v_prev.id)
+     'assigned', v_prev.assigned_artisan_id, now(), v_prev.id,
+     v_prev.assigned_artisan_id)
   returning * into v_job;
 
   insert into public.conversations (job_id, client_id, artisan_id)
@@ -103,6 +113,13 @@ begin
 end;
 $$;
 
+-- CREATE FUNCTION grants EXECUTE to PUBLIC by default, and `anon`
+-- inherits it. Both of these act on someone else's job, so the signed-in
+-- check inside each one is the only thing standing between an anonymous
+-- caller and a client's booking. Take the default grant away as well, the
+-- way 0010 and 0017 do.
+revoke execute on function public.rebook_artisan(uuid, text, text, text, timestamptz, text, jsonb)
+  from public, anon;
 grant execute on function public.rebook_artisan(uuid, text, text, text, timestamptz, text, jsonb)
   to authenticated;
 
@@ -119,33 +136,79 @@ language plpgsql volatile security definer set search_path = public
 as $$
 declare
   v_job public.service_jobs;
+  v_artisan_id uuid;
   v_artisan_user uuid;
   v_artisan_name text;
   v_conv uuid;
 begin
+  -- SECURITY DEFINER plus the default PUBLIC execute grant means an
+  -- anonymous caller reaches this body. For them auth.uid() is null, and
+  -- `v_artisan_user <> null` is null rather than true — so a plain
+  -- inequality would fall THROUGH the ownership check and let anyone on
+  -- the internet tear an artisan off a job. Reject them up front, and
+  -- compare with `is distinct from` so null can never mean "allowed".
+  if auth.uid() is null then
+    raise exception 'you need to be signed in to decline a job';
+  end if;
+
   select * into v_job from public.service_jobs where id = p_job_id;
   if v_job.id is null then raise exception 'job not found'; end if;
 
+  v_artisan_id := v_job.assigned_artisan_id;
   select a.user_id, a.display_name into v_artisan_user, v_artisan_name
-  from public.artisans a where a.id = v_job.assigned_artisan_id;
+  from public.artisans a where a.id = v_artisan_id;
 
-  if v_artisan_user is null or v_artisan_user <> auth.uid() then
+  if v_artisan_user is distinct from auth.uid() then
     raise exception 'only the assigned artisan can decline this job';
   end if;
   -- Once work has started or a price is agreed, walking away is a
   -- cancellation with consequences, not a decline. That stays with the
-  -- client and the team.
-  if v_job.status <> 'assigned' then
+  -- client and the team. Note that accepting a quote does NOT move the
+  -- status off 'assigned' (see respond_job_quote in 0018), so the agreed
+  -- price has to be checked in its own right.
+  if v_job.status <> 'assigned' or v_job.agreed_amount is not null then
     raise exception 'this job is already under way — talk to the client or our team instead';
   end if;
 
+  -- Re-state both guards in the UPDATE itself. The row was read without a
+  -- lock, so between the SELECT and here the client could have accepted a
+  -- quote, or an admin could have reassigned the job; the where clause is
+  -- what makes losing that race a no-op instead of an overwrite.
+  --
+  -- The outgoing artisan's quote goes with them: a price for their hands
+  -- and their day says nothing about whoever picks this up next, and
+  -- leaving it would show the replacement a number they never offered.
   update public.service_jobs
   set assigned_artisan_id = null,
       assigned_at = null,
       status = 'open',
+      quoted_amount = null,
+      quote_note = null,
+      quoted_at = null,
+      quote_declined_at = null,
       updated_at = now()
   where id = p_job_id
+    and status = 'assigned'
+    and agreed_amount is null
+    and assigned_artisan_id = v_artisan_id
   returning * into v_job;
+
+  if not found then
+    raise exception 'this job is already under way — talk to the client or our team instead';
+  end if;
+
+  -- Put the interest board back in a state that matches reality. Without
+  -- this the job is open but unreachable: `already_interested` in 0008
+  -- tests for ANY row regardless of status, so everyone the admin passed
+  -- over still sees "Interest sent" and cannot re-apply, while the artisan
+  -- who just walked away is still listed to the admin as a candidate.
+  update public.job_interests
+  set status = 'declined'
+  where job_id = p_job_id and artisan_id = v_artisan_id;
+
+  update public.job_interests
+  set status = 'interested'
+  where job_id = p_job_id and artisan_id is distinct from v_artisan_id and status = 'passed';
 
   -- The conversation was opened for a pairing that is now off. Leave the
   -- note, then DETACH the artisan: conversation access is keyed on
@@ -169,21 +232,26 @@ begin
   );
 
   -- Back in the pool: tell the artisans who could actually pick it up,
-  -- matched on their areas and services the same way a fresh post is.
+  -- matched on their areas and services exactly the way a fresh post is
+  -- (create_service_job, 0009). Both sides must require a match rather
+  -- than treat a null area or category as "matches everyone" — a job with
+  -- an unresolved area would otherwise page every approved artisan on the
+  -- platform, which is how a marketplace teaches people to mute it.
   insert into public.notifications (user_id, type, title, body, link)
   select a.user_id, 'job_posted', 'New job in your area', v_job.title, '/my-jobs'
   from public.artisans a
   where a.status = 'approved'
     and a.user_id <> auth.uid()
-    and (v_job.area_id is null or exists (
-      select 1 from public.artisan_areas aa where aa.artisan_id = a.id and aa.area_id = v_job.area_id))
-    and (v_job.category_id is null or exists (
-      select 1 from public.artisan_categories ac where ac.artisan_id = a.id and ac.category_id = v_job.category_id));
+    and exists (
+      select 1 from public.artisan_areas aa where aa.artisan_id = a.id and aa.area_id = v_job.area_id)
+    and exists (
+      select 1 from public.artisan_categories ac where ac.artisan_id = a.id and ac.category_id = v_job.category_id);
 
   return v_job;
 end;
 $$;
 
+revoke execute on function public.decline_assigned_job(uuid, text) from public, anon;
 grant execute on function public.decline_assigned_job(uuid, text) to authenticated;
 
 -- ── Reassignment has to repoint the thread ──────────────────────────
@@ -235,4 +303,29 @@ begin
   perform public.notify(v_artisan_user, 'job_assigned', 'You got a job!',
                         'You have been assigned "' || v_job.title || '".', '/my-jobs');
 end;
+$$;
+
+-- ── The applicant list must not offer someone who said no ───────────
+-- 0008's version returns every job_interests row whatever its status, on
+-- the assumption that a row only ever means "this artisan put a hand up".
+-- decline_assigned_job breaks that: it marks the departing artisan
+-- 'declined', and without this the admin would be shown them again as a
+-- candidate for the very job they just walked away from.
+--
+-- Same body as 0008 otherwise; only the status filter is added.
+create or replace function public.admin_get_job_applicants(p_job_id uuid)
+returns table (
+  artisan_id uuid, display_name text, avg_rating numeric, total_reviews int,
+  completed_jobs int, is_verified boolean, phone text, note text, applied_at timestamptz
+)
+language sql stable security definer set search_path = public
+as $$
+  select a.id, a.display_name, a.avg_rating, a.total_reviews, a.completed_jobs, a.is_verified,
+         p.phone, ji.note, ji.created_at
+  from public.job_interests ji
+  join public.artisans a on a.id = ji.artisan_id
+  left join public.artisan_private p on p.artisan_id = a.id
+  where ji.job_id = p_job_id and public.is_admin()
+    and ji.status <> 'declined'
+  order by a.avg_rating desc, ji.created_at asc;
 $$;

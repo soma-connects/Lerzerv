@@ -160,7 +160,11 @@ const RebookModal: React.FC<{ job: any; onClose: () => void; onDone: () => void 
     const res = await artisanService.rebookArtisan(job.id, {
       title,
       description,
-      scheduledFor: when || undefined,
+      // `datetime-local` hands back "2026-09-24T10:00" with no offset, and
+      // Postgres would read that in the server's timezone (UTC). A client
+      // in Lagos picking 10am would be booked for 11am. Resolve it against
+      // the browser's own timezone before it leaves.
+      scheduledFor: when ? new Date(when).toISOString() : undefined,
     });
     setSubmitting(false);
     if (res.success) onDone(); else setError(res.error?.message || 'Could not rebook.');
@@ -329,7 +333,7 @@ const MyJobs: React.FC = () => {
                   <div className="job-main">
                     <div className="job-title-row">
                       <h3>{j.title}</h3>
-                      {j.rebooked_from_job_id && (
+                      {j.rebooked_artisan_id && j.rebooked_artisan_id === j.assigned_artisan_id && (
                         <span className="rebook-badge" title="This client has hired you before">
                           <RotateCcw size={12} /> Asked for you
                         </span>
@@ -378,8 +382,12 @@ const MyJobs: React.FC = () => {
                     {j.status === 'assigned' && (
                       <Button size="sm" variant="text" leftIcon={<Ban size={16} />} disabled={busyId === j.id}
                         onClick={() => {
-                          const reason = window.prompt("Let the client know why you cannot take this (optional). The job goes back to our team to match someone else:") ?? undefined;
-                          act(() => artisanService.declineAssignedJob(j.id, reason), j.id);
+                          const reason = window.prompt("Let the client know why you cannot take this (optional). The job goes back to our team to match someone else:");
+                          // Cancel returns null. Giving up the job is not
+                          // undoable — the client is told and it goes back
+                          // to the pool — so backing out must back out.
+                          if (reason === null) return;
+                          act(() => artisanService.declineAssignedJob(j.id, reason || undefined), j.id);
                         }}>
                         Can't take it
                       </Button>
