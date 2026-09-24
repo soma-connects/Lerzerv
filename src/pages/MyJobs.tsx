@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, MessageSquare, Send, X, Check, Star, Briefcase, Ban, Play, MapPin, Hand, ClipboardList,
-  Receipt, ThumbsUp, ThumbsDown,
+  Receipt, ThumbsUp, ThumbsDown, RotateCcw, CalendarDays,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -140,6 +140,72 @@ const QuoteModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }
   );
 };
 
+// ── Rebook modal (client) ──────────────────────────────────
+/**
+ * Hire the same artisan again. Everything is carried over from the
+ * finished job, so the common case — "same person, same place, same kind
+ * of work" — is a title and a tap. That ease is the point: the
+ * alternative the client is weighing is texting the number they kept.
+ */
+const RebookModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [when, setWhen] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (title.trim().length < 3) { setError('Tell us what you need done.'); return; }
+    setSubmitting(true); setError(null);
+    const res = await artisanService.rebookArtisan(job.id, {
+      title,
+      description,
+      scheduledFor: when || undefined,
+    });
+    setSubmitting(false);
+    if (res.success) onDone(); else setError(res.error?.message || 'Could not rebook.');
+  };
+
+  return (
+    <div className="review-overlay" onClick={onClose}>
+      <motion.div className="review-modal" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+        <button className="review-close" aria-label="Close rebook dialog" onClick={onClose}><X size={18} /></button>
+        <h3>Book {job.artisan_name || 'your artisan'} again</h3>
+        <p className="review-sub">
+          They go straight to your job — no waiting to be matched. Your area and address carry over.
+        </p>
+
+        <label className="quote-label">
+          What do you need done?
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Same again for the bathroom tap"
+            autoFocus
+          />
+        </label>
+
+        <label className="quote-label">
+          <CalendarDays size={13} /> Preferred date <span className="mj-optional">(optional)</span>
+          <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+        </label>
+
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          placeholder="Anything they should know before coming (optional)"
+        />
+        {error && <div className="review-error">{error}</div>}
+        <Button variant="primary" size="lg" fullWidth disabled={submitting || title.trim().length < 3} onClick={submit}
+          rightIcon={submitting ? <Loader2 className="animate-spin" size={18} /> : <RotateCcw size={18} />}>
+          {submitting ? 'Sending…' : `Book ${job.artisan_name || 'them'} again`}
+        </Button>
+      </motion.div>
+    </div>
+  );
+};
+
 // ── Review modal ───────────────────────────────────────────
 const ReviewModal: React.FC<{ job: any; onClose: () => void; onDone: () => void }> = ({ job, onClose, onDone }) => {
   const [rating, setRating] = useState(5);
@@ -189,6 +255,7 @@ const MyJobs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [chatJob, setChatJob] = useState<any | null>(null);
   const [reviewJob, setReviewJob] = useState<any | null>(null);
+  const [rebookJob, setRebookJob] = useState<any | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -260,7 +327,15 @@ const MyJobs: React.FC = () => {
               {assigned.map((j) => (
                 <div key={j.id} className="job-card">
                   <div className="job-main">
-                    <div className="job-title-row"><h3>{j.title}</h3>{statusPill(j.status)}</div>
+                    <div className="job-title-row">
+                      <h3>{j.title}</h3>
+                      {j.rebooked_from_job_id && (
+                        <span className="rebook-badge" title="This client has hired you before">
+                          <RotateCcw size={12} /> Asked for you
+                        </span>
+                      )}
+                      {statusPill(j.status)}
+                    </div>
                     <div className="job-meta">
                       {j.category_name && <span>{j.category_name}</span>}
                       {j.area_name && <span><MapPin size={13} /> {j.area_name}</span>}
@@ -300,6 +375,15 @@ const MyJobs: React.FC = () => {
                       </Button>
                     )}
                     {j.status === 'assigned' && <Button size="sm" variant="primary" leftIcon={<Play size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'in_progress'), j.id)}>Start job</Button>}
+                    {j.status === 'assigned' && (
+                      <Button size="sm" variant="text" leftIcon={<Ban size={16} />} disabled={busyId === j.id}
+                        onClick={() => {
+                          const reason = window.prompt("Let the client know why you cannot take this (optional). The job goes back to our team to match someone else:") ?? undefined;
+                          act(() => artisanService.declineAssignedJob(j.id, reason), j.id);
+                        }}>
+                        Can't take it
+                      </Button>
+                    )}
                     {j.status === 'in_progress' && <Button size="sm" variant="primary" leftIcon={<Check size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'completed'), j.id)}>Mark complete</Button>}
                   </div>
                 </div>
@@ -364,6 +448,11 @@ const MyJobs: React.FC = () => {
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
                     {['open', 'assigned'].includes(j.status) && <Button size="sm" variant="text" leftIcon={<Ban size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'cancelled'), j.id)}>Cancel</Button>}
                     {j.status === 'completed' && <Button size="sm" variant="primary" leftIcon={<Star size={16} />} onClick={() => setReviewJob(j)}>Leave review</Button>}
+                    {j.status === 'completed' && j.assigned_artisan_id && (
+                      <Button size="sm" variant="outline" leftIcon={<RotateCcw size={16} />} onClick={() => setRebookJob(j)}>
+                        Book {j.artisan_name || 'again'}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -374,6 +463,7 @@ const MyJobs: React.FC = () => {
 
       <AnimatePresence>{chatJob && <ChatPanel job={chatJob} myUserId={myUserId!} onClose={() => setChatJob(null)} />}</AnimatePresence>
       <AnimatePresence>{reviewJob && <ReviewModal job={reviewJob} onClose={() => setReviewJob(null)} onDone={() => { setReviewJob(null); load(); }} />}</AnimatePresence>
+      <AnimatePresence>{rebookJob && <RebookModal job={rebookJob} onClose={() => setRebookJob(null)} onDone={() => { setRebookJob(null); load(); }} />}</AnimatePresence>
       <AnimatePresence>{quoteJob && <QuoteModal job={quoteJob} onClose={() => setQuoteJob(null)} onDone={() => { setQuoteJob(null); load(); }} />}</AnimatePresence>
     </div>
   );

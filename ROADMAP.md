@@ -83,6 +83,17 @@ exchange direct contact details). Reputation is built through two-sided reviews.
 - [ ] Admin / trust-&-safety ops (disputes, suspensions, moderation)
 - [ ] App Store + Play Store submission
 
+### Retention / anti-disintermediation
+- [x] **Rebook this artisan** (migration 0020): a client can hire the same artisan again from a
+      completed job in two taps. The job is created pre-assigned with the chat already open —
+      no pool, no dispatch queue — because the client has already chosen. Category, area,
+      address and contact carry over. The artisan can decline (`decline_assigned_job`), which
+      returns the job to the open pool and notifies matching artisans, so a "no" never kills
+      the request. `rebooked_from_job_id` makes repeat rate queryable.
+      Rationale: the real threat is a client keeping the artisan's number and going direct;
+      chat redaction cannot stop a card handed over in a kitchen, so the on-platform path has
+      to be the easier one.
+
 ### Dispatch model (delivered)
 - [x] Lagos areas + area-based artisan onboarding
 - [x] Client "Post a job" → pool; artisan job board (express interest)
