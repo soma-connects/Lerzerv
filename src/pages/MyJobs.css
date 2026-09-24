@@ -229,3 +229,24 @@
   color: var(--color-on-surface-variant);
   text-align: left;
 }
+
+/* ── Rebooking ───────────────────────────────────────────────────── */
+.mj-optional {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-outline);
+}
+
+/* Marks a job the client asked for this artisan by name — worth seeing
+   before reading the job itself. */
+.rebook-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}

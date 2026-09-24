@@ -360,6 +360,66 @@ export const artisanService = {
     }
   },
 
+  /**
+   * Client: hire the same artisan again. Skips the pool and the dispatch
+   * queue — the client has already chosen — so the job arrives pre-assigned
+   * with the chat open. Category, area, address and contact carry over from
+   * the previous job unless overridden.
+   */
+  rebookArtisan: async (
+    previousJobId: string,
+    details: {
+      title: string;
+      description?: string;
+      addressText?: string;
+      scheduledFor?: string;
+      budgetNote?: string;
+      clientContact?: { name?: string; phone?: string };
+    }
+  ): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('rebook_artisan', {
+          p_previous_job_id: previousJobId,
+          p_title: details.title.trim(),
+          p_description: details.description?.trim() || null,
+          p_address_text: details.addressText?.trim() || null,
+          p_scheduled_for: details.scheduledFor || null,
+          p_budget_note: details.budgetNote?.trim() || null,
+          p_client_contact: details.clientContact ?? null,
+        })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('rebookArtisan failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not rebook that artisan.' },
+      };
+    }
+  },
+
+  /**
+   * Artisan: decline a job they were asked for by name. The job returns to
+   * the open pool rather than dying, so the client's request survives a no.
+   */
+  declineAssignedJob: async (jobId: string, reason?: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('decline_assigned_job', { p_job_id: jobId, p_reason: reason?.trim() || null })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('declineAssignedJob failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not decline the job.' },
+      };
+    }
+  },
+
   /** Advance a dispatch job: in_progress / completed (artisan) or cancelled (client). */
   updateJobStatus: async (jobId: string, status: 'in_progress' | 'completed' | 'cancelled', reason?: string): Promise<void> => {
     await supabase.rpc('update_service_job_status', { p_job_id: jobId, p_status: status, p_reason: reason ?? null });
