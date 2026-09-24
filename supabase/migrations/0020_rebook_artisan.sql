@@ -147,8 +147,11 @@ begin
   where id = p_job_id
   returning * into v_job;
 
-  -- The conversation was opened for a pairing that is now off. Close it
-  -- out with a note rather than leaving a silent dead thread.
+  -- The conversation was opened for a pairing that is now off. Leave the
+  -- note, then DETACH the artisan: conversation access is keyed on
+  -- conversations.artisan_id, so leaving them on it would keep an artisan
+  -- who walked away reading everything the client writes afterwards — and
+  -- everything the artisan who replaces them writes too.
   select id into v_conv from public.conversations where job_id = p_job_id;
   if v_conv is not null then
     insert into public.messages (conversation_id, sender_id, body, is_system)
@@ -156,6 +159,8 @@ begin
             coalesce(v_artisan_name, 'The artisan') || ' is not available for this job'
             || coalesce(': ' || nullif(trim(coalesce(p_reason, '')), ''), '')
             || '. It is back with our team to match someone else.', true);
+
+    update public.conversations set artisan_id = null where id = v_conv;
   end if;
 
   perform public.notify(
@@ -180,3 +185,54 @@ end;
 $$;
 
 grant execute on function public.decline_assigned_job(uuid, text) to authenticated;
+
+-- ── Reassignment has to repoint the thread ──────────────────────────
+-- admin_assign_job only ever CREATED a conversation, and only when none
+-- existed. That was fine while every job reached an artisan through the
+-- pool exactly once. A declined rebook breaks that assumption: the job
+-- already carries a conversation, so the newly assigned artisan would be
+-- given no thread at all while the row still pointed at whoever left.
+--
+-- Same body as 0009 otherwise; only the conversation block changes.
+create or replace function public.admin_assign_job(p_job_id uuid, p_artisan_id uuid)
+returns void
+language plpgsql volatile security definer set search_path = public
+as $$
+declare v_job public.service_jobs; v_conv uuid; v_artisan_user uuid;
+begin
+  if not public.is_admin() then raise exception 'admin only'; end if;
+  select * into v_job from public.service_jobs where id = p_job_id;
+  if v_job.id is null then raise exception 'job not found'; end if;
+
+  update public.service_jobs
+  set assigned_artisan_id = p_artisan_id, status = 'assigned', assigned_at = now()
+  where id = p_job_id;
+  update public.job_interests set status = 'assigned' where job_id = p_job_id and artisan_id = p_artisan_id;
+  update public.job_interests set status = 'passed'  where job_id = p_job_id and artisan_id <> p_artisan_id;
+
+  select id into v_conv from public.conversations where job_id = p_job_id;
+  if v_conv is null then
+    insert into public.conversations (job_id, client_id, artisan_id)
+    values (p_job_id, v_job.client_id, p_artisan_id) returning id into v_conv;
+    insert into public.messages (conversation_id, sender_id, body, is_system)
+    values (v_conv, null,
+            'You have been matched for this job. Chat here to arrange the work. Keep all chat and payment on Lezerv.', true);
+  else
+    -- Reuse the thread, but hand it to whoever actually has the job now.
+    -- `is distinct from` covers the detached (null) case too.
+    update public.conversations
+    set artisan_id = p_artisan_id
+    where id = v_conv and artisan_id is distinct from p_artisan_id;
+
+    insert into public.messages (conversation_id, sender_id, body, is_system)
+    values (v_conv, null,
+            'You have been matched for this job. Chat here to arrange the work. Keep all chat and payment on Lezerv.', true);
+  end if;
+
+  select user_id into v_artisan_user from public.artisans where id = p_artisan_id;
+  perform public.notify(v_job.client_id, 'job_assigned', 'Artisan assigned',
+                        'We matched an artisan to "' || v_job.title || '".', '/my-jobs');
+  perform public.notify(v_artisan_user, 'job_assigned', 'You got a job!',
+                        'You have been assigned "' || v_job.title || '".', '/my-jobs');
+end;
+$$;
