@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap">
+<script src="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/_ds_bundle.js"></script>
+<script src="lz-icon.js"></script>
+<script src="lz-phone.js"></script>
+<script src="lz-map.js"></script>
+<style>html:root{--color-accent:#1f6040;--color-accent-100:#e8f3ec;--color-accent-200:#cce5d6;--color-accent-300:#9fcbb0;--color-accent-400:#5f9e78;--color-accent-500:#2e7550;--color-accent-600:#1a5236;--color-accent-700:#14432c;--color-accent-800:#0f3622;--color-accent-900:#0a2618;--color-accent-2:#1f6040;--font-body:"Archivo",system-ui,sans-serif}body{margin:0}lz-phone *{scrollbar-width:none}lz-phone *::-webkit-scrollbar{display:none}button,input,textarea,select{font-family:inherit}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-600)}input::placeholder,textarea::placeholder{color:var(--color-neutral-600)}@keyframes lzPulse{0%{transform:scale(.25);opacity:.9}100%{transform:scale(1);opacity:0}}@keyframes lzBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}</style>
+</helmet>
+<div style="min-height:100vh;background-color:var(--color-bg);background-image:linear-gradient(color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px);background-size:32px 32px;display:flex;flex-wrap:wrap;gap:64px;justify-content:center;align-items:flex-start;padding:48px 28px;box-sizing:border-box;font-family:var(--font-body);color:var(--color-text)">
+
+<aside style="width:360px;max-width:100%;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:10px"><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Sheet 00 · v2</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Android · map-first</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="display:flex;align-items:center;gap:14px;margin:18px 0 6px">
+<span class="blueprint" style="width:56px;height:56px;flex:none;background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:38px;border:1px solid var(--color-accent)">L<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<h1 style="font-family:var(--font-heading);font-weight:700;font-size:68px;line-height:58px;text-transform:uppercase;margin:0;letter-spacing:-.01em">Lezerv</h1>
+</div>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;text-transform:uppercase;letter-spacing:.02em;margin:10px 0 22px">Find nearby. Book. Track it live.</div>
+<div class="blueprint" style="display:flex;border:2px solid var(--color-text);background:var(--color-bg)">
+<sc-for list="{{ roleBtns }}" as="r" hint-placeholder-count="2"><button onClick="{{ r.tap }}" style="flex:1;min-height:52px;padding:0 14px;border:0;background:{{ r.bg }};color:{{ r.fg }};font-family:var(--font-heading);font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px"><lz-icon name="{{ r.ic }}" size="18"></lz-icon>{{ r.l }}</button></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+
+<div style="display:flex;align-items:center;gap:10px;margin:30px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Try this</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}">
+<ol style="margin:0;padding-left:20px;font-size:14px;line-height:21px;display:flex;flex-direction:column;gap:8px">
+<li>Drag the map. Tap a category chip, then a pin.</li>
+<li>Tap Tunde (plumbing) › Book now › Pay into escrow. Watch him drive to you, then share the start code.</li>
+<li>Tap Laundry › Mama Tolu › set items › Schedule pickup. Follow the rider through wash and delivery.</li>
+<li>Finish a job to rate it and release payment.</li>
+</ol>
+</sc-if>
+<sc-if value="{{ isArtisan }}" hint-placeholder-val="{{ false }}">
+<ol style="margin:0;padding-left:20px;font-size:14px;line-height:21px;display:flex;flex-direction:column;gap:8px">
+<li>Go online. A request arrives within a few seconds with a 30-second timer.</li>
+<li>Accept, drive to the client, enter start code 4827, then mark the job complete.</li>
+<li>Open Earnings to see the payout. Change your coverage radius in Account and check the map ring.</li>
+</ol>
+</sc-if>
+
+<div style="display:flex;align-items:center;gap:10px;margin:30px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">What changed in v2</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<ul style="margin:0;padding-left:20px;font-size:14px;line-height:21px;display:flex;flex-direction:column;gap:8px">
+<li>Brand: Lezerv dark green replaces steel blue. Exact hex to be matched from the logo file.</li>
+<li>Map is the home screen. Every available artisan is a pin; filled means available, outlined means busy.</li>
+<li>Live tracking for on-site jobs and for laundry pickup and delivery.</li>
+<li>Industry + Modernist: blueprint corner marks and condensed headings, with Modernist 2px ink rules, flush-left labels and big numerals.</li>
+<li>Android Material 3 structure: navigation bar, bottom sheets, filter chips, snackbars, system back.</li>
+</ul>
+
+<div style="display:flex;align-items:center;gap:10px;margin:30px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">03</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Build notes · Android Studio</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="display:flex;flex-direction:column;border-top:1px solid var(--color-divider)">
+<div style="display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">UI</span><span>Kotlin + Jetpack Compose, Material 3. NavigationBar, BottomSheetScaffold, FilterChip, SnackbarHost map one-to-one to this prototype.</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Map</span><span>MapLibre Native (open source) with a custom Lezerv style on OpenStreetMap tiles. No Google branding, POIs or other businesses on the map: only Lezerv pins.</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Location</span><span>FusedLocationProviderClient. Artisan app sends position every 5–10 s while online or on a job; nearby search via PostGIS ST_DWithin or geohash.</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Privacy</span><span>Clients see an artisan’s approximate area until booking. Exact position is shared only while en route.</span></div>
+<div style="display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-700)">Proposal</span><span>Escrow, start code, masked calls, request timer and payouts need backend work before launch.</span></div>
+</div>
+<button onClick="{{ reset }}" style="margin-top:22px;align-self:flex-start;min-height:44px;padding:0 14px;background:transparent;border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;display:flex;gap:8px;align-items:center" style-hover="background:var(--color-neutral-200)"><lz-icon name="refresh-cw" size="16"></lz-icon>Reset prototype</button>
+</aside>
+
+<lz-phone>
+
+<sc-if value="{{ showPush }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;align-items:center;gap:4px;padding:4px 12px 4px 4px;min-height:60px;background:var(--color-bg);border-bottom:2px solid var(--color-text)">
+<button onClick="{{ back }}" aria-label="Back" style="width:48px;height:48px;background:none;border:0;color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--color-neutral-200)"><lz-icon name="arrow-left" size="24"></lz-icon></button>
+<div style="flex:1;min-width:0"><div style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ph.title }}</div><div style="font-size:12px;line-height:16px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ph.sub }}</div></div>
+</div>
+</sc-if>
+<sc-if value="{{ showTabTop }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:18px 20px 12px;background:var(--color-bg);border-bottom:2px solid var(--color-text)">
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">{{ tt.k }}</div><div style="font-family:var(--font-heading);font-weight:700;font-size:40px;line-height:38px;text-transform:uppercase">{{ tt.t }}</div></div>
+<lz-icon name="{{ tt.ic }}" size="26"></lz-icon>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.explore }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;min-height:0;position:relative;overflow:hidden">
+<div onPointerDown="{{ panDown }}" onPointerMove="{{ panMove }}" onPointerUp="{{ panUp }}" onPointerLeave="{{ panUp }}" style="position:absolute;inset:0;touch-action:none;cursor:grab;user-select:none">
+<div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:{{ mapTf }};transition:{{ mapTr }}">
+<lz-map variant="{{ mapVariant }}"></lz-map>
+<sc-if value="{{ showRadius }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:60px;top:220px;width:600px;height:600px;border-radius:50%;border:1.5px dashed var(--color-accent);background:color-mix(in srgb, var(--color-accent) 5%, transparent);pointer-events:none"></div><div style="position:absolute;left:330px;top:210px;padding:2px 8px;background:var(--color-bg);border:1px solid var(--color-accent);font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--color-accent-700);pointer-events:none">2.5 KM</div></sc-if>
+{{ userDot }}
+<sc-for list="{{ pins }}" as="p" hint-placeholder-count="8"><button onClick="{{ p.tap }}" aria-label="{{ p.name }}" style="position:absolute;left:{{ p.l }}px;top:{{ p.t }}px;z-index:{{ p.z }};display:flex;flex-direction:column;align-items:center;background:none;border:0;padding:0;cursor:pointer"><span style="width:{{ p.sz }}px;height:{{ p.sz }}px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:{{ p.bg }};color:{{ p.fg }};border:2px solid {{ p.bd }};box-shadow:0 2px 6px rgba(0,0,0,.22)"><lz-icon name="{{ p.ic }}" size="18"></lz-icon></span><span style="width:2px;height:8px;background:{{ p.bd }}"></span><sc-if value="{{ p.sel }}" hint-placeholder-val="{{ false }}"><span style="margin-top:4px;padding:3px 8px;background:var(--color-text);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:14px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap">{{ p.name }}</span></sc-if></button></sc-for>
+</div>
+</div>
+<div style="position:absolute;left:12px;right:12px;top:12px;display:flex;flex-direction:column;gap:10px;pointer-events:none">
+<div class="blueprint" style="pointer-events:auto;display:flex;align-items:center;height:52px;background:var(--color-bg);border:2px solid var(--color-text);box-shadow:var(--shadow-md)">
+<span style="width:48px;height:48px;flex:none;background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:30px">L</span>
+<lz-icon name="search" size="20" style="margin:0 8px 0 12px;color:var(--color-neutral-700)"></lz-icon>
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Search cleaning, laundry, plumbing" aria-label="Search" style="flex:1;min-width:0;height:44px;border:0;background:transparent;font-size:15px;color:var(--color-text);outline:none">
+<button onClick="{{ openAcct }}" aria-label="Account" style="width:44px;height:44px;flex:none;margin-right:2px;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:700;font-size:17px;cursor:pointer">AO</button>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="pointer-events:auto;display:flex;gap:8px;overflow-x:auto;margin:0 -12px;padding:0 12px 4px">
+<sc-for list="{{ chips }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.tap }}" style="flex:none;display:flex;align-items:center;gap:6px;height:38px;padding:0 12px;background:{{ c.bg }};color:{{ c.fg }};border:1px solid {{ c.bd }};font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.12)"><lz-icon name="{{ c.ic }}" size="16"></lz-icon>{{ c.l }}</button></sc-for>
+</div>
+</div>
+<div style="position:absolute;right:12px;top:128px;display:flex;flex-direction:column;gap:8px">
+<button onClick="{{ toggleLayer }}" aria-label="Map style" style="width:48px;height:48px;background:var(--color-bg);border:1px solid var(--color-text);color:var(--color-text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm)" style-hover="background:var(--color-accent-100)"><lz-icon name="layers" size="22"></lz-icon></button>
+<button onClick="{{ recenter }}" aria-label="My location" style="width:48px;height:48px;background:var(--color-bg);border:1px solid var(--color-text);color:var(--color-accent);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm)" style-hover="background:var(--color-accent-100)"><lz-icon name="locate-fixed" size="22"></lz-icon></button>
+</div>
+<div style="position:absolute;left:12px;bottom:{{ scaleB }}px;display:flex;flex-direction:column;gap:3px;pointer-events:none;transition:bottom .25s">
+<div style="display:flex;align-items:flex-end"><span style="width:1px;height:8px;background:var(--color-text)"></span><span style="width:60px;height:3px;background:var(--color-text)"></span><span style="width:1px;height:8px;background:var(--color-text)"></span><span style="width:60px;height:3px;background:var(--color-bg);border:1px solid var(--color-text);box-sizing:border-box"></span><span style="width:1px;height:8px;background:var(--color-text)"></span></div>
+<div style="font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--color-neutral-800)">0 · 500 · 1000 M  ·  6.4478° N 3.4723° E</div>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:{{ sheetH }}px;background:var(--color-bg);border-top:2px solid var(--color-text);display:flex;flex-direction:column;transition:height .25s ease;box-shadow:0 -6px 20px rgba(0,0,0,.12)">
+<button onClick="{{ toggleSheet }}" aria-label="Expand list" style="flex:none;height:22px;background:none;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:40px;height:4px;background:var(--color-neutral-500)"></span></button>
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div style="padding:4px 20px 16px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:14px">
+<span class="blueprint" style="width:68px;height:76px;flex:none;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:30px">{{ sa.ini }}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="display:flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:700;font-size:26px;line-height:26px;text-transform:uppercase">{{ sa.name }}<sc-if value="{{ sa.ver }}" hint-placeholder-val="{{ true }}"><lz-icon name="badge-check" size="18" style="color:var(--color-accent)"></lz-icon></sc-if></div>
+<div style="font-size:13px;color:var(--color-neutral-800)">{{ sa.svcL }} · ★ {{ sa.r }} ({{ sa.rev }}) · {{ sa.jobs }} jobs</div>
+<div style="display:flex;gap:6px;margin-top:4px"><span style="padding:3px 8px;background:{{ sa.availBg }};color:{{ sa.availFg }};border:1px solid var(--color-accent);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ sa.avail }}</span><span style="padding:3px 8px;border:1px solid var(--color-divider);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ sa.dist }} · {{ sa.eta }}</span></div>
+</div>
+<button onClick="{{ clearSel }}" aria-label="Close" style="width:40px;height:40px;flex:none;background:none;border:0;cursor:pointer;color:var(--color-text);display:flex;align-items:center;justify-content:center"><lz-icon name="x" size="22"></lz-icon></button>
+</div>
+<div style="display:flex;gap:10px">
+<button onClick="{{ sa.profile }}" style="flex:1;min-height:52px;padding:0 14px;background:transparent;border:1px solid var(--color-text);color:var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-neutral-200)">Profile</button>
+<button class="blueprint" onClick="{{ sa.book }}" style="flex:1.6;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:0 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)"><span>{{ sa.cta }}</span><span style="font-size:15px;opacity:.85">{{ sa.from }}</span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ noSel }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:2px 20px 12px;border-bottom:1px solid var(--color-divider)">
+<div><div style="font-family:var(--font-heading);font-weight:700;font-size:30px;line-height:30px;text-transform:uppercase"><span style="color:var(--color-accent)">{{ nearCount }}</span> near you</div><div style="font-size:13px;color:var(--color-neutral-700);margin-top:3px">{{ nearSub }}</div></div>
+<button onClick="{{ toggleSheet }}" style="display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;background:transparent;border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--color-text)"><lz-icon name="{{ sheetIc }}" size="16"></lz-icon>{{ sheetBtn }}</button>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto">
+<sc-for list="{{ rows }}" as="a" hint-placeholder-count="4"><button onClick="{{ a.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px 20px;background:transparent;border:0;border-bottom:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)" style-hover="background:var(--color-accent-100)"><span style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:30px;width:34px;color:transparent;-webkit-text-stroke:1px var(--color-accent-700)">{{ a.n }}</span><span style="width:36px;height:36px;flex:none;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:{{ a.pbg }};color:{{ a.pfg }};border:2px solid var(--color-accent)"><lz-icon name="{{ a.ic }}" size="18"></lz-icon></span><span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:22px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span><span style="display:block;font-size:12px;line-height:17px;color:var(--color-neutral-800)">{{ a.svcL }} · ★ {{ a.r }} · {{ a.avail }}</span></span><span style="text-align:right;flex:none"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:22px">{{ a.dist }}</span><span style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-700)">{{ a.eta }}</span></span></button></sc-for>
+<sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}"><div style="padding:20px"><div style="font-family:var(--font-heading);font-weight:600;font-size:24px;text-transform:uppercase">Nobody matches here</div><div style="font-size:14px;line-height:20px;color:var(--color-neutral-800);margin-top:4px">Clear the search or pick another category.</div></div></sc-if>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.profile }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:22px 20px 18px;display:flex;gap:16px">
+<span class="blueprint" style="width:96px;height:112px;flex:none;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:42px">{{ pa.ini }}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<div style="display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0">
+<div style="font-family:var(--font-heading);font-weight:700;font-size:38px;line-height:36px;text-transform:uppercase">{{ pa.name }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:3px 8px;border:1px solid var(--color-accent);color:var(--color-accent-800);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ pa.svcL }}</span><sc-if value="{{ pa.ver }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="badge-check" size="13"></lz-icon>ID verified</span></sc-if><span style="padding:3px 8px;background:{{ pa.availBg }};color:{{ pa.availFg }};border:1px solid var(--color-accent);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ pa.avail }}</span></div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--color-text);border-bottom:2px solid var(--color-text);margin:0 20px">
+<div style="padding:12px 0"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Rating</div><div style="font-family:var(--font-heading);font-weight:700;font-size:38px;line-height:40px">{{ pa.r }}</div><div style="font-size:11px;color:var(--color-neutral-700)">{{ pa.rev }} reviews</div></div>
+<div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Jobs</div><div style="font-family:var(--font-heading);font-weight:700;font-size:38px;line-height:40px">{{ pa.jobs }}</div><div style="font-size:11px;color:var(--color-neutral-700)">on Lezerv</div></div>
+<div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Away</div><div style="font-family:var(--font-heading);font-weight:700;font-size:38px;line-height:40px">{{ pa.distN }}</div><div style="font-size:11px;color:var(--color-neutral-700)">km · {{ pa.eta }}</div></div>
+</div>
+<div class="blueprint" style="position:relative;margin:22px 20px 0;height:132px;overflow:hidden;border:1px solid var(--color-text)">
+<div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:{{ pa.mapTf }};pointer-events:none"><lz-map variant="{{ mapVariant }}"></lz-map><div style="position:absolute;left:{{ pa.zx }}px;top:{{ pa.zy }}px;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:1.5px dashed var(--color-accent);background:color-mix(in srgb, var(--color-accent) 12%, transparent)"></div>{{ userDot }}</div>
+<span style="position:absolute;left:8px;bottom:8px;padding:3px 8px;background:var(--color-bg);border:1px solid var(--color-text);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Approximate area · exact location after booking</span>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:26px 0 10px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">About</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px;font-size:15px;line-height:23px">{{ pa.bio }}</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:26px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Services and prices</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ pa.opts }}" as="o" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span style="font-size:15px">{{ o.l }}</span><span style="font-family:var(--font-heading);font-weight:600;font-size:20px">{{ o.p }}</span></div></sc-for>
+<div style="font-size:12px;line-height:17px;color:var(--color-neutral-700);margin-top:8px">Starting prices. The artisan confirms the final price before work starts.</div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:26px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">03</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Reviews</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px 24px">
+<sc-for list="{{ reviews }}" as="v" hint-placeholder-count="2"><div style="padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700"><span>{{ v.n }} · {{ v.stars }}</span><span style="font-weight:400;color:var(--color-neutral-700)">{{ v.d }}</span></div><div style="font-size:14px;line-height:21px;margin-top:4px">{{ v.t }}</div></div></sc-for>
+</div>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:14px;padding:12px 20px;border-top:2px solid var(--color-text);background:var(--color-bg)">
+<div style="flex:1"><div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">From</div><div style="font-family:var(--font-heading);font-weight:700;font-size:26px;line-height:28px">{{ pa.from }} <span style="font-size:14px;font-weight:500;color:var(--color-neutral-700)">{{ pa.unit }}</span></div></div>
+<button class="blueprint" onClick="{{ pa.book }}" style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 18px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)">{{ pa.cta }}<lz-icon name="arrow-right" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.book }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+<sc-if value="{{ bk.svc }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:20px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">What do you need</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ bk.opts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.tap }}" style="display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:0 4px;background:{{ o.bg }};border:0;border-bottom:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)"><span style="width:20px;height:20px;flex:none;box-sizing:border-box;border:1.5px solid var(--color-text);display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;background:{{ o.dot }}"></span></span><span style="flex:1;font-size:15px">{{ o.l }}</span><span style="font-family:var(--font-heading);font-weight:600;font-size:19px">{{ o.p }}</span></button></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">When</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px;display:grid;grid-template-columns:repeat(3,1fr);border:0">
+<sc-for list="{{ bk.whens }}" as="w" hint-placeholder-count="3"><button onClick="{{ w.tap }}" style="min-height:64px;padding:8px 10px;background:{{ w.bg }};color:{{ w.fg }};border:1px solid var(--color-text);margin-left:-1px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:2px"><span style="font-family:var(--font-heading);font-weight:600;font-size:19px;line-height:20px;text-transform:uppercase">{{ w.l }}</span><span style="font-size:11px;opacity:.8">{{ w.s }}</span></button></sc-for>
+</div>
+<sc-if value="{{ bk.showSlots }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 20px 0;display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ bk.slots }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.tap }}" style="height:40px;padding:0 14px;background:{{ t.bg }};color:{{ t.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;cursor:pointer">{{ t.l }}</button></sc-for></div></sc-if>
+</sc-if>
+<sc-if value="{{ bk.laundry }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:20px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Items</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ bk.items }}" as="it" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;min-height:58px;border-bottom:1px solid var(--color-divider)"><span style="flex:1"><span style="display:block;font-size:15px">{{ it.l }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ it.p }} each</span></span><button onClick="{{ it.dec }}" aria-label="Remove one" style="width:44px;height:44px;background:transparent;border:1px solid var(--color-text);cursor:pointer;color:var(--color-text);display:flex;align-items:center;justify-content:center"><lz-icon name="minus" size="18"></lz-icon></button><span style="width:36px;text-align:center;font-family:var(--font-heading);font-weight:700;font-size:26px">{{ it.n }}</span><button onClick="{{ it.inc }}" aria-label="Add one" style="width:44px;height:44px;background:var(--color-text);border:1px solid var(--color-text);cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center"><lz-icon name="plus" size="18"></lz-icon></button></div></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Pickup window</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ bk.wins }}" as="w" hint-placeholder-count="3"><button onClick="{{ w.tap }}" style="display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 4px;background:{{ w.bg }};border:0;border-bottom:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)"><span style="width:20px;height:20px;flex:none;box-sizing:border-box;border:1.5px solid var(--color-text);display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;background:{{ w.dot }}"></span></span><span style="flex:1;font-size:15px">{{ w.l }}</span><lz-icon name="truck" size="18" style="color:var(--color-neutral-700)"></lz-icon></button></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">03</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Return</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px;display:grid;grid-template-columns:1fr 1fr">
+<sc-for list="{{ bk.speeds }}" as="w" hint-placeholder-count="2"><button onClick="{{ w.tap }}" style="min-height:64px;padding:8px 12px;background:{{ w.bg }};color:{{ w.fg }};border:1px solid var(--color-text);margin-left:-1px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:2px"><span style="font-family:var(--font-heading);font-weight:600;font-size:19px;line-height:20px;text-transform:uppercase">{{ w.l }}</span><span style="font-size:11px;opacity:.8">{{ w.s }}</span></button></sc-for>
+</div>
+</sc-if>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">{{ bk.whereN }}</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Where</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div class="blueprint" style="margin:0 20px;border:1px solid var(--color-text)">
+<div style="position:relative;height:110px;overflow:hidden;border-bottom:1px solid var(--color-text)"><div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:translate(-185px,-475px);pointer-events:none"><lz-map variant="{{ mapVariant }}"></lz-map></div><span style="position:absolute;left:50%;top:50%;margin:-34px 0 0 -14px;display:flex;flex-direction:column;align-items:center"><span style="width:28px;height:28px;background:var(--color-text);color:#fff;display:flex;align-items:center;justify-content:center"><lz-icon name="home" size="16"></lz-icon></span><span style="width:2px;height:8px;background:var(--color-text)"></span></span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 14px"><lz-icon name="map-pin" size="20" style="color:var(--color-accent)"></lz-icon><span style="flex:1;min-width:0"><span style="display:block;font-size:15px;font-weight:600">Home · 12 Admiralty Way</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">Lekki Phase 1, Lagos · Gate code at security</span></span><button onClick="{{ changeAddr }}" style="height:36px;padding:0 10px;background:transparent;border:0;color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer">Change</button></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="padding:14px 20px 0"><textarea value="{{ note }}" onChange="{{ onNote }}" placeholder="{{ bk.notePh }}" style="width:100%;box-sizing:border-box;min-height:76px;padding:10px 12px;background:transparent;border:1px solid var(--color-divider);border-radius:0;font-size:14px;line-height:20px;color:var(--color-text);resize:none;outline:none"></textarea></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">{{ bk.payN }}</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Payment</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ bk.lines }}" as="l" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:14px"><span style="color:var(--color-neutral-800)">{{ l.k }}</span><span style="font-weight:600">{{ l.v }}</span></div></sc-for>
+<div style="display:flex;gap:10px;margin-top:14px;padding:12px;background:var(--color-accent-100);border:1px solid var(--color-accent)"><lz-icon name="lock" size="20" style="color:var(--color-accent-700)"></lz-icon><div style="font-size:13px;line-height:19px;color:var(--color-accent-800)"><b>Held by Lezerv until you confirm the job is done.</b> If the artisan doesn’t show, you get a full refund. <span style="font-size:10px;font-weight:700;letter-spacing:.1em;padding:1px 5px;border:1px solid var(--color-accent-700)">PROPOSAL</span></div></div>
+</div>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:14px;padding:12px 20px;border-top:2px solid var(--color-text);background:var(--color-bg)">
+<div style="flex:1"><div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Total</div><div style="font-family:var(--font-heading);font-weight:700;font-size:30px;line-height:30px">{{ bk.total }}</div></div>
+<button class="blueprint" onClick="{{ bk.pay }}" style="display:flex;align-items:center;gap:10px;min-height:52px;padding:0 18px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)">{{ bk.payL }}<lz-icon name="arrow-right" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.track }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="height:300px;flex:none;position:relative;overflow:hidden;border-bottom:2px solid var(--color-text)">
+<div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:{{ tk.tf }};transition:transform .8s ease">
+<lz-map variant="{{ mapVariant }}"></lz-map>
+{{ tk.svg }}
+<div style="position:absolute;left:{{ tk.ox }}px;top:{{ tk.oy }}px;width:26px;height:26px;margin:-13px 0 0 -13px;background:var(--color-bg);border:2px solid var(--color-text);display:flex;align-items:center;justify-content:center;color:var(--color-text)"><lz-icon name="{{ tk.oic }}" size="14"></lz-icon></div>
+{{ userDot }}
+<div style="position:absolute;left:{{ tk.mx }}px;top:{{ tk.my }}px;width:40px;height:40px;margin:-20px 0 0 -20px;box-sizing:border-box;background:var(--color-text);color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.3)"><lz-icon name="{{ tk.mic }}" size="20"></lz-icon></div>
+</div>
+<div class="blueprint" style="position:absolute;left:12px;top:12px;padding:8px 12px;background:var(--color-bg);border:1px solid var(--color-text);display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--color-accent)"></span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">{{ tk.live }}</span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 22px">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
+<div style="min-width:0"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">{{ tk.kicker }}</div><div style="font-family:var(--font-heading);font-weight:700;font-size:36px;line-height:36px;text-transform:uppercase;margin-top:2px">{{ tk.status }}</div><div style="font-size:14px;line-height:20px;color:var(--color-neutral-800);margin-top:4px">{{ tk.sub }}</div></div>
+<sc-if value="{{ tk.showEta }}" hint-placeholder-val="{{ true }}"><div style="text-align:right;flex:none"><div style="font-family:var(--font-heading);font-weight:700;font-size:60px;line-height:52px;color:var(--color-accent)">{{ tk.eta }}</div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">min away</div></div></sc-if>
+</div>
+<div style="display:flex;gap:4px;margin:18px 0 4px">
+<sc-for list="{{ tk.steps }}" as="p" hint-placeholder-count="5"><div style="flex:1;min-width:0"><div style="height:8px;box-sizing:border-box;background:{{ p.bg }};border:1px solid var(--color-accent)"></div><div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:6px;color:{{ p.fg }};line-height:12px">{{ p.l }}</div></div></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 0;margin-top:12px;border-top:2px solid var(--color-text);border-bottom:1px solid var(--color-divider)">
+<span style="width:52px;height:56px;flex:none;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:22px">{{ tk.ini }}</span>
+<span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:22px;text-transform:uppercase">{{ tk.name }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-800)">{{ tk.meta }}</span></span>
+<button onClick="{{ tk.call }}" aria-label="Call" style="width:48px;height:48px;background:transparent;border:1px solid var(--color-text);color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="phone" size="20"></lz-icon></button>
+<button onClick="{{ tk.chat }}" aria-label="Chat" style="width:48px;height:48px;background:var(--color-text);border:1px solid var(--color-text);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="message-square" size="20"></lz-icon></button>
+</div>
+<sc-if value="{{ tk.showCode }}" hint-placeholder-val="{{ true }}">
+<div class="blueprint" style="margin-top:18px;padding:14px;border:1px solid var(--color-text);display:flex;align-items:center;gap:14px">
+<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><lz-icon name="key-round" size="15"></lz-icon>Start code</div><div style="font-size:13px;line-height:18px;color:var(--color-neutral-800);margin-top:4px">{{ tk.codeNote }}</div></div>
+<div style="display:flex;gap:4px"><sc-for list="{{ codeDigits }}" as="d" hint-placeholder-count="4"><span style="width:32px;height:44px;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:28px">{{ d }}</span></sc-for></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</sc-if>
+<div style="display:flex;flex-direction:column;margin-top:16px">
+<sc-for list="{{ tk.lines }}" as="l" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="color:var(--color-neutral-800)">{{ l.k }}</span><span style="font-weight:600;text-align:right">{{ l.v }}</span></div></sc-for>
+</div>
+<sc-if value="{{ tk.hasAct }}" hint-placeholder-val="{{ false }}"><button class="blueprint" onClick="{{ tk.act }}" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)"><span>{{ tk.actL }}</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+<sc-if value="{{ tk.canSkip }}" hint-placeholder-val="{{ true }}"><button onClick="{{ skip }}" style="margin-top:10px;width:100%;min-height:44px;background:transparent;border:1px dashed var(--color-neutral-500);color:var(--color-neutral-800);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Prototype · skip ahead</button></sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.cjobs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:20px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Active</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<sc-if value="{{ hasJob }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px"><button class="blueprint" onClick="{{ openTrack }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px;background:var(--color-accent-100);border:1px solid var(--color-accent);text-align:left;cursor:pointer;color:var(--color-text)"><lz-icon name="{{ aj.ic }}" size="26" style="color:var(--color-accent-700)"></lz-icon><span style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-800)">{{ aj.k }}</span><span style="display:block;font-family:var(--font-heading);font-weight:700;font-size:22px;line-height:24px;text-transform:uppercase">{{ aj.t }}</span><span style="display:block;font-size:13px;color:var(--color-accent-800)">{{ aj.s }}</span></span><lz-icon name="chevron-right" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div></sc-if>
+<sc-if value="{{ noJob }}" hint-placeholder-val="{{ true }}"><div style="padding:0 20px;font-size:14px;line-height:20px;color:var(--color-neutral-800)">Nothing in progress. Find someone on the map to get started.</div></sc-if>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:28px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Past</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ pastRows }}" as="p" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--color-divider)"><span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:22px;text-transform:uppercase">{{ p.t }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-800)">{{ p.s }}</span></span><button onClick="{{ p.again }}" style="height:40px;padding:0 12px;background:transparent;border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--color-text);display:flex;align-items:center;gap:6px"><lz-icon name="refresh-cw" size="14"></lz-icon>Book again</button></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.msgs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<sc-for list="{{ threads }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 20px;background:transparent;border:0;border-bottom:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)" style-hover="background:var(--color-accent-100)"><span style="width:48px;height:52px;flex:none;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:20px">{{ t.ini }}</span><span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px"><span style="font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:22px;text-transform:uppercase">{{ t.name }}</span><span style="font-size:11px;color:var(--color-neutral-700)">{{ t.time }}</span></span><span style="display:block;font-size:13px;line-height:18px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.last }}</span></span></button></sc-for>
+<div style="display:flex;gap:10px;margin:20px;font-size:12px;line-height:18px;color:var(--color-neutral-800)"><lz-icon name="eye-off" size="18" style="color:var(--color-accent)"></lz-icon>Phone numbers, emails and links are hidden in chat. Calls go through a Lezerv number.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.chat }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ cmsgs }}" as="m" hint-placeholder-count="3"><div style="align-self:{{ m.al }};max-width:78%;padding:10px 12px;background:{{ m.bg }};color:{{ m.fg }};border:1px solid {{ m.bd }};font-size:14px;line-height:20px">{{ m.t }}<div style="font-size:10px;opacity:.7;margin-top:3px">{{ m.meta }}</div></div></sc-for>
+</div>
+<div style="flex:none;display:flex;gap:8px;padding:10px 12px;border-top:2px solid var(--color-text)">
+<input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Message" style="flex:1;min-width:0;height:48px;padding:0 12px;border:1px solid var(--color-text);border-radius:0;background:transparent;font-size:15px;color:var(--color-text);outline:none">
+<button onClick="{{ send }}" aria-label="Send" style="width:48px;height:48px;background:var(--color-accent);border:0;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="send" size="20"></lz-icon></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.cacct }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="display:flex;gap:14px;align-items:center;padding:20px">
+<span style="width:64px;height:68px;background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:28px">AO</span>
+<div><div style="font-family:var(--font-heading);font-weight:700;font-size:28px;line-height:28px;text-transform:uppercase">Amaka Obi</div><div style="font-size:13px;color:var(--color-neutral-800)">+234 803 ••• 4417 · Lekki Phase 1</div></div>
+</div>
+<div style="border-top:2px solid var(--color-text);margin:0 20px">
+<sc-for list="{{ cRows }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:0;background:transparent;border:0;border-bottom:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)"><lz-icon name="{{ r.ic }}" size="22" style="color:var(--color-accent)"></lz-icon><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600">{{ r.l }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ r.s }}</span></span><lz-icon name="chevron-right" size="18"></lz-icon></button></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.amap }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;position:relative;overflow:hidden">
+<div onPointerDown="{{ panDown }}" onPointerMove="{{ panMove }}" onPointerUp="{{ panUp }}" onPointerLeave="{{ panUp }}" style="position:absolute;inset:0;touch-action:none;cursor:grab;user-select:none">
+<div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:{{ mapTf }};transition:{{ mapTr }}">
+<lz-map variant="{{ mapVariant }}"></lz-map>
+<sc-if value="{{ showDemand }}" hint-placeholder-val="{{ true }}"><sc-for list="{{ zones }}" as="z" hint-placeholder-count="3"><div style="position:absolute;left:{{ z.l }}px;top:{{ z.t }}px;width:{{ z.d }}px;height:{{ z.d }}px;border-radius:50%;background:repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-accent) 20%, transparent) 0 2px, transparent 2px 8px);border:1px solid var(--color-accent);display:flex;align-items:center;justify-content:center;pointer-events:none"><span style="padding:2px 6px;background:var(--color-bg);border:1px solid var(--color-accent);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-800);white-space:nowrap">{{ z.l2 }}</span></div></sc-for></sc-if>
+<div style="position:absolute;left:{{ ring.l }}px;top:{{ ring.t }}px;width:{{ ring.d }}px;height:{{ ring.d }}px;border-radius:50%;border:1.5px dashed var(--color-text);opacity:.55;pointer-events:none"></div>
+<sc-if value="{{ hasReq }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:249px;top:604px;display:flex;flex-direction:column;align-items:center"><span style="width:28px;height:28px;background:var(--color-text);color:#fff;display:flex;align-items:center;justify-content:center"><lz-icon name="home" size="16"></lz-icon></span><span style="width:2px;height:10px;background:var(--color-text)"></span></div></sc-if>
+{{ userDot }}
+</div>
+</div>
+<div class="blueprint" style="position:absolute;left:12px;right:12px;top:12px;display:flex;align-items:center;gap:12px;min-height:60px;padding:0 8px 0 14px;background:{{ onBg }};color:{{ onFg }};border:2px solid {{ onBd }};box-shadow:var(--shadow-md)">
+<span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:700;font-size:24px;line-height:24px;text-transform:uppercase">{{ onT }}</span><span style="display:block;font-size:12px;opacity:.85">{{ onS }}</span></span>
+<button onClick="{{ toggleOnline }}" role="switch" aria-checked="{{ online }}" aria-label="Online" style="width:64px;height:36px;flex:none;padding:3px;box-sizing:border-box;background:{{ swBg }};border:2px solid {{ swBd }};cursor:pointer;display:flex;justify-content:{{ swJ }}"><span style="width:26px;height:26px;box-sizing:border-box;background:{{ swK }}"></span></button>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="position:absolute;left:12px;top:86px;display:flex;gap:8px">
+<span style="padding:6px 10px;background:var(--color-bg);border:1px solid var(--color-text);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Today {{ todayEarn }}</span>
+<span style="padding:6px 10px;background:var(--color-bg);border:1px solid var(--color-text);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Radius {{ radius }} km</span>
+</div>
+<div style="position:absolute;right:12px;top:86px"><button onClick="{{ recenter }}" aria-label="My location" style="width:48px;height:48px;background:var(--color-bg);border:1px solid var(--color-text);color:var(--color-accent);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm)"><lz-icon name="locate-fixed" size="22"></lz-icon></button></div>
+<sc-if value="{{ hasReq }}" hint-placeholder-val="{{ false }}">
+<div class="blueprint" style="position:absolute;left:12px;right:12px;bottom:12px;background:var(--color-bg);border:2px solid var(--color-text);box-shadow:var(--shadow-lg)">
+<div style="height:6px;background:var(--color-neutral-200);overflow:hidden"><div style="height:100%;width:{{ reqPct }}%;background:var(--color-accent);transition:width .1s linear"></div></div>
+<div style="padding:14px 16px 16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">New request · {{ reqSec }}s</span><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">0.9 km · 4 min</span></div>
+<div style="font-family:var(--font-heading);font-weight:700;font-size:28px;line-height:30px;text-transform:uppercase;margin-top:6px">Leaking kitchen sink</div>
+<div style="font-size:13px;line-height:19px;color:var(--color-neutral-800);margin-top:2px">Plumbing · Amaka O. · Lekki Phase 1 · Now</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 14px;padding:10px 0;border-top:2px solid var(--color-text);border-bottom:1px solid var(--color-divider)"><span style="font-size:13px">Call-out, you receive</span><span style="font-family:var(--font-heading);font-weight:700;font-size:28px">₦6,400</span></div>
+<div style="display:flex;gap:10px">
+<button onClick="{{ declineReq }}" style="flex:1;min-height:52px;background:transparent;border:1px solid var(--color-text);color:var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;text-align:left;padding:0 14px">Decline</button>
+<button class="blueprint" onClick="{{ acceptReq }}" style="flex:1.6;display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Accept</span><lz-icon name="check" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</sc-if>
+<sc-if value="{{ waitingReq }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:12px;right:12px;bottom:12px;padding:14px 16px;background:var(--color-bg);border:1px solid var(--color-text);display:flex;align-items:center;gap:12px"><lz-icon name="timer" size="22" style="color:var(--color-accent)"></lz-icon><span style="font-size:14px;line-height:20px">Looking for jobs within {{ radius }} km. Hatched areas have more requests right now.</span></div></sc-if>
+<sc-if value="{{ offlineHint }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:12px;right:12px;bottom:12px;padding:14px 16px;background:var(--color-bg);border:1px solid var(--color-text);display:flex;align-items:center;gap:12px"><lz-icon name="power" size="22"></lz-icon><span style="font-size:14px;line-height:20px">You won’t get requests while offline. Clients can still see your profile.</span></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.anav }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="height:320px;flex:none;position:relative;overflow:hidden;border-bottom:2px solid var(--color-text)">
+<div style="position:absolute;left:0;top:0;width:720px;height:1040px;transform:{{ an.tf }}">
+<lz-map variant="{{ mapVariant }}"></lz-map>
+{{ an.svg }}
+<div style="position:absolute;left:249px;top:604px;display:flex;flex-direction:column;align-items:center"><span style="width:28px;height:28px;background:var(--color-text);color:#fff;display:flex;align-items:center;justify-content:center"><lz-icon name="home" size="16"></lz-icon></span><span style="width:2px;height:10px;background:var(--color-text)"></span></div>
+<div style="position:absolute;left:{{ an.mx }}px;top:{{ an.my }}px;width:40px;height:40px;margin:-20px 0 0 -20px;box-sizing:border-box;background:var(--color-accent);color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.3)"><lz-icon name="navigation" size="20"></lz-icon></div>
+</div>
+<div style="position:absolute;left:12px;right:12px;top:12px;padding:10px 14px;background:var(--color-text);color:#fff;display:flex;align-items:center;gap:12px"><lz-icon name="arrow-left" size="26" style="transform:rotate(135deg)"></lz-icon><span><span style="display:block;font-family:var(--font-heading);font-weight:700;font-size:22px;line-height:22px;text-transform:uppercase">{{ an.turn }}</span><span style="display:block;font-size:12px;opacity:.8">{{ an.turnS }}</span></span></div>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 22px">
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">{{ an.kicker }}</div><div style="font-family:var(--font-heading);font-weight:700;font-size:34px;line-height:34px;text-transform:uppercase;margin-top:2px">{{ an.status }}</div></div>
+<div style="text-align:right"><div style="font-family:var(--font-heading);font-weight:700;font-size:56px;line-height:50px;color:var(--color-accent)">{{ an.big }}</div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">{{ an.bigL }}</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 0;margin-top:14px;border-top:2px solid var(--color-text);border-bottom:1px solid var(--color-divider)">
+<span style="width:52px;height:56px;flex:none;background:var(--color-accent-100);border:1px solid var(--color-accent);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:22px">AO</span>
+<span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:22px;text-transform:uppercase">Amaka O.</span><span style="display:block;font-size:12px;color:var(--color-neutral-800)">12 Admiralty Way, Lekki Phase 1</span></span>
+<button onClick="{{ maskCall }}" aria-label="Call" style="width:48px;height:48px;background:transparent;border:1px solid var(--color-text);color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="phone" size="20"></lz-icon></button>
+<button onClick="{{ aChat }}" aria-label="Chat" style="width:48px;height:48px;background:var(--color-text);border:1px solid var(--color-text);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="message-square" size="20"></lz-icon></button>
+</div>
+<sc-if value="{{ an.codeStep }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:18px"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">Enter the client’s start code</div>
+<input value="{{ code }}" onChange="{{ onCode }}" inputmode="numeric" maxlength="4" placeholder="••••" aria-label="Start code" style="width:100%;box-sizing:border-box;height:64px;padding:0 16px;border:2px solid var(--color-text);border-radius:0;background:transparent;font-family:var(--font-heading);font-weight:700;font-size:40px;letter-spacing:.5em;color:var(--color-text);outline:none">
+<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--color-neutral-700)"><span>{{ an.codeMsg }}</span><button onClick="{{ fillCode }}" style="background:none;border:0;padding:0;color:var(--color-accent-700);font-size:12px;font-weight:700;cursor:pointer">Demo: fill 4827</button></div></div>
+</sc-if>
+<sc-if value="{{ an.done }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px">
+<sc-for list="{{ an.lines }}" as="l" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:14px"><span style="color:var(--color-neutral-800)">{{ l.k }}</span><span style="font-weight:600">{{ l.v }}</span></div></sc-for>
+<div style="font-size:12px;line-height:18px;color:var(--color-neutral-700);margin-top:8px">Paid to GTBank ••4821 once Amaka confirms, or automatically after 24 hours.</div>
+</div>
+</sc-if>
+<sc-if value="{{ an.hasAct }}" hint-placeholder-val="{{ true }}"><button class="blueprint" onClick="{{ an.act }}" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ an.op }}" style-hover="background:var(--color-accent-600)"><span>{{ an.actL }}</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.ajobs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:20px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Scheduled</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ sched }}" as="j" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-divider)"><span><span style="display:block;font-family:var(--font-heading);font-weight:700;font-size:28px;line-height:28px">{{ j.d }}</span><span style="display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">{{ j.m }}</span></span><span style="min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:19px;line-height:21px;text-transform:uppercase">{{ j.t }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-800)">{{ j.s }}</span></span><span style="font-family:var(--font-heading);font-weight:600;font-size:19px">{{ j.p }}</span></div></sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:28px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Completed</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px">
+<sc-for list="{{ apastRows }}" as="j" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span><span style="display:block;font-size:15px;font-weight:600">{{ j.t }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ j.s }}</span></span><span style="font-family:var(--font-heading);font-weight:600;font-size:19px">{{ j.p }}</span></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.earn }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+<div style="padding:20px 20px 0"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">This week · after 20% fee</div><div style="font-family:var(--font-heading);font-weight:700;font-size:64px;line-height:62px">{{ weekTotal }}</div></div>
+<div style="margin:16px 20px 0;height:160px;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;border-bottom:2px solid var(--color-text)">
+<sc-for list="{{ bars }}" as="b" hint-placeholder-count="7"><div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:4px"><span style="font-size:9px;font-weight:700;text-align:center;color:var(--color-neutral-800)">{{ b.v }}</span><div style="height:{{ b.h }}%;background:{{ b.bg }};border:1px solid var(--color-accent);box-sizing:border-box;min-height:2px"></div></div></sc-for>
+</div>
+<div style="margin:6px 20px 0;display:grid;grid-template-columns:repeat(7,1fr);gap:8px"><sc-for list="{{ bars }}" as="b" hint-placeholder-count="7"><span style="text-align:center;font-size:11px;font-weight:700;letter-spacing:.1em;color:{{ b.lc }}">{{ b.d }}</span></sc-for></div>
+<div class="blueprint" style="display:grid;grid-template-columns:1fr 1fr;margin:24px 20px 0;border:1px solid var(--color-text)">
+<div style="padding:12px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Available</div><div style="font-family:var(--font-heading);font-weight:700;font-size:30px">{{ avail }}</div></div>
+<div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Held in escrow</div><div style="font-family:var(--font-heading);font-weight:700;font-size:30px">{{ held }}</div></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="padding:0 20px"><button class="blueprint" onClick="{{ withdraw }}" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Withdraw to GTBank ••4821</span><lz-icon name="landmark" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:28px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Activity</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px"><sc-for list="{{ apastRows }}" as="j" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span><span style="display:block;font-size:15px;font-weight:600">{{ j.t }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ j.s }}</span></span><span style="font-family:var(--font-heading);font-weight:600;font-size:19px;color:var(--color-accent-700)">+{{ j.p }}</span></div></sc-for></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.aacct }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:20px">
+<div style="display:flex;gap:14px;align-items:center;padding:20px">
+<span style="width:64px;height:68px;background:var(--color-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:28px">TB</span>
+<div><div style="font-family:var(--font-heading);font-weight:700;font-size:28px;line-height:28px;text-transform:uppercase">Tunde Bakare</div><div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-accent-700);font-weight:600"><lz-icon name="badge-check" size="15"></lz-icon>ID verified · Plumbing · ★ 4.8</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:4px 0 12px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">01</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Coverage radius</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="padding:0 20px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;line-height:20px;color:var(--color-neutral-800)">You get requests from clients inside this distance.</span><span style="font-family:var(--font-heading);font-weight:700;font-size:40px;line-height:40px;flex:none;margin-left:12px">{{ radius }} km</span></div>
+<input type="range" min="1" max="10" step="1" value="{{ radius }}" onChange="{{ onRadius }}" aria-label="Coverage radius" style="width:100%;margin-top:12px;accent-color:var(--color-accent)">
+<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--color-neutral-700)"><span>1 km</span><span>10 km</span></div></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:24px 0 4px"><span style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">02</span><span style="white-space:nowrap;flex:none;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Account</span><span style="flex:1;height:2px;background:var(--color-text)"></span></div>
+<div style="margin:0 20px"><sc-for list="{{ aRows }}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:14px;min-height:60px;border-bottom:1px solid var(--color-divider)"><lz-icon name="{{ r.ic }}" size="22" style="color:var(--color-accent)"></lz-icon><span style="flex:1"><span style="display:block;font-size:15px;font-weight:600">{{ r.l }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ r.s }}</span></span><lz-icon name="chevron-right" size="18"></lz-icon></div></sc-for></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;height:76px;display:grid;grid-template-columns:repeat(4,1fr);background:var(--color-bg);border-top:2px solid var(--color-text)">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.tap }}" aria-label="{{ t.l }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:0;cursor:pointer;color:var(--color-text);position:relative"><span style="width:60px;height:32px;display:flex;align-items:center;justify-content:center;background:{{ t.bg }};color:{{ t.fg }};border:1px solid {{ t.bd }};box-sizing:border-box;position:relative"><lz-icon name="{{ t.ic }}" size="22"></lz-icon><sc-if value="{{ t.dot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:3px;right:14px;width:8px;height:8px;background:var(--color-accent);border:1.5px solid var(--color-bg)"></span></sc-if></span><span style="font-size:12px;font-weight:{{ t.w }};letter-spacing:.02em">{{ t.l }}</span></button></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasReview }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:20;background:rgba(10,20,15,.45);display:flex;flex-direction:column;justify-content:flex-end">
+<div style="background:var(--color-bg);border-top:2px solid var(--color-text);padding:10px 20px 22px">
+<div style="display:flex;justify-content:center;padding-bottom:10px"><span style="width:40px;height:4px;background:var(--color-neutral-500)"></span></div>
+<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Job done</div>
+<div style="font-family:var(--font-heading);font-weight:700;font-size:34px;line-height:34px;text-transform:uppercase;margin:4px 0 16px">How did {{ rv.first }} do?</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--color-text)"><sc-for list="{{ rv.stars }}" as="st" hint-placeholder-count="5"><button onClick="{{ st.tap }}" aria-label="{{ st.label }}" style="height:56px;background:{{ st.bg }};color:{{ st.fg }};border:0;border-left:1px solid var(--color-divider);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="star" size="26" fill="{{ st.fill }}"></lz-icon></button></sc-for></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"><sc-for list="{{ rv.tags }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.tap }}" style="height:38px;padding:0 12px;background:{{ g.bg }};color:{{ g.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer">{{ g.l }}</button></sc-for></div>
+<div style="display:flex;justify-content:space-between;padding:12px 0;margin-top:16px;border-top:2px solid var(--color-text);font-size:14px"><span>Release to {{ rv.first }}</span><span style="font-weight:700">{{ rv.amt }}</span></div>
+<button class="blueprint" onClick="{{ submitReview }}" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Submit and release payment</span><lz-icon name="check" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasSnack }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:12px;right:12px;bottom:{{ snackB }}px;z-index:30;padding:14px 16px;background:var(--color-text);color:#fff;font-size:14px;line-height:20px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow-lg)"><lz-icon name="circle-check" size="20" style="color:var(--color-accent-300)"></lz-icon><span>{{ snack }}</span></div>
+</sc-if>
+</lz-phone>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mapStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;blueprint&quot;,&quot;clean&quot;],&quot;default&quot;:&quot;blueprint&quot;,&quot;tsType&quot;:&quot;'blueprint'|'clean'&quot;},&quot;showRadius&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showDemand&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const UX = 360, UY = 520, KM = 120, CL = {x:262, y:648};
+const fmt = n => '₦' + Math.round(n).toLocaleString('en-NG');
+const pad = n => String(n).padStart(2, '0');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const SV = [
+  {k:'all',l:'All',ic:'layers'},{k:'clean',l:'Cleaning',ic:'sparkles'},{k:'laundry',l:'Laundry',ic:'shirt'},
+  {k:'repair',l:'Repairs',ic:'wrench'},{k:'cook',l:'Cooking',ic:'chef-hat'},{k:'plumb',l:'Plumbing',ic:'droplets'},
+  {k:'elec',l:'Electrical',ic:'zap'},{k:'ac',l:'AC',ic:'wind'},{k:'gen',l:'Generator',ic:'power'}];
+const SVM = {}; SV.forEach(s => SVM[s.k] = s);
+const AR = [
+  {id:'a1',name:'Chinwe Okafor',ini:'CO',svc:'clean',x:296,y:444,r:4.9,rev:212,jobs:340,from:15000,unit:'per visit',on:true,ver:true,bio:'Deep cleans, post-construction and move-in cleans. Brings her own supplies and works with one assistant on large homes.'},
+  {id:'a2',name:'Tunde Bakare',ini:'TB',svc:'plumb',x:452,y:470,r:4.8,rev:156,jobs:228,from:8000,unit:'call-out',on:true,ver:true,bio:'Leaks, blocked drains, water heaters and borehole pumps. Nine years in Lekki and Ikoyi estates.'},
+  {id:'a3',name:'Mama Tolu Laundry',ini:'MT',svc:'laundry',x:244,y:596,r:4.7,rev:390,jobs:1210,from:600,unit:'per item',on:true,ver:true,laundry:true,bio:'Wash, iron and fold. Free pickup and delivery within 4 km. Native wear and agbada handled separately.'},
+  {id:'a4',name:'Emeka Nwosu',ini:'EN',svc:'elec',x:436,y:612,r:4.9,rev:98,jobs:150,from:7000,unit:'call-out',on:true,ver:true,bio:'Wiring, sockets, inverters and prepaid meter faults.'},
+  {id:'a5',name:'Ibrahim Musa',ini:'IM',svc:'ac',x:526,y:384,r:4.6,rev:74,jobs:96,from:12000,unit:'per unit',on:false,ver:true,bio:'Split unit servicing, gas refill and installation.'},
+  {id:'a6',name:'Kemi Adeyemi',ini:'KA',svc:'cook',x:214,y:356,r:5.0,rev:41,jobs:60,from:25000,unit:'per day',on:true,ver:true,bio:'Nigerian and continental home cooking, weekly meal prep and small events.'},
+  {id:'a7',name:'Segun Alade',ini:'SA',svc:'gen',x:566,y:646,r:4.7,rev:133,jobs:210,from:10000,unit:'call-out',on:true,ver:true,bio:'Generator servicing, rewinding and changeover switches.'},
+  {id:'a8',name:'Bisi Laundromat',ini:'BL',svc:'laundry',x:404,y:300,r:4.8,rev:205,jobs:880,from:700,unit:'per item',on:false,ver:true,laundry:true,bio:'Dry cleaning and same-day express laundry.'},
+  {id:'a9',name:'Yusuf Danjuma',ini:'YD',svc:'repair',x:322,y:704,r:4.5,rev:60,jobs:85,from:6000,unit:'call-out',on:true,ver:false,bio:'Carpentry, door locks, furniture assembly and wall mounting.'},
+  {id:'a10',name:'Ada Clean Co.',ini:'AC',svc:'clean',x:612,y:504,r:4.8,rev:180,jobs:300,from:18000,unit:'per visit',on:true,ver:true,bio:'Team of three for large homes and offices.'}
+].map(a => { const km = Math.hypot(a.x - UX, a.y - UY) / KM; return {...a, km, eta:Math.round(km * 5 + 4)}; });
+const art = id => AR.find(a => a.id === id);
+const first = n => n.split(' ')[0];
+const OPTS = {clean:['Standard clean','Deep clean','Move-in or move-out'],plumb:['Leak repair','Unblock a drain','Water heater fix'],elec:['Fault finding','Socket or switch','Inverter install'],ac:['AC service','Gas refill','New installation'],cook:['Single meal','Full day','Weekly meal prep'],gen:['Routine service','Fault repair','Changeover switch'],repair:['Small fix','Furniture assembly','Door and lock']};
+const MULT = [1, 1.7, 2.6];
+const LITEMS = [['Shirts',600],['Trousers',700],['Bedsheets',1200],['Native wear',1500]];
+const WINS = ['Today, 4–6 pm','Tomorrow, 8–10 am','Tomorrow, 12–2 pm'];
+const WHENS = [['Now','Arrives in ~{eta} min'],['Later today','Pick a time'],['Schedule','Another day']];
+const SLOTS = ['12:00','14:00','16:00','18:00'];
+const REVS = [{n:'Amaka O.',r:5,t:'Came on time and left the place clean.',d:'2 weeks ago'},{n:'Femi A.',r:4,t:'Good work. The price matched the estimate.',d:'1 month ago'}];
+const SVC_STEPS = ['Booked','On the way','Arrived','Working','Done'];
+const LAU_STEPS = ['Booked','Rider coming','Picked up','Washing','Delivering','Delivered'];
+const ZONES = [{x:470,y:430,r:80,l:'High demand'},{x:230,y:330,r:60,l:'Busy'},{x:560,y:680,r:56,l:'Busy'}];
+const WEEK = [['M',12400],['T',18600],['W',9200],['T',22800],['F',15600],['S',0]];
+
+function routePts(a, b) { const my = Math.round((a.y + b.y) / 2); return [a, {x:a.x, y:my}, {x:b.x, y:my}, b]; }
+function along(p, t) {
+  const seg = []; let L = 0;
+  for (let i = 1; i < p.length; i++) { const l = Math.hypot(p[i].x - p[i-1].x, p[i].y - p[i-1].y); seg.push(l); L += l; }
+  let d = t * L;
+  for (let i = 0; i < seg.length; i++) { if (d <= seg[i]) { const f = seg[i] ? d / seg[i] : 0; return {x:p[i].x + (p[i+1].x - p[i].x) * f, y:p[i].y + (p[i+1].y - p[i].y) * f}; } d -= seg[i]; }
+  return p[p.length - 1];
+}
+function routeSvg(p, done) {
+  const pts = p.map(q => q.x + ',' + q.y).join(' ');
+  return React.createElement('svg', {width:720, height:1040, style:{position:'absolute', left:0, top:0, pointerEvents:'none'}},
+    React.createElement('polyline', {points:pts, fill:'none', stroke:'#ffffff', strokeWidth:10, strokeLinejoin:'miter'}),
+    React.createElement('polyline', {points:pts, fill:'none', stroke:'var(--color-accent)', strokeWidth:5, strokeLinejoin:'miter', strokeDasharray:done ? '2 8' : 'none'}));
+}
+function centerOn(pts, w, h) {
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  return 'translate(' + clamp(w / 2 - cx, w - 720, 0) + 'px,' + clamp(h / 2 - cy, h - 1040, 0) + 'px)';
+}
+const MASK = t => t.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email hidden]').replace(/(https?:\/\/|www\.)\S+/gi, '[link hidden]').replace(/\+?\d[\d\s-]{6,}\d/g, '[number hidden]');
+
+const INIT = () => ({
+  role:'client', tab:'explore', stack:[], cat:'all', q:'', sel:null, sheet:'peek', ox:-164, oy:-220, drag:false, layer:null,
+  bookA:null, opt:0, when:0, slot:1, note:'', lc:[5,3,1,0], win:0, express:false,
+  job:null, past:[{aid:'a1',t:'Deep clean',d:'12 Sep',total:28000},{aid:'a4',t:'Socket repair',d:'28 Aug',total:7350}],
+  review:null, stars:5, rtags:['On time'],
+  msgs:{a2:[{me:false,t:'Hello, I saw your request. Is the leak under the sink or from the tap?',at:'09:12'}],a1:[{me:false,t:'Thank you for the review, Amaka.',at:'12 Sep'}]}, chatA:null, draft:'',
+  snack:null, online:false, req:null, reqEnd:0, ajob:null, code:'', earned:6400, radius:5,
+  apast:[{t:'Blocked shower drain',s:'Femi A. · Ikate · Yesterday',p:8000},{t:'Water heater fix',s:'Ngozi E. · Lekki · Wed',p:12000}]
+});
+
+class Component extends DCLogic {
+  state = INIT();
+  chatRef = React.createRef();
+  componentDidMount() { this._iv = setInterval(() => this.tick(), 100); }
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._st); }
+  componentDidUpdate() { const c = this.chatRef.current; if (c) c.scrollTop = c.scrollHeight; }
+  tick() {
+    const st = this.state, now = Date.now();
+    if (st.job) {
+      const j = st.job, mv = j.laundry ? (j.stage === 0 || j.stage === 1 || j.stage === 4) : (j.stage === 0 || j.stage === 1);
+      if (mv) { let t = j.t + (j.stage === 0 ? 0.035 : 0.009), stage = j.stage; if (t >= 1) { t = 0; stage++; } this.setState({job:{...j, t, stage}}); }
+    }
+    if (st.ajob && st.ajob.stage === 0) { let t = st.ajob.t + 0.01; this.setState({ajob:t >= 1 ? {...st.ajob, stage:1, t:1} : {...st.ajob, t}}); }
+    if (st.role === 'artisan' && st.online && !st.req && !st.ajob && this._reqAt && now > this._reqAt) { this._reqAt = 0; this.setState({req:true, reqEnd:now + 30000}); }
+    if (st.req) { if (now >= st.reqEnd) { this._reqAt = now + 6000; this.setState({req:null}); this.toast('Request expired. Next one will come shortly.'); } else this.forceUpdate(); }
+  }
+  toast(m) { clearTimeout(this._st); this.setState({snack:m}); this._st = setTimeout(() => this.setState({snack:null}), 3200); }
+  push(v) { this.setState(s => ({stack:[...s.stack, v]})); }
+  back = () => this.setState(s => ({stack:s.stack.slice(0, -1)}));
+  pick(id) {
+    if (this._moved) { this._moved = false; return; }
+    const a = art(id);
+    this.setState({sel:id, sheet:'peek', ox:clamp(196 - a.x, -328, 0), oy:clamp(230 - a.y, -346, 0)});
+  }
+  startBook(id) { this.setState({bookA:id, opt:0, when:0, slot:1, note:'', lc:[5,3,1,0], win:0, express:false}); this.push({v:'book', a:id}); }
+  bookTotal() {
+    const st = this.state, a = art(st.bookA); if (!a) return {sub:0, fee:0, extra:0, total:0};
+    let sub, extra = 0;
+    if (a.laundry) { sub = st.lc.reduce((s, n, i) => s + n * LITEMS[i][1], 0); extra = st.express ? 2000 : 0; }
+    else { sub = Math.round(a.from * MULT[st.opt] / 500) * 500; }
+    const fee = Math.round((sub + extra) * 0.05);
+    return {sub, fee, extra, total:sub + extra + fee};
+  }
+  pay() {
+    const st = this.state, a = art(st.bookA), b = this.bookTotal();
+    const title = a.laundry ? 'Laundry · ' + st.lc.reduce((s, n) => s + n, 0) + ' items' : OPTS[a.svc][st.opt];
+    this.setState({job:{aid:a.id, laundry:!!a.laundry, stage:0, t:0, total:b.total, title, when:a.laundry ? WINS[st.win] : (st.when === 0 ? 'Now' : SLOTS[st.slot])}, stack:[{v:'track'}], tab:'cjobs', sel:null});
+    this.toast(fmt(b.total) + ' paid into Lezerv escrow');
+  }
+  advance() {
+    const j = this.state.job; if (!j) return;
+    const max = j.laundry ? 5 : 4;
+    if (j.stage >= max) return;
+    this.setState({job:{...j, stage:j.stage + 1, t:0}});
+  }
+  openReview() { this.setState({review:true, stars:5, rtags:['On time']}); }
+  submitReview = () => {
+    const st = this.state, j = st.job, a = art(j.aid);
+    this.setState({review:null, job:null, past:[{aid:a.id, t:j.title, d:'Today', total:j.total}, ...st.past], stack:[], tab:'cjobs'});
+    this.toast('Payment released to ' + first(a.name) + '. Thanks for the review.');
+  };
+  openChat(aid) { this.setState({chatA:aid, draft:''}); this.push({v:'chat'}); }
+  send = () => {
+    const st = this.state, t = st.draft.trim(); if (!t) return;
+    const k = st.role === 'artisan' ? 'client' : st.chatA, m = MASK(t);
+    this.setState({draft:'', msgs:{...st.msgs, [k]:[...(st.msgs[k] || []), {me:true, t:m, at:'Now', masked:m !== t}]}});
+    if (m !== t) this.toast('Contact details are hidden to keep payment on Lezerv');
+  };
+  setRole(r) { this._reqAt = 0; this.setState({role:r, tab:r === 'client' ? 'explore' : 'amap', stack:[], sel:null, ox:-164, oy:-220, req:null}); }
+
+  renderVals() {
+    const st = this.state, P = this.props, isC = st.role === 'client';
+    const top = st.stack[st.stack.length - 1];
+    const v = top ? top.v : st.tab;
+    const s = {}; ['explore','cjobs','msgs','cacct','profile','book','track','chat','amap','anav','ajobs','earn','aacct'].forEach(k => s[k] = v === k);
+    const mapVariant = st.layer || P.mapStyle || 'blueprint';
+    const userDot = React.createElement('div', {style:{position:'absolute', left:UX - 40, top:UY - 40, width:80, height:80, pointerEvents:'none'}},
+      React.createElement('div', {style:{position:'absolute', inset:0, borderRadius:'50%', background:'color-mix(in srgb, var(--color-accent) 30%, transparent)', animation:'lzPulse 2.4s ease-out infinite'}}),
+      React.createElement('div', {style:{position:'absolute', left:31, top:31, width:18, height:18, borderRadius:'50%', background:'var(--color-accent)', border:'3px solid #fff', boxSizing:'border-box', boxShadow:'0 1px 4px rgba(0,0,0,.35)'}}));
+
+    // explore
+    const q = st.q.trim().toLowerCase();
+    const list = AR.filter(a => (st.cat === 'all' || a.svc === st.cat) && (!q || a.name.toLowerCase().includes(q) || SVM[a.svc].l.toLowerCase().includes(q))).sort((a, b) => a.km - b.km);
+    const pins = list.map(a => { const sel = st.sel === a.id, sz = sel ? 44 : 36; return {name:a.name, ic:SVM[a.svc].ic, l:a.x - sz / 2, t:a.y - sz - 8, sz, sel, z:sel ? 6 : (a.on ? 3 : 2),
+      bg:sel ? 'var(--color-text)' : (a.on ? 'var(--color-accent)' : 'var(--color-bg)'), fg:sel || a.on ? '#fff' : 'var(--color-accent)', bd:sel ? 'var(--color-text)' : 'var(--color-accent)', tap:() => this.pick(a.id)}; });
+    const rows = list.map((a, i) => ({n:pad(i + 1), name:a.name, ic:SVM[a.svc].ic, svcL:SVM[a.svc].l, r:a.r.toFixed(1), avail:a.on ? 'Available now' : 'Busy until 3 pm', dist:a.km.toFixed(1) + ' km', eta:a.eta + ' min',
+      pbg:a.on ? 'var(--color-accent)' : 'var(--color-bg)', pfg:a.on ? '#fff' : 'var(--color-accent)', tap:() => this.pick(a.id)}));
+    const chips = SV.map(c => { const on = st.cat === c.k; return {l:c.l, ic:on ? 'check' : c.ic, bg:on ? 'var(--color-accent)' : 'var(--color-bg)', fg:on ? '#fff' : 'var(--color-text)', bd:on ? 'var(--color-accent)' : 'var(--color-text)', tap:() => this.setState({cat:c.k, sel:null})}; });
+    const selA = st.sel ? art(st.sel) : null;
+    const avail = a => ({avail:a.on ? 'Available now' : 'Busy until 3 pm', availBg:a.on ? 'var(--color-accent)' : 'transparent', availFg:a.on ? '#fff' : 'var(--color-accent-800)'});
+    const sa = selA ? {...selA, ...avail(selA), svcL:SVM[selA.svc].l, r:selA.r.toFixed(1), dist:selA.km.toFixed(1) + ' km', eta:selA.eta + ' min', from:fmt(selA.from), cta:selA.laundry ? 'Book pickup' : 'Book now',
+      profile:() => this.push({v:'profile', a:selA.id}), book:() => this.startBook(selA.id)} : {};
+    const sheetH = selA ? 214 : (st.sheet === 'list' ? 470 : 132);
+    const catL = st.cat === 'all' ? 'artisans' : SVM[st.cat].l.toLowerCase();
+
+    // profile
+    const pA = top && top.v === 'profile' ? art(top.a) : null;
+    const pa = pA ? {...pA, ...avail(pA), svcL:SVM[pA.svc].l, r:pA.r.toFixed(1), distN:pA.km.toFixed(1), eta:pA.eta + ' min', from:fmt(pA.from), cta:pA.laundry ? 'Book pickup' : 'Book',
+      mapTf:'translate(' + clamp(176 - pA.x, -340, 0) + 'px,' + clamp(66 - pA.y, -910, 0) + 'px)', zx:pA.x, zy:pA.y,
+      opts:pA.laundry ? LITEMS.map(x => ({l:x[0], p:fmt(x[1])})) : OPTS[pA.svc].map((l, i) => ({l, p:fmt(Math.round(pA.from * MULT[i] / 500) * 500)})), book:() => this.startBook(pA.id)} : {opts:[]};
+    const reviews = REVS.map(r => ({...r, stars:'★'.repeat(r.r) + '☆'.repeat(5 - r.r)}));
+
+    // book
+    const bA = art(st.bookA);
+    const bt = this.bookTotal();
+    const radio = on => ({bg:on ? 'var(--color-accent-100)' : 'transparent', dot:on ? 'var(--color-accent)' : 'transparent'});
+    const seg = on => ({bg:on ? 'var(--color-text)' : 'transparent', fg:on ? '#fff' : 'var(--color-text)'});
+    const bk = bA ? {
+      svc:!bA.laundry, laundry:!!bA.laundry, whereN:bA.laundry ? '04' : '03', payN:bA.laundry ? '05' : '04',
+      opts:bA.laundry ? [] : OPTS[bA.svc].map((l, i) => ({l, p:fmt(Math.round(bA.from * MULT[i] / 500) * 500), ...radio(st.opt === i), tap:() => this.setState({opt:i})})),
+      whens:WHENS.map((w, i) => ({l:w[0], s:w[1].replace('{eta}', bA.eta), ...seg(st.when === i), tap:() => this.setState({when:i})})),
+      showSlots:st.when > 0, slots:SLOTS.map((l, i) => ({l, ...seg(st.slot === i), tap:() => this.setState({slot:i})})),
+      items:LITEMS.map((x, i) => ({l:x[0], p:fmt(x[1]), n:st.lc[i], inc:() => this.setState(s => { const lc = [...s.lc]; lc[i]++; return {lc}; }), dec:() => this.setState(s => { const lc = [...s.lc]; lc[i] = Math.max(0, lc[i] - 1); return {lc}; })})),
+      wins:WINS.map((l, i) => ({l, ...radio(st.win === i), tap:() => this.setState({win:i})})),
+      speeds:[['Standard','Back in 48 hours',false],['Express','24 hours · +₦2,000',true]].map(x => ({l:x[0], s:x[1], ...seg(st.express === x[2]), tap:() => this.setState({express:x[2]})})),
+      notePh:bA.laundry ? 'Anything to know? Stains, delicate items, gate code' : 'Describe the problem. Photos help the artisan bring the right parts.',
+      lines:[{k:bA.laundry ? 'Items' : OPTS[bA.svc][st.opt], v:fmt(bt.sub)}].concat(bt.extra ? [{k:'Express return', v:fmt(bt.extra)}] : []).concat([{k:'Lezerv service fee (5%)', v:fmt(bt.fee)}]),
+      total:fmt(bt.total), payL:'Pay', pay:() => this.pay()
+    } : {opts:[], whens:[], slots:[], items:[], wins:[], speeds:[], lines:[]};
+
+    // track
+    const j = st.job, jA = j ? art(j.aid) : null;
+    let tk = {steps:[], lines:[]};
+    if (j) {
+      const me = {x:UX, y:UY}, base = {x:jA.x, y:jA.y}, pts = routePts(base, me);
+      const moving = j.laundry ? (j.stage === 1 || j.stage === 4) : j.stage === 1;
+      let pos = base;
+      if (moving) pos = along(pts, j.t);
+      else if (j.laundry ? (j.stage === 5) : j.stage >= 2) pos = me;
+      else if (j.laundry && (j.stage === 2 || j.stage === 3)) pos = base;
+      const etaN = Math.max(1, Math.ceil((1 - (moving ? j.t : 0)) * jA.eta));
+      const fn = first(jA.name), names = j.laundry ? LAU_STEPS : SVC_STEPS;
+      const ST = j.laundry ? [
+        ['Booking confirmed', 'Pickup booked', 'Finding a rider from ' + jA.name + '.'],
+        ['Rider on the way', 'Coming to you', 'Have your laundry bagged and ready.'],
+        ['Collected', 'Picked up', j.title + ' counted and tagged at your door.'],
+        ['At ' + jA.name, 'Washing', 'Washed, ironed and folded. Usually ready in ' + (st.express ? '24' : '48') + ' hours.'],
+        ['Out for delivery', 'On its way back', 'The rider is bringing your laundry.'],
+        ['Delivered', 'All done', 'Check your items, then rate and release payment.']] : [
+        ['Booking confirmed', 'Confirming', fn + ' is accepting your job.'],
+        [fn + ' is driving', 'On the way', 'Live location. Share the start code when they arrive.'],
+        [fn + ' is at your gate', 'Arrived', 'Give ' + fn + ' the start code to begin the job.'],
+        ['Timer running', 'Working', fn + ' is on the job. Payment stays in escrow.'],
+        ['Finished', 'Job done', 'Check the work, then rate and release payment.']];
+      const cur = ST[j.stage];
+      const maxS = j.laundry ? 5 : 4;
+      const act = j.stage === maxS ? {l:'Rate and release payment', f:() => this.openReview()} : (!j.laundry && j.stage === 3 ? {l:'Confirm the job is done', f:() => this.advance()} : null);
+      tk = {
+        tf:centerOn(pts, 392, 300), svg:routeSvg(pts, !moving), ox:base.x, oy:base.y, oic:j.laundry ? 'shirt' : SVM[jA.svc].ic, mx:pos.x, my:pos.y, mic:j.laundry ? 'truck' : 'navigation',
+        live:moving ? 'Live · updated now' : (j.stage === maxS ? 'Completed' : 'Live tracking'),
+        kicker:cur[0], status:cur[1], sub:cur[2], showEta:moving, eta:pad(etaN),
+        steps:names.map((l, i) => ({l, bg:i < j.stage || (i === j.stage && j.stage === maxS) ? 'var(--color-accent)' : (i === j.stage ? 'repeating-linear-gradient(45deg, var(--color-accent) 0 2px, transparent 2px 5px)' : 'transparent'), fg:i <= j.stage ? 'var(--color-text)' : 'var(--color-neutral-600)'})),
+        ini:jA.ini, name:jA.name, meta:SVM[jA.svc].l + ' · ★ ' + jA.r.toFixed(1) + (j.laundry ? ' · Rider: Musa' : ' · Toyota Corolla · LND 482 KJ'),
+        call:() => this.toast('Calling through a Lezerv number. Your number stays hidden.'), chat:() => this.openChat(jA.id),
+        showCode:!j.laundry && j.stage <= 2, codeNote:j.stage === 2 ? fn + ' is here. Read out this code.' : 'Only share this when ' + fn + ' is at your door.',
+        lines:[{k:'Job', v:j.title}, {k:j.laundry ? 'Pickup' : 'When', v:j.when}, {k:'Held in escrow', v:fmt(j.total)}],
+        hasAct:!!act, actL:act ? act.l : '', act:act ? act.f : () => {}, canSkip:j.stage < maxS && !act && !(j.stage === 0)
+      };
+    }
+
+    // jobs & msgs
+    const aj = j ? {ic:j.laundry ? 'truck' : 'navigation', k:tk.kicker, t:j.title, s:jA.name + ' · ' + tk.status + (tk.showEta ? ' · ' + tk.eta + ' min' : '')} : {};
+    const pastRows = st.past.map(p => { const a = art(p.aid); return {t:p.t, s:a.name + ' · ' + p.d + ' · ' + fmt(p.total), again:() => this.startBook(a.id)}; });
+    const threads = (isC ? Object.keys(st.msgs).filter(k => k !== 'client').map(k => { const a = art(k), m = st.msgs[k], l = m[m.length - 1]; return {ini:a.ini, name:a.name, time:l.at, last:(l.me ? 'You: ' : '') + l.t, tap:() => this.openChat(k)}; }) : []);
+    const chatKey = isC ? st.chatA : 'client';
+    const cmsgs = (st.msgs[chatKey] || []).map(m => ({t:m.t, meta:m.at + (m.masked ? ' · details hidden' : ''), al:m.me ? 'flex-end' : 'flex-start', bg:m.me ? 'var(--color-accent)' : 'transparent', fg:m.me ? '#fff' : 'var(--color-text)', bd:m.me ? 'var(--color-accent)' : 'var(--color-text)'}));
+    const cRows = [
+      {ic:'map-pin', l:'Saved addresses', s:'Home · 12 Admiralty Way', tap:() => this.toast('Saved addresses')},
+      {ic:'credit-card', l:'Payment methods', s:'Card ••2291 · Bank transfer', tap:() => this.toast('Payment methods')},
+      {ic:'shield-check', l:'Safety', s:'Start codes, masked calls, trusted contacts', tap:() => this.toast('Safety centre')},
+      {ic:'wrench', l:'Become an artisan', s:'Earn with Lezerv in your area', tap:() => this.setRole('artisan')},
+      {ic:'life-buoy', l:'Help', s:'Chat with Lezerv support', tap:() => this.toast('Support')}];
+
+    // artisan
+    const aj2 = st.ajob, ON = st.online;
+    const ringD = st.radius * KM * 0.5 * 2;
+    let an = {lines:[]};
+    if (aj2) {
+      const pts = routePts({x:UX, y:UY}, CL), pos = aj2.stage === 0 ? along(pts, aj2.t) : CL;
+      const eta = Math.max(1, Math.ceil((1 - aj2.t) * 4));
+      const codeOk = st.code === '4827';
+      const S = [
+        {kicker:'Heading to client', status:'On the way', big:pad(eta), bigL:'min', act:null},
+        {kicker:'You have arrived', status:'Start the job', big:'—', bigL:'code', act:{l:'Start job', f:() => { if (codeOk) this.setState({ajob:{...aj2, stage:2, start:Date.now()}}); else this.toast('Enter the 4-digit code from the client'); }}},
+        {kicker:'Timer running', status:'In progress', big:pad(Math.floor((Date.now() - (aj2.start || Date.now())) / 60000)), bigL:'min on job', act:{l:'Mark job complete', f:() => this.setState(s => ({ajob:{...s.ajob, stage:3}, earned:s.earned + 6400, apast:[{t:'Leaking kitchen sink', s:'Amaka O. · Lekki Phase 1 · Today', p:6400}, ...s.apast], msgs:{...s.msgs}}))}},
+        {kicker:'Job complete', status:'Nice work', big:'+6.4K', bigL:'naira', act:{l:'Back to map', f:() => { this._reqAt = 0; this.setState({ajob:null, stack:[], tab:'amap', code:''}); this.toast('₦6,400 added to escrow. Released when Amaka confirms.'); }}}][aj2.stage];
+      an = {...S, tf:centerOn(pts, 392, 320), svg:routeSvg(pts, aj2.stage > 0), mx:pos.x, my:pos.y,
+        turn:aj2.stage === 0 ? 'Turn left · 200 m' : 'Destination', turnS:aj2.stage === 0 ? 'onto Admiralty Way' : '12 Admiralty Way, on your right',
+        codeStep:aj2.stage === 1, codeMsg:st.code.length === 4 ? (codeOk ? 'Code accepted' : 'That code doesn’t match') : 'Ask Amaka for her code',
+        done:aj2.stage === 3, lines:[{k:'Call-out', v:'₦8,000'}, {k:'Lezerv fee (20%)', v:'−₦1,600'}, {k:'You earn', v:'₦6,400'}],
+        hasAct:!!S.act, actL:S.act ? S.act.l : '', act:S.act ? S.act.f : () => {}, op:aj2.stage === 1 && !codeOk ? 0.5 : 1};
+    }
+    const reqLeft = st.req ? Math.max(0, st.reqEnd - Date.now()) : 0;
+    const wk = WEEK.concat([['S', st.earned]]), mx = Math.max(...wk.map(w => w[1]));
+    const bars = wk.map((w, i) => ({d:w[0], v:w[1] ? (w[1] / 1000).toFixed(1) + 'k' : '—', h:Math.round(w[1] / mx * 82), bg:i === 6 ? 'var(--color-accent)' : 'transparent', lc:i === 6 ? 'var(--color-accent-700)' : 'var(--color-neutral-700)'}));
+    const apastRows = st.apast.map(x => ({...x, p:fmt(x.p)}));
+
+    // chrome
+    const tabsDef = isC ? [['explore','Explore','map'],['cjobs','Jobs','briefcase'],['msgs','Messages','message-square'],['cacct','Account','user']] : [['amap','Map','map'],['ajobs','Jobs','briefcase'],['earn','Earnings','wallet'],['aacct','Account','user']];
+    const tabs = tabsDef.map(t => { const on = st.tab === t[0]; return {l:t[1], ic:t[2], bg:on ? 'var(--color-accent-100)' : 'transparent', fg:on ? 'var(--color-accent-800)' : 'var(--color-text)', bd:on ? 'var(--color-accent)' : 'transparent', w:on ? 700 : 500, dot:(t[0] === 'cjobs' && !!j && !on), tap:() => this.setState({tab:t[0], stack:[], sel:null})}; });
+    const TT = {cjobs:['Your jobs','Jobs','briefcase'], msgs:['Masked chat','Messages','message-square'], cacct:['Client','Account','user'], ajobs:['Your work','Jobs','briefcase'], earn:['Payouts','Earnings','wallet'], aacct:['Artisan','Account','user']};
+    const ttd = TT[v] || ['', '', 'user'];
+    const PH = {profile:[pA ? pA.name : '', pA ? SVM[pA.svc].l + ' · ' + pA.km.toFixed(1) + ' km away' : ''], book:[bA ? (bA.laundry ? 'Laundry pickup' : 'Book ' + first(bA.name)) : '', bA ? bA.name + ' · ' + SVM[bA.svc].l : ''], track:[j ? (j.laundry ? 'Laundry order' : 'Live job') : 'Job', j ? j.title + ' · ' + jA.name : ''], chat:[isC ? (st.chatA ? art(st.chatA).name : '') : 'Amaka O.', 'Contact details are hidden'], anav:['Job · Leaking sink', 'Amaka O. · Lekki Phase 1']};
+    const ph = PH[v] ? {title:PH[v][0], sub:PH[v][1]} : {title:'', sub:''};
+    const rvA = j ? art(j.aid) : null;
+    const rv = {first:rvA ? first(rvA.name) : '', amt:j ? fmt(j.total) : '',
+      stars:[1,2,3,4,5].map(n => ({label:n + ' stars', fill:st.stars >= n ? 'currentColor' : 'none', bg:st.stars >= n ? 'var(--color-accent-100)' : 'transparent', fg:st.stars >= n ? 'var(--color-accent)' : 'var(--color-neutral-600)', tap:() => this.setState({stars:n})})),
+      tags:['On time','Tidy','Fair price','Friendly','Explained the work'].map(l => { const on = st.rtags.includes(l); return {l, ...seg(on), tap:() => this.setState(s => ({rtags:on ? s.rtags.filter(x => x !== l) : [...s.rtags, l]}))}; })};
+    const showNav = !top;
+
+    return {
+      s, isClient:isC, isArtisan:!isC, mapVariant, userDot,
+      roleBtns:[['client','Client','user'],['artisan','Artisan','wrench']].map(r => ({l:r[1], ic:r[2], bg:st.role === r[0] ? 'var(--color-text)' : 'transparent', fg:st.role === r[0] ? '#fff' : 'var(--color-text)', tap:() => this.setRole(r[0])})),
+      reset:() => { clearTimeout(this._st); this._reqAt = 0; this.setState(INIT()); },
+      showPush:!!top, showTabTop:!top && !s.explore && !s.amap, tt:{k:ttd[0], t:ttd[1], ic:ttd[2]}, ph, back:this.back,
+      mapTf:'translate(' + st.ox + 'px,' + st.oy + 'px)', mapTr:st.drag ? 'none' : 'transform .45s ease',
+      panDown:e => { this._d = {x:e.clientX, y:e.clientY, ox:st.ox, oy:st.oy, m:false}; this._moved = false; this.setState({drag:true}); },
+      panMove:e => { const d = this._d; if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (Math.abs(dx) + Math.abs(dy) > 5) d.m = true; if (d.m) this.setState({ox:clamp(d.ox + dx, -328, 0), oy:clamp(d.oy + dy, -346, 0)}); },
+      panUp:() => { if (this._d) { this._moved = this._d.m; this._d = null; this.setState({drag:false}); setTimeout(() => { this._moved = false; }, 50); } },
+      showRadius:P.showRadius ?? true, showDemand:P.showDemand ?? true,
+      pins, rows, noRows:rows.length === 0, chips, q:st.q, onQ:e => this.setState({q:e.target.value, sel:null}),
+      openAcct:() => this.setState({tab:'cacct'}), toggleLayer:() => this.setState({layer:mapVariant === 'blueprint' ? 'clean' : 'blueprint'}),
+      recenter:() => this.setState({ox:-164, oy:-220}),
+      hasSel:!!selA, noSel:!selA, sa, clearSel:() => this.setState({sel:null}), sheetH, scaleB:sheetH + 12,
+      toggleSheet:() => this.setState(x => ({sel:null, sheet:x.sheet === 'list' ? 'peek' : 'list'})), sheetBtn:st.sheet === 'list' ? 'Map' : 'List', sheetIc:st.sheet === 'list' ? 'map' : 'list',
+      nearCount:list.filter(a => a.on).length, nearSub:'Available ' + catL + ' within 2.5 km · Lekki Phase 1',
+      pa, reviews, bk, note:st.note, onNote:e => this.setState({note:e.target.value}), changeAddr:() => this.toast('Drag the pin to set a new address'),
+      tk, codeDigits:['4','8','2','7'], skip:() => this.advance(),
+      hasJob:!!j, noJob:!j, aj, openTrack:() => this.push({v:'track'}), pastRows,
+      threads, cmsgs, chatRef:this.chatRef, draft:st.draft, onDraft:e => this.setState({draft:e.target.value}), onDraftKey:e => { if (e.key === 'Enter') this.send(); }, send:this.send, cRows,
+      online:ON, onBg:ON ? 'var(--color-accent)' : 'var(--color-bg)', onFg:ON ? '#fff' : 'var(--color-text)', onBd:ON ? 'var(--color-accent)' : 'var(--color-text)',
+      onT:ON ? 'Online' : 'Offline', onS:ON ? 'Receiving requests within ' + st.radius + ' km' : 'Go online to receive job requests',
+      swBg:ON ? '#fff' : 'transparent', swBd:ON ? '#fff' : 'var(--color-text)', swJ:ON ? 'flex-end' : 'flex-start', swK:ON ? 'var(--color-accent)' : 'var(--color-text)',
+      toggleOnline:() => { const n = !st.online; this._reqAt = n ? Date.now() + 2500 : 0; this.setState({online:n, req:null}); },
+      zones:ZONES.map(z => ({l:z.x - z.r, t:z.y - z.r, d:z.r * 2, l2:z.l})), ring:{l:UX - ringD / 2, t:UY - ringD / 2, d:ringD},
+      hasReq:!!st.req && s.amap, waitingReq:ON && !st.req && !aj2, offlineHint:!ON,
+      reqPct:(reqLeft / 30000 * 100).toFixed(1), reqSec:Math.ceil(reqLeft / 1000),
+      declineReq:() => { this._reqAt = Date.now() + 6000; this.setState({req:null}); this.toast('Declined. Your acceptance rate is 94%.'); },
+      acceptReq:() => this.setState({req:null, ajob:{stage:0, t:0}, code:'', stack:[{v:'anav'}]}),
+      todayEarn:fmt(st.earned), radius:st.radius, onRadius:e => this.setState({radius:+e.target.value}),
+      an, code:st.code, onCode:e => this.setState({code:e.target.value.replace(/\D/g, '').slice(0, 4)}), fillCode:() => this.setState({code:'4827'}),
+      maskCall:() => this.toast('Calling Amaka through a Lezerv number'), aChat:() => this.push({v:'chat'}),
+      sched:[{d:'06', m:'Oct', t:'Borehole pump check', s:'Mr Okeke · Ikoyi · 10:00', p:'₦12,000'}, {d:'08', m:'Oct', t:'Install water heater', s:'Ngozi E. · Lekki · 14:00', p:'₦18,000'}],
+      apastRows, bars, weekTotal:fmt(wk.reduce((a, w) => a + w[1], 0)), avail:fmt(48200), held:fmt(st.earned), withdraw:() => this.toast('₦48,200 on its way to GTBank ••4821'),
+      aRows:[{ic:'badge-check', l:'Verification', s:'ID and address verified'}, {ic:'wrench', l:'Services and prices', s:'Plumbing · 3 services'}, {ic:'landmark', l:'Payout account', s:'GTBank ••4821'}, {ic:'settings', l:'Settings', s:'Notifications, language'}],
+      tabs, showNav, hasReview:!!st.review, rv, submitReview:this.submitReview,
+      hasSnack:!!st.snack, snack:st.snack, snackB:showNav ? 88 : 84
+    };
+  }
+}
+</script>
+</body>
+</html>

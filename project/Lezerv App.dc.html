@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/styles.css">
+<script src="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/_ds_bundle.js"></script>
+<script src="lz-icon.js"></script>
+<script src="lz-phone.js"></script>
+<style>body{margin:0}lz-phone *{scrollbar-width:none}lz-phone *::-webkit-scrollbar{display:none}button,input,textarea,select{font-family:inherit}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-600)}input::placeholder,textarea::placeholder{color:var(--color-neutral-600)}</style>
+</helmet>
+<div style="min-height:100vh;background-color:var(--color-bg);background-image:linear-gradient(color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px);background-size:32px 32px;display:flex;flex-wrap:wrap;gap:64px;justify-content:center;align-items:flex-start;padding:48px 28px;box-sizing:border-box;font-family:var(--font-body);color:var(--color-text)">
+<aside style="width:344px;max-width:100%;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Sheet 00</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Android prototype</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<h1 style="font-size:64px;line-height:56px;text-transform:uppercase;margin:16px 0 8px;letter-spacing:-.01em">Lezerv</h1>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;text-transform:uppercase;letter-spacing:.02em;margin-bottom:22px">Post. Match. Agree. Do. Review.</div>
+<div class="blueprint" style="display:flex;border:1px solid var(--color-text);background:var(--color-bg)">
+<sc-for list="{{ roleBtns }}" as="r" hint-placeholder-count="2"><button onClick="{{ r.tap }}" style="flex:1;min-height:48px;padding:0 14px;border:0;background:{{ r.bg }};color:{{ r.fg }};font-family:var(--font-heading);font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px"><lz-icon name="{{ r.ic }}" size="18"></lz-icon>{{ r.l }}</button></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="display:flex;align-items:center;gap:10px;margin:30px 0 12px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">01</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Try this</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<ol style="margin:0;padding-left:20px;font-size:14px;line-height:21px;display:flex;flex-direction:column;gap:8px">
+<li>Client › Jobs › Fix leaking kitchen sink. Accept the price, pay into escrow, open chat and type a phone number.</li>
+<li>Switch to Artisan › My jobs. Start that job, then mark it complete.</li>
+<li>Client › Jobs › Done › Deep clean. Review it, then book Chinwe again.</li>
+<li>Artisan › My jobs › Replace bathroom tap. Send a price or choose Can’t take it.</li>
+<li>Client › Post. Post a job and see the “finding someone” state.</li>
+</ol>
+<div style="display:flex;align-items:center;gap:10px;margin:30px 0 12px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">02</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Assumptions</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<ul style="margin:0;padding-left:20px;font-size:14px;line-height:21px;display:flex;flex-direction:column;gap:8px">
+<li>Industry system: Barlow Condensed, square objects with registration marks, hairlines, one steel accent. Status is shown by label and fill, not by hue.</li>
+<li>PROPOSAL: escrow and payment, earnings, Messages as a tab for artisans, “post a job for this artisan” in place of the dead-end Request form, and widen search. Paystack is not connected yet.</li>
+<li>Names, counts and prices are sample data. Commission is 20%.</li>
+</ul>
+<button onClick="{{ reset }}" style="margin-top:22px;align-self:flex-start;min-height:44px;padding:0 14px;background:transparent;border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;display:flex;gap:8px;align-items:center" style-hover="background:var(--color-neutral-200)"><lz-icon name="refresh-cw" size="16"></lz-icon>Reset prototype</button>
+</aside>
+<lz-phone>
+<sc-if value="{{ showTop }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:flex;align-items:center;padding:2px 4px 2px 20px;min-height:56px;background:var(--color-bg)">
+<sc-if value="{{ hdr.brand }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;background:var(--color-accent)"></span></span><span style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:1;letter-spacing:.08em;text-transform:uppercase">Lezerv</span></span></sc-if>
+<sc-if value="{{ hdr.plain }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:1;letter-spacing:.04em;text-transform:uppercase">{{ hdr.title }}</span></sc-if>
+<span style="flex:1"></span>
+<sc-if value="{{ isClient }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openInbox }}" aria-label="Messages" style="position:relative;width:48px;height:48px;background:none;border:0;color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="message-square" size="24"></lz-icon><sc-if value="{{ hasUnreadChat }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:11px;right:10px;width:9px;height:9px;background:var(--color-accent)"></span></sc-if></button></sc-if>
+<button onClick="{{ openNotifs }}" aria-label="Notifications" style="position:relative;width:48px;height:48px;background:none;border:0;color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="bell" size="24"></lz-icon><sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:7px;right:6px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ unread }}</span></sc-if></button>
+</div>
+<div style="height:1px;background:var(--color-text);opacity:.25;flex:none"></div>
+</sc-if>
+<sc-if value="{{ showPush }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;align-items:center;gap:4px;padding:2px 16px 2px 4px;min-height:56px;background:var(--color-bg)">
+<button onClick="{{ back }}" aria-label="Back" style="width:48px;height:48px;background:none;border:0;color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="arrow-left" size="24"></lz-icon></button>
+<div style="flex:1;min-width:0"><div style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ph.title }}</div><div style="font-size:12px;line-height:15px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ph.sub }}</div></div>
+</div>
+<div style="height:1px;background:var(--color-text);opacity:.25;flex:none"></div>
+</sc-if>
+
+<sc-if value="{{ s.home }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:24px 20px 26px">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Lagos</span><span style="flex:1;height:1px;background:var(--color-divider)"></span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Hello, Amaka</span></div>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:60px;line-height:54px;letter-spacing:-.01em;text-transform:uppercase;margin:16px 0 14px">What needs fixing at home?</div>
+<div style="font-size:16px;line-height:24px;color:var(--color-neutral-800);margin-bottom:22px">Post a job. Verified artisans in your area apply and Lezerv picks one for you.</div>
+<button class="blueprint" onClick="{{ openPost }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)"><span>Post a job</span><lz-icon name="arrow-right" size="24"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+<sc-if value="{{ hasActive }}" hint-placeholder-val="{{ false }}">
+<div style="padding:0 20px 24px"><button class="blueprint" onClick="{{ active.tap }}" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px;background:var(--color-accent-100);border:1px solid var(--color-accent);text-align:left;cursor:pointer;color:var(--color-text)"><lz-icon name="circle-alert" size="24" style="color:var(--color-accent-700)"></lz-icon><span style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-800)">Needs your reply</span><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:24px;text-transform:uppercase;letter-spacing:.02em">{{ active.title }}</span><span style="display:block;font-size:14px;line-height:20px;color:var(--color-accent-800)">{{ active.sub }}</span></span><lz-icon name="chevron-right" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div>
+</sc-if>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin-bottom:14px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">01</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Services</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div class="blueprint" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--color-divider);margin:0 20px;border:1px solid var(--color-divider)">
+<sc-for list="{{ services }}" as="sv" hint-placeholder-count="8"><button onClick="{{ sv.tap }}" style="height:96px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;background:var(--color-bg);border:0;color:var(--color-text);text-align:left;cursor:pointer" style-hover="background:var(--color-accent-100)"><span style="display:flex;justify-content:space-between;width:100%;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--color-neutral-600)"><span>{{ sv.n }}</span><lz-icon name="{{ sv.ic }}" size="22" style="color:var(--color-text)"></lz-icon></span><span style="font-family:var(--font-heading);font-weight:600;font-size:17px;line-height:17px;text-transform:uppercase;letter-spacing:.03em">{{ sv.k }}</span></button></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:30px 0 8px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">02</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">How Lezerv works</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div style="margin:0 20px">
+<sc-for list="{{ how }}" as="h" hint-placeholder-count="3"><div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--color-divider)"><span style="font-family:var(--font-heading);font-weight:600;font-size:44px;line-height:40px;color:transparent;-webkit-text-stroke:1px var(--color-accent-700);width:56px;flex:none">{{ h.n }}</span><span><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:23px;line-height:26px;text-transform:uppercase;letter-spacing:.02em">{{ h.t }}</span><span style="display:block;font-size:14px;line-height:20px;color:var(--color-neutral-800)">{{ h.d }}</span></span></div></sc-for>
+</div>
+<div class="blueprint" style="margin:30px 20px 28px;padding:18px 16px;border:1px solid var(--color-text)">
+<div style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:28px;text-transform:uppercase;letter-spacing:.02em;margin-bottom:14px">Keep chat and payment on Lezerv.</div>
+<div style="display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:20px">
+<div style="display:flex;gap:10px"><lz-icon name="badge-check" size="20" style="color:var(--color-accent-700)"></lz-icon>Every artisan is ID-checked before approval.</div>
+<div style="display:flex;gap:10px"><lz-icon name="eye-off" size="20" style="color:var(--color-accent-700)"></lz-icon>Phone numbers, emails and links are hidden in chat.</div>
+<div style="display:flex;gap:10px"><lz-icon name="lock" size="20" style="color:var(--color-accent-700)"></lz-icon>You pay Lezerv. The artisan is paid when the job is done.</div>
+</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.find }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Area</div>
+<select value="{{ fArea }}" onChange="{{ onArea }}" style="width:100%;height:48px;padding:0 12px;background:var(--color-bg);border:1px solid var(--color-text);border-radius:0;font-size:16px;color:var(--color-text)"><option value="All">All areas</option><sc-for list="{{ areaOpts }}" as="a" hint-placeholder-count="3"><option value="{{ a.n }}">{{ a.n }}</option></sc-for></select></div>
+<div style="display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px">
+<sc-for list="{{ chips }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.tap }}" style="flex:none;min-height:40px;padding:0 14px;background:{{ c.bg }};color:{{ c.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap">{{ c.k }}</button></sc-for>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;padding:6px 20px 24px">
+<sc-for list="{{ found }}" as="a" hint-placeholder-count="3"><button class="blueprint" onClick="{{ a.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px;background:transparent;border:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)" style-hover="background:var(--color-accent-100)"><span style="width:64px;height:72px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:28px;letter-spacing:.04em;border:1px solid var(--color-accent)">{{ a.ini }}</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="display:flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;text-transform:uppercase;letter-spacing:.02em">{{ a.name }}<sc-if value="{{ a.ver }}" hint-placeholder-val="{{ false }}"><lz-icon name="badge-check" size="18" style="color:var(--color-accent-700)"></lz-icon></sc-if></span><span style="font-size:13px;line-height:19px;color:var(--color-neutral-800)">{{ a.line }}</span><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-700);margin-top:4px">{{ a.svc }} · {{ a.areas }}</span></span><lz-icon name="chevron-right" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-for>
+</div>
+<sc-if value="{{ noFound }}" hint-placeholder-val="{{ false }}"><div style="padding:8px 20px 32px"><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:30px;text-transform:uppercase;margin-bottom:8px">No artisans here yet</div><div style="font-size:15px;line-height:22px;color:var(--color-neutral-800);margin-bottom:16px">Post a job and we will notify verified artisans who cover this area.</div><button class="blueprint" onClick="{{ openPost }}" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Post a job</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.artisan }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:22px 20px;display:flex;gap:16px;align-items:stretch">
+<span class="blueprint" style="width:92px;height:108px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:40px;letter-spacing:.04em;border:1px solid var(--color-accent)">{{ av.ini }}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<div style="display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0"><div style="font-family:var(--font-heading);font-weight:600;font-size:38px;line-height:36px;text-transform:uppercase;letter-spacing:.01em">{{ av.name }}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:3px 8px;border:1px solid var(--color-accent);color:var(--color-accent-800);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ av.svc }}</span><sc-if value="{{ av.ver }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="badge-check" size="13"></lz-icon>Verified</span></sc-if></div></div>
+</div>
+<div class="blueprint" style="display:grid;grid-template-columns:repeat(3,1fr);margin:0 20px;border:1px solid var(--color-divider)">
+<div style="padding:12px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Rating</div><div style="font-family:var(--font-heading);font-weight:600;font-size:36px;line-height:38px">{{ av.rating }}</div><div style="font-size:11px;color:var(--color-neutral-700)">{{ av.rev }} reviews</div></div>
+<div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Jobs</div><div style="font-family:var(--font-heading);font-weight:600;font-size:36px;line-height:38px">{{ av.jobs }}</div><div style="font-size:11px;color:var(--color-neutral-700)">completed</div></div>
+<div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Years</div><div style="font-family:var(--font-heading);font-weight:600;font-size:36px;line-height:38px">{{ av.yrs }}</div><div style="font-size:11px;color:var(--color-neutral-700)">on the job</div></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:26px 0 8px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">01</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">About</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div style="padding:0 20px"><div style="font-size:16px;line-height:24px">{{ av.bio }}</div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px"><lz-icon name="map-pin" size="18" style="color:var(--color-accent-700)"></lz-icon>{{ av.areas }}</div></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin:26px 0 8px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">02</span><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Reviews</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div style="padding:0 20px 24px"><sc-for list="{{ reviews }}" as="r" hint-placeholder-count="2"><div style="padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:20px;text-transform:uppercase;letter-spacing:.03em"><span>{{ r.n }}</span><span>{{ r.r }} / 5</span></div><div style="font-size:14px;line-height:20px;color:var(--color-neutral-800);margin-top:2px">{{ r.t }}</div></div></sc-for></div>
+</div>
+<div style="flex:none;border-top:1px solid var(--color-text);padding:14px 20px 12px;background:var(--color-bg)">
+<button class="blueprint" onClick="{{ av.post }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Post a job for {{ av.first }}</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<div style="font-size:12px;line-height:16px;color:var(--color-neutral-700);margin-top:10px">{{ av.first }} is asked first. If they cannot take it, matching artisans are notified.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.jobs }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex:none;border-bottom:1px solid var(--color-text);background:var(--color-bg)">
+<sc-for list="{{ jobTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.tap }}" style="flex:1;min-height:48px;background:transparent;border:0;border-bottom:3px solid {{ t.bar }};margin-bottom:-1px;font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:{{ t.fg }};cursor:pointer;text-align:left;padding:0 20px">{{ t.l }}</button></sc-for>
+</div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px">
+<sc-for list="{{ jobList }}" as="j" hint-placeholder-count="3"><button class="blueprint" onClick="{{ j.tap }}" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:14px;background:transparent;border:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)" style-hover="background:var(--color-accent-100)">
+<span style="display:flex;gap:6px;align-items:center"><span style="padding:3px 8px;background:{{ j.pill.bg }};color:{{ j.pill.fg }};border:{{ j.pill.bd }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ j.pill.l }}</span><sc-if value="{{ j.attn }}" hint-placeholder-val="{{ false }}"><span style="padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Reply needed</span></sc-if><span style="flex:1"></span><sc-if value="{{ j.unread }}" hint-placeholder-val="{{ false }}"><lz-icon name="message-square" size="16" style="color:var(--color-accent-700)"></lz-icon></sc-if><span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--color-neutral-600)">{{ j.no }}</span></span>
+<span style="font-family:var(--font-heading);font-weight:600;font-size:26px;line-height:26px;text-transform:uppercase;letter-spacing:.01em">{{ j.title }}</span>
+<span style="font-size:13px;line-height:18px;color:var(--color-neutral-700)">{{ j.meta }}</span>
+<span style="font-size:14px;line-height:20px;font-weight:700;color:var(--color-accent-800);border-top:1px solid var(--color-divider);padding-top:8px">{{ j.line }}</span>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-for>
+<sc-if value="{{ noJobs }}" hint-placeholder-val="{{ false }}"><div style="padding:8px 0"><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:30px;text-transform:uppercase;margin-bottom:8px">{{ emptyTitle }}</div><div style="font-size:15px;line-height:22px;color:var(--color-neutral-800);margin-bottom:16px">{{ emptyBody }}</div><button class="blueprint" onClick="{{ openPost }}" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Post a job</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.job }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:20px 20px 18px">
+<div style="font-family:var(--font-heading);font-weight:600;font-size:44px;line-height:42px;letter-spacing:-.005em;text-transform:uppercase;margin-bottom:16px">{{ jd.title }}</div>
+<div class="blueprint" style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--color-divider)">
+<div style="padding:8px 12px;border-bottom:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Job no.</div><div style="font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.06em">{{ jd.no }}</div></div>
+<div style="padding:8px 12px;border-bottom:1px solid var(--color-divider);border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:3px">Status</div><span style="display:inline-block;padding:2px 8px;background:{{ jd.pill.bg }};color:{{ jd.pill.fg }};border:{{ jd.pill.bd }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ jd.pill.l }}</span></div>
+<div style="padding:8px 12px"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Service</div><div style="font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.04em;text-transform:uppercase">{{ jd.svc }}</div></div>
+<div style="padding:8px 12px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Area · posted</div><div style="font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.04em;text-transform:uppercase">{{ jd.areaPosted }}</div></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);padding:0 20px 24px">
+<sc-for list="{{ jd.steps }}" as="p" hint-placeholder-count="4"><div><div style="display:flex;align-items:center"><span style="width:12px;height:12px;flex:none;background:{{ p.node }};border:1px solid {{ p.nb }}"></span><span style="flex:1;height:1px;background:{{ p.line }}"></span></div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:6px;color:{{ p.fg }}">{{ p.l }}</div></div></sc-for>
+</div>
+<sc-if value="{{ jd.open }}" hint-placeholder-val="{{ false }}">
+<div style="padding:0 20px 24px"><div class="blueprint" style="padding:16px;border:1px solid var(--color-text)">
+<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px"><span style="width:40px;height:40px;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:center;flex:none"><span style="width:14px;height:14px;background:var(--color-accent)"></span></span><div style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:28px;text-transform:uppercase">We’re finding someone</div></div>
+<div style="font-size:15px;line-height:22px;color:var(--color-neutral-800)">{{ jd.notified }} verified artisans who cover {{ jd.area }} were notified. {{ jd.interested }} have shown interest. Lezerv picks the best match and tells you here.</div>
+<sc-if value="{{ jd.hasReq }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;line-height:20px;margin-top:10px;font-weight:700">{{ jd.req }}</div></sc-if>
+<button onClick="{{ jd.widen }}" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span>Widen to nearby areas</span><lz-icon name="map-pin" size="20"></lz-icon></button>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</sc-if>
+<sc-if value="{{ jd.hasA }}" hint-placeholder-val="{{ false }}">
+<div style="padding:0 20px 24px"><div class="blueprint" style="padding:14px;border:1px solid var(--color-divider)"><div style="display:flex;gap:14px;align-items:center"><span style="width:56px;height:64px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:26px;letter-spacing:.04em;border:1px solid var(--color-accent)">{{ jd.aIni }}</span><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:26px;text-transform:uppercase;letter-spacing:.02em">{{ jd.aName }}<lz-icon name="badge-check" size="18" style="color:var(--color-accent-700)"></lz-icon></div><div style="font-size:13px;color:var(--color-neutral-800)">{{ jd.aLine }}</div></div></div>
+<button onClick="{{ jd.chat }}" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span style="display:flex;align-items:center;gap:8px">Chat<sc-if value="{{ jd.unread }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;background:var(--color-accent)"></span></sc-if></span><lz-icon name="message-square" size="20"></lz-icon></button>
+<div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;line-height:16px;color:var(--color-neutral-700)"><lz-icon name="lock" size="14"></lz-icon>Chat is protected. Phone numbers and links are hidden.</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</sc-if>
+<sc-if value="{{ jd.pNone }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 24px"><div class="blueprint" style="padding:14px;border:1px dashed var(--color-neutral-600);display:flex;gap:12px;font-size:15px;line-height:22px"><lz-icon name="clock" size="22"></lz-icon><span>Waiting for {{ jd.aFirst }} to send a price.</span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div></sc-if>
+<sc-if value="{{ jd.pQuoted }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 24px"><div class="blueprint" style="padding:16px;border:1px solid var(--color-accent);background:var(--color-accent-100)">
+<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-800)">{{ jd.aFirst }} sent a price · {{ jd.kindLabel }}</div>
+<div style="display:flex;align-items:flex-start;gap:6px;margin:6px 0"><span style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin-top:10px;color:var(--color-accent-800)">NGN</span><span style="font-family:var(--font-heading);font-weight:600;font-size:68px;line-height:64px;letter-spacing:-.01em">{{ jd.amtN }}</span></div>
+<div style="font-size:14px;line-height:20px;margin-bottom:8px">{{ jd.note }}</div>
+<div style="display:flex;gap:8px;font-size:13px;line-height:18px;color:var(--color-accent-800);margin-bottom:16px"><lz-icon name="info" size="16"></lz-icon>{{ jd.warn }}</div>
+<button class="blueprint" onClick="{{ jd.accept }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Accept {{ jd.amt }}</span><lz-icon name="check" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<button onClick="{{ jd.decline }}" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span>Decline</span><lz-icon name="x" size="20"></lz-icon></button>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div></sc-if>
+<sc-if value="{{ jd.pDeclined }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 24px"><div class="blueprint" style="padding:14px;border:1px dashed var(--color-neutral-600);font-size:15px;line-height:22px"><div style="font-family:var(--font-heading);font-weight:600;font-size:22px;text-transform:uppercase;margin-bottom:2px">You declined {{ jd.amt }}</div>{{ jd.aFirst }} can send a revised price. You can also chat to explain.<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div></sc-if>
+<sc-if value="{{ jd.pAgreed }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 24px"><div class="blueprint" style="padding:16px;border:1px solid var(--color-text)">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Price agreed · {{ jd.kindLabel }}</div><div style="display:flex;align-items:flex-start;gap:6px;margin-top:6px"><span style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin-top:10px;color:var(--color-accent-800)">NGN</span><span style="font-family:var(--font-heading);font-weight:600;font-size:68px;line-height:64px;letter-spacing:-.01em">{{ jd.amtN }}</span></div></div><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="check" size="13"></lz-icon>Agreed</span></div>
+<sc-if value="{{ jd.canPay }}" hint-placeholder-val="{{ false }}"><button class="blueprint" onClick="{{ jd.pay }}" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Pay into escrow</span><lz-icon name="wallet" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button><div style="font-size:12px;line-height:16px;color:var(--color-neutral-700);margin-top:10px">{{ jd.aFirst }} starts once your payment is held by Lezerv.</div></sc-if>
+<sc-if value="{{ jd.paid }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:center;margin-top:14px;padding:12px;border:1px solid var(--color-accent);background:var(--color-accent-100);font-size:14px;line-height:20px"><lz-icon name="lock" size="20" style="color:var(--color-accent-700)"></lz-icon><span>{{ jd.escrowText }}</span></div></sc-if>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div></sc-if>
+<sc-if value="{{ jd.hasVisit }}" hint-placeholder-val="{{ false }}"><div style="margin:0 20px 24px;padding:12px 14px;border:1px solid var(--color-divider);display:flex;gap:12px;align-items:center;font-size:14px;line-height:20px"><lz-icon name="calendar" size="22" style="color:var(--color-accent-700)"></lz-icon>{{ jd.visitText }}</div></sc-if>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin-bottom:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Detail</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div style="padding:0 20px 22px"><div style="font-size:15px;line-height:22px">{{ jd.desc }}</div>
+<sc-if value="{{ jd.hasPhotos }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px"><sc-for list="{{ jd.photos }}" as="ph" hint-placeholder-count="3"><div class="blueprint" style="aspect-ratio:1;background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 6px,var(--color-neutral-300) 6px,var(--color-neutral-300) 7px);display:flex;align-items:center;justify-content:center;color:var(--color-neutral-700)"><lz-icon name="image" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for></div></sc-if></div>
+<sc-if value="{{ jd.canReview }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px"><button class="blueprint" onClick="{{ jd.review }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Rate {{ jd.aFirst }}</span><lz-icon name="star" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div></sc-if>
+<sc-if value="{{ jd.reviewed }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:700"><lz-icon name="star" size="20" fill="currentColor" style="color:var(--color-accent-700)"></lz-icon>{{ jd.ratingTxt }}</div></sc-if>
+<sc-if value="{{ jd.canRebook }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px"><button onClick="{{ jd.rebook }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-neutral-200)"><span>{{ jd.rebookLabel }}</span><lz-icon name="refresh-cw" size="22"></lz-icon></button><div style="font-size:12px;line-height:16px;color:var(--color-neutral-700);margin-top:8px">Same address and contact. Two taps.</div></div></sc-if>
+<sc-if value="{{ jd.canCancel }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 30px"><button onClick="{{ jd.cancel }}" style="min-height:44px;padding:0;background:none;border:0;color:var(--color-text);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-decoration:underline;text-underline-offset:4px">Cancel this job</button></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.chat }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;gap:10px;align-items:center;padding:10px 20px;background:var(--color-accent-100);border-bottom:1px solid var(--color-accent);font-size:12px;line-height:16px;color:var(--color-accent-800)"><lz-icon name="lock" size="16"></lz-icon>Phone numbers, emails and links are hidden. Keep chat and payment on Lezerv.</div>
+<div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ cmsgs }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:{{ m.al }};max-width:100%">
+<div style="max-width:84%;padding:10px 12px;background:{{ m.bg }};color:{{ m.fg }};border:{{ m.bd }};font-size:{{ m.fs }}px;line-height:20px;text-align:{{ m.ta }}">{{ m.t }}</div>
+<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-top:3px">{{ m.at }}</div></div></sc-for>
+</div>
+<div style="flex:none;display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--color-text);background:var(--color-bg)">
+<input value="{{ msg }}" onChange="{{ onMsg }}" onKeyDown="{{ onKey }}" placeholder="Message" style="flex:1;min-width:0;height:48px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" />
+<button class="blueprint" onClick="{{ send }}" aria-label="Send" style="width:48px;height:48px;flex:none;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--color-accent-600)"><lz-icon name="send" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.notifs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+<sc-for list="{{ notifList }}" as="n" hint-placeholder-count="3"><button class="blueprint" onClick="{{ n.tap }}" style="display:flex;gap:12px;width:100%;padding:14px;background:{{ n.bg }};border:1px solid {{ n.bd }};text-align:left;cursor:pointer;color:var(--color-text)"><span style="width:9px;height:9px;flex:none;margin-top:8px;background:{{ n.dot }}"></span><span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:24px;text-transform:uppercase;letter-spacing:.02em">{{ n.title }}</span><span style="display:block;font-size:14px;line-height:20px;color:var(--color-neutral-800)">{{ n.body }}</span><span style="display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-top:4px">{{ n.time }}</span></span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.inbox }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+<sc-for list="{{ convs }}" as="c" hint-placeholder-count="2"><button class="blueprint" onClick="{{ c.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:12px;background:transparent;border:1px solid var(--color-divider);text-align:left;cursor:pointer;color:var(--color-text)" style-hover="background:var(--color-accent-100)"><span style="width:48px;height:56px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);border:1px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:.04em">{{ c.ini }}</span><span style="flex:1;min-width:0"><span style="display:flex;justify-content:space-between;gap:8px;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:24px;text-transform:uppercase;letter-spacing:.02em"><span>{{ c.name }}</span><span style="font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--color-neutral-600);white-space:nowrap;padding-top:6px">{{ c.at }}</span></span><span style="display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.job }}</span><span style="display:block;font-size:14px;line-height:20px;font-weight:{{ c.w }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.last }}</span></span><sc-if value="{{ c.unread }}" hint-placeholder-val="{{ false }}"><span style="width:10px;height:10px;flex:none;background:var(--color-accent)"></span></sc-if><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-for>
+<sc-if value="{{ noConvs }}" hint-placeholder-val="{{ false }}"><div style="font-size:15px;line-height:22px;color:var(--color-neutral-800)"><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:30px;text-transform:uppercase;color:var(--color-text);margin-bottom:8px">No messages yet</div>Chat opens when Lezerv matches you with someone.</div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.account }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:22px 20px;display:flex;gap:16px;align-items:center"><span class="blueprint" style="width:68px;height:80px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);border:1px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:30px;letter-spacing:.04em">{{ acc.ini }}<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span><div><div style="font-family:var(--font-heading);font-weight:600;font-size:32px;line-height:32px;text-transform:uppercase">{{ acc.name }}</div><div style="font-size:14px;line-height:20px;color:var(--color-neutral-700);margin-top:2px">{{ acc.sub }}</div></div></div>
+<sc-if value="{{ acc.art }}" hint-placeholder-val="{{ false }}"><div style="margin:0 20px 14px;border:1px solid var(--color-divider);padding:14px;display:flex;align-items:center;gap:14px"><div style="flex:1"><div style="font-family:var(--font-heading);font-weight:600;font-size:22px;text-transform:uppercase;letter-spacing:.02em">Ready for work</div><div style="font-size:13px;line-height:18px;color:var(--color-neutral-700)">{{ acc.availTxt }}</div></div><button onClick="{{ toggleAvail }}" role="switch" aria-label="Ready for work" style="width:56px;height:32px;flex:none;padding:3px;border:1px solid var(--color-text);background:{{ acc.trackBg }};display:flex;justify-content:{{ acc.knobPos }};cursor:pointer"><span style="width:24px;height:24px;background:{{ acc.knobBg }}"></span></button></div>
+<div style="margin:0 20px 22px;border:1px solid var(--color-divider);padding:14px;display:flex;gap:12px;align-items:center"><lz-icon name="badge-check" size="24" style="color:var(--color-accent-700)"></lz-icon><div style="flex:1"><div style="font-family:var(--font-heading);font-weight:600;font-size:20px;text-transform:uppercase;letter-spacing:.02em">ID verified · Approved</div><div style="font-size:13px;line-height:18px;color:var(--color-neutral-700)">NIN, proof of address and photo reviewed by Lezerv</div></div></div></sc-if>
+<div style="padding:0 20px 22px"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:8px">Use Lezerv as</div>
+<div class="blueprint" style="display:flex;border:1px solid var(--color-text);background:var(--color-bg)"><sc-for list="{{ roleBtns }}" as="r" hint-placeholder-count="2"><button onClick="{{ r.tap }}" style="flex:1;min-height:48px;padding:0 12px;border:0;background:{{ r.bg }};color:{{ r.fg }};font-family:var(--font-heading);font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px"><lz-icon name="{{ r.ic }}" size="18"></lz-icon>{{ r.l }}</button></sc-for><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+<div style="padding:0 20px 28px">
+<sc-for list="{{ accRows }}" as="r" hint-placeholder-count="5"><button onClick="{{ r.tap }}" style="display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:10px 0;background:transparent;border:0;border-top:1px solid var(--color-divider);text-align:left;cursor:pointer;color:{{ r.fg }}" style-hover="background:var(--color-accent-100)"><lz-icon name="{{ r.ic }}" size="22"></lz-icon><span style="flex:1;min-width:0"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:24px;text-transform:uppercase;letter-spacing:.03em">{{ r.l }}</span><span style="display:block;font-size:13px;line-height:18px;color:var(--color-neutral-700)">{{ r.sub }}</span></span><lz-icon name="chevron-right" size="20"></lz-icon></button></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.board }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="margin:16px 20px 6px;padding:12px 14px;border:1px solid {{ boardBd }};background:{{ boardBg }};display:flex;align-items:center;gap:14px"><lz-icon name="{{ boardIc }}" size="24" style="color:var(--color-accent-800)"></lz-icon><div style="flex:1;font-size:13px;line-height:18px"><div style="font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:24px;text-transform:uppercase;letter-spacing:.03em">{{ boardHead }}</div>{{ boardSub }}</div></div>
+<div style="padding:12px 20px 24px;display:flex;flex-direction:column;gap:18px">
+<sc-for list="{{ boardList }}" as="b" hint-placeholder-count="3"><div class="blueprint" style="padding:14px;border:1px solid var(--color-divider);display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)"><span>{{ b.svc }} · {{ b.area }}</span><span>{{ b.posted }}</span></div>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:27px;line-height:27px;text-transform:uppercase">{{ b.title }}</div>
+<div style="font-size:14px;line-height:20px;color:var(--color-neutral-800);border-top:1px solid var(--color-divider);padding-top:8px;margin-top:2px">Budget: {{ b.budget }} · {{ b.count }} interested</div>
+<button onClick="{{ b.tap }}" disabled="{{ b.done }}" style="margin-top:6px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:{{ b.bg }};color:{{ b.fg }};border:1px solid {{ b.bd }};font-family:var(--font-heading);font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:{{ b.cur }}"><span>{{ b.label }}</span><lz-icon name="{{ b.ic }}" size="20"></lz-icon></button>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.ajobs }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 26px;display:flex;flex-direction:column;gap:20px">
+<sc-for list="{{ ajList }}" as="j" hint-placeholder-count="2"><div class="blueprint" style="padding:14px;border:1px solid var(--color-text);display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span style="padding:3px 8px;background:{{ j.pill.bg }};color:{{ j.pill.fg }};border:{{ j.pill.bd }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ j.pill.l }}</span><sc-if value="{{ j.asked }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="refresh-cw" size="12"></lz-icon>Asked for you</span></sc-if><span style="flex:1"></span><span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--color-neutral-600)">{{ j.no }}</span></div>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:29px;text-transform:uppercase">{{ j.title }}</div>
+<div style="font-size:13px;line-height:18px;color:var(--color-neutral-700)">{{ j.meta }}</div>
+<sc-if value="{{ j.hasVisit }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;align-items:center;font-size:14px"><lz-icon name="calendar" size="18" style="color:var(--color-accent-700)"></lz-icon>{{ j.visitText }}</div></sc-if>
+<div style="font-size:15px;line-height:22px;border-top:1px solid var(--color-divider);padding-top:8px">{{ j.stage }}</div>
+<sc-if value="{{ j.hasPayout }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;border:1px solid var(--color-accent);background:var(--color-accent-100);font-size:13px"><span>{{ j.payoutTxt }}</span><span style="font-family:var(--font-heading);font-weight:600;font-size:26px;line-height:26px">{{ j.payout }}</span></div></sc-if>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+<sc-if value="{{ j.canQuote }}" hint-placeholder-val="{{ false }}"><button class="blueprint" onClick="{{ j.quote }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:0 16px;background:{{ j.quoteBg }};color:{{ j.quoteFg }};border:1px solid {{ j.quoteBd }};font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span>{{ j.quoteLabel }}</span><lz-icon name="banknote" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+<sc-if value="{{ j.canVisit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ j.visitDone }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span>Mark site visit done</span><lz-icon name="calendar" size="20"></lz-icon></button></sc-if>
+<sc-if value="{{ j.canStart }}" hint-placeholder-val="{{ false }}"><button class="blueprint" onClick="{{ j.start }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Start job</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+<sc-if value="{{ j.canComplete }}" hint-placeholder-val="{{ false }}"><button class="blueprint" onClick="{{ j.complete }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Mark complete</span><lz-icon name="check" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-if>
+<div style="display:flex;gap:8px"><button onClick="{{ j.chat }}" style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span style="display:flex;align-items:center;gap:8px">Chat<sc-if value="{{ j.unread }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;background:var(--color-accent)"></span></sc-if></span><lz-icon name="message-square" size="20"></lz-icon></button>
+<sc-if value="{{ j.canDecline }}" hint-placeholder-val="{{ false }}"><button onClick="{{ j.decline }}" style="flex:1;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px dashed var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer">Can’t take it</button></sc-if></div>
+</div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for>
+<sc-if value="{{ noAj }}" hint-placeholder-val="{{ false }}"><div><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:30px;text-transform:uppercase;margin-bottom:8px">No assigned jobs</div><div style="font-size:15px;line-height:22px;color:var(--color-neutral-800)">Express interest on the Board. Lezerv assigns one artisan per job.</div></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.earn }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;overflow-y:auto">
+<div style="padding:24px 20px 20px"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Available to withdraw</div><div style="display:flex;align-items:flex-start;gap:6px;margin:8px 0 18px"><span style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin-top:12px;color:var(--color-accent-800)">NGN</span><span style="font-family:var(--font-heading);font-weight:600;font-size:76px;line-height:72px;letter-spacing:-.01em">{{ earn.availN }}</span></div>
+<button class="blueprint" onClick="{{ earn.withdraw }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Withdraw to bank</span><lz-icon name="landmark" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div>
+<div class="blueprint" style="display:grid;grid-template-columns:1fr 1fr;margin:0 20px 20px;border:1px solid var(--color-divider)"><div style="padding:12px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">In escrow</div><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:34px">{{ earn.escrow }}</div></div><div style="padding:12px 14px;border-left:1px solid var(--color-divider)"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)">Paid out this month</div><div style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:34px">{{ earn.paid }}</div></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="margin:0 20px 22px;padding:12px 14px;border:1px solid var(--color-accent);background:var(--color-accent-100);display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:20px"><lz-icon name="circle-alert" size="22" style="color:var(--color-accent-700)"></lz-icon><span><b>Add your payout account.</b> Bank account and BVN are needed before the first withdrawal.</span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 20px;margin-bottom:8px"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">How you are paid</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<div style="padding:0 20px 26px;font-size:14px;line-height:21px;color:var(--color-neutral-800)">The client pays Lezerv when the price is agreed. Lezerv holds it, takes 20% commission and releases the rest when the job is marked complete.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ s.post }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:14px 20px 4px;flex:none"><sc-for list="{{ pv.bars }}" as="b" hint-placeholder-count="3"><div><div style="height:3px;background:{{ b.bg }}"></div><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;color:{{ b.fg }}">{{ b.n }} {{ b.l }}</div></div></sc-for></div>
+<sc-if value="{{ pv.s1 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:20px">
+<sc-if value="{{ pv.hasFor }}" hint-placeholder-val="{{ false }}"><div style="padding:12px;border:1px solid var(--color-accent);background:var(--color-accent-100);font-size:14px;line-height:20px;display:flex;gap:10px"><lz-icon name="user" size="20" style="color:var(--color-accent-700)"></lz-icon><span>Asking <b>{{ pv.forName }}</b> first. If they cannot take it, matching artisans are notified.</span></div></sc-if>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">What do you need done?</div><input value="{{ draft.title }}" onChange="{{ dTitle }}" placeholder="e.g. Fix leaking kitchen sink" style="width:100%;height:52px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" /></div>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Service</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><sc-for list="{{ pv.services }}" as="x" hint-placeholder-count="8"><button onClick="{{ x.tap }}" style="min-height:48px;padding:0 12px;display:flex;align-items:center;gap:10px;background:{{ x.bg }};color:{{ x.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.04em;text-transform:uppercase;text-align:left;cursor:pointer"><lz-icon name="{{ x.ic }}" size="20"></lz-icon>{{ x.k }}</button></sc-for></div></div>
+</div></sc-if>
+<sc-if value="{{ pv.s2 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:20px">
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Area</div><input value="{{ draft.areaQ }}" onChange="{{ dAreaQ }}" placeholder="Search 24 Lagos areas" style="width:100%;height:48px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" />
+<div style="max-height:176px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0"><sc-for list="{{ pv.areas }}" as="a" hint-placeholder-count="6"><button onClick="{{ a.tap }}" style="display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;padding:0 12px;background:{{ a.bg }};color:var(--color-text);border:0;border-bottom:1px solid var(--color-divider);font-size:15px;font-weight:{{ a.w }};text-align:left;cursor:pointer">{{ a.n }}<sc-if value="{{ a.on }}" hint-placeholder-val="{{ false }}"><lz-icon name="check" size="18" style="color:var(--color-accent-700)"></lz-icon></sc-if></button></sc-for></div></div>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">When</div><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ pv.whens }}" as="w" hint-placeholder-count="4"><button onClick="{{ w.tap }}" style="min-height:44px;padding:0 14px;background:{{ w.bg }};color:{{ w.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer">{{ w.l }}</button></sc-for></div></div>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Address or landmark (optional)</div><input value="{{ draft.address }}" onChange="{{ dAddress }}" placeholder="Street, estate or landmark" style="width:100%;height:48px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" /></div>
+</div></sc-if>
+<sc-if value="{{ pv.s3 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:20px">
+<div><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:8px"><span>Photos</span><span>{{ pv.count }} of 10</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><sc-for list="{{ pv.photos }}" as="p" hint-placeholder-count="2"><button class="blueprint" onClick="{{ p.rm }}" aria-label="Remove photo" style="aspect-ratio:1;padding:0;cursor:pointer;color:var(--color-neutral-700);background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 6px,var(--color-neutral-300) 6px,var(--color-neutral-300) 7px);display:flex;align-items:center;justify-content:center"><lz-icon name="image" size="20"></lz-icon><span style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:var(--color-text);color:var(--color-bg);display:flex;align-items:center;justify-content:center"><lz-icon name="x" size="12"></lz-icon></span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></sc-for>
+<sc-if value="{{ pv.canAdd }}" hint-placeholder-val="{{ true }}"><button onClick="{{ pv.add }}" aria-label="Add photo" style="aspect-ratio:1;background:transparent;border:1px dashed var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text)"><lz-icon name="camera" size="24"></lz-icon></button></sc-if></div>
+<div style="font-size:12px;line-height:17px;color:var(--color-neutral-700);margin-top:10px">Photos are resized on your phone to save data. Only the matched artisan and Lezerv can see them.</div></div>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Phone for the Lezerv team</div><input value="{{ draft.phone }}" onChange="{{ dPhone }}" inputmode="tel" style="width:100%;height:52px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" /><div style="font-size:12px;line-height:17px;color:var(--color-neutral-700);margin-top:6px">Never shown to the artisan.</div></div>
+<div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Budget (optional)</div><input value="{{ draft.budget }}" onChange="{{ dBudget }}" placeholder="e.g. ₦20,000 to ₦30,000" style="width:100%;height:48px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" /></div>
+</div></sc-if>
+<sc-if value="{{ pv.notDone }}" hint-placeholder-val="{{ false }}"><div style="flex:none;display:flex;gap:8px;padding:14px 20px 12px;border-top:1px solid var(--color-text);background:var(--color-bg)">
+<sc-if value="{{ pv.hasPrev }}" hint-placeholder-val="{{ false }}"><button onClick="{{ back }}" style="width:54px;height:54px;flex:none;background:transparent;color:var(--color-text);border:1px solid var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center" aria-label="Previous step"><lz-icon name="arrow-left" size="22"></lz-icon></button></sc-if>
+<button class="blueprint" onClick="{{ pv.next }}" disabled="{{ pv.cant }}" style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ pv.nextOp }}"><span>{{ pv.nextLabel }}</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div></sc-if>
+<sc-if value="{{ pv.done }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow-y:auto;padding:28px 20px">
+<span class="blueprint" style="width:64px;height:64px;background:var(--color-accent);color:var(--color-bg);display:flex;align-items:center;justify-content:center"><lz-icon name="check" size="36"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<div style="font-family:var(--font-heading);font-weight:600;font-size:56px;line-height:50px;text-transform:uppercase;margin:20px 0 10px">Job posted</div>
+<div style="font-size:16px;line-height:24px;color:var(--color-neutral-800)">We’re finding someone. Verified {{ pv.svc }} artisans who cover {{ pv.area }} have been notified.</div>
+<div style="margin-top:20px;border-top:1px solid var(--color-text)"><sc-for list="{{ pv.next3 }}" as="n" hint-placeholder-count="3"><div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:15px;line-height:21px"><span style="width:26px;flex:none;font-family:var(--font-heading);font-weight:600;font-size:26px;line-height:22px;color:var(--color-accent-700)">{{ n.n }}</span><span><b>{{ n.t }}</b><br />{{ n.d }}</span></div></sc-for></div>
+<button class="blueprint" onClick="{{ pv.view }}" style="margin-top:26px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>View my job</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<button onClick="{{ pv.home }}" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span>Back to home</span><lz-icon name="home" size="20"></lz-icon></button>
+</div></sc-if>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--color-text);background:var(--color-bg)">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5"><button onClick="{{ t.tap }}" style="position:relative;height:62px;background:{{ t.bg }};color:{{ t.fg }};border:0;border-top:3px solid {{ t.bar }};margin-top:-1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--font-heading);font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;line-height:1;cursor:pointer"><lz-icon name="{{ t.ic }}" size="22"></lz-icon>{{ t.l }}<sc-if value="{{ t.dot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;right:calc(50% - 20px);width:8px;height:8px;background:var(--color-accent)"></span></sc-if></button></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:16px;right:16px;bottom:84px;z-index:30;background:var(--color-text);color:var(--color-bg);padding:14px 16px;font-size:14px;line-height:20px;font-weight:700;display:flex;gap:10px;align-items:center"><lz-icon name="circle-check" size="20"></lz-icon>{{ toast }}</div></sc-if>
+
+<sc-if value="{{ hasSheet }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end">
+<button onClick="{{ close }}" aria-label="Close" style="flex:1;min-height:60px;background:color-mix(in srgb, var(--color-neutral-900) 55%, transparent);border:0;cursor:default"></button>
+<div style="background:var(--color-bg);border-top:1px solid var(--color-text);max-height:86%;overflow-y:auto;padding:20px 20px 26px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px"><div style="font-family:var(--font-heading);font-weight:600;font-size:34px;line-height:32px;text-transform:uppercase">{{ sh.title }}</div><button onClick="{{ close }}" aria-label="Close" style="width:44px;height:44px;margin:-8px -10px 0 0;background:none;border:0;color:var(--color-text);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="x" size="24"></lz-icon></button></div>
+
+<sc-if value="{{ sh.pay }}" hint-placeholder-val="{{ false }}"><div>
+<div style="display:flex;align-items:flex-start;gap:6px"><span style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin-top:10px;color:var(--color-accent-800)">NGN</span><span style="font-family:var(--font-heading);font-weight:600;font-size:64px;line-height:60px">{{ sh.amtN }}</span></div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin:8px 0 16px">Held by Lezerv until you confirm the job is done. {{ sh.first }} receives {{ sh.net }} after 20% commission.</div>
+<div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ sh.methods }}" as="m" hint-placeholder-count="3"><button onClick="{{ m.tap }}" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;background:{{ m.bg }};border:{{ m.bd }};color:var(--color-text);text-align:left;cursor:pointer"><lz-icon name="{{ m.ic }}" size="22"></lz-icon><span style="flex:1"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:20px;text-transform:uppercase;letter-spacing:.03em">{{ m.l }}</span><span style="display:block;font-size:12px;color:var(--color-neutral-700)">{{ m.sub }}</span></span><sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><lz-icon name="check" size="20" style="color:var(--color-accent-700)"></lz-icon></sc-if></button></sc-for></div>
+<div style="margin:14px 0;padding:10px 12px;background:var(--color-accent-100);border:1px solid var(--color-accent);font-size:12px;line-height:17px;color:var(--color-accent-800);display:flex;gap:8px"><lz-icon name="info" size="16"></lz-icon>Preview. Card and escrow switch on when Paystack is connected.</div>
+<button class="blueprint" onClick="{{ doPay }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Pay {{ sh.amt }}</span><lz-icon name="lock" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.review }}" hint-placeholder-val="{{ false }}"><div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin-bottom:12px">How was {{ sh.name }}? Only people who used Lezerv can review.</div>
+<div style="display:flex;gap:6px;margin-bottom:14px"><sc-for list="{{ sh.stars }}" as="s" hint-placeholder-count="5"><button onClick="{{ s.tap }}" aria-label="{{ s.label }}" style="width:52px;height:52px;background:transparent;border:1px solid var(--color-text);color:var(--color-accent-700);cursor:pointer;display:flex;align-items:center;justify-content:center"><lz-icon name="star" size="28" fill="{{ s.fill }}"></lz-icon></button></sc-for></div>
+<textarea value="{{ f.note }}" onChange="{{ fNote }}" placeholder="Comment (optional)" style="width:100%;min-height:88px;padding:10px 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text);resize:none" style-focus="border-color:var(--color-accent)"></textarea>
+<button class="blueprint" onClick="{{ doReview }}" disabled="{{ sh.cantReview }}" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ sh.reviewOp }}"><span>Submit review</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.rebook }}" hint-placeholder-val="{{ false }}"><div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin-bottom:14px">Same address and contact as last time. {{ sh.first }} is asked first and can say no.</div>
+<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">What do you need?</div>
+<input value="{{ f.title }}" onChange="{{ fTitle }}" style="width:100%;height:52px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text)" style-focus="border-color:var(--color-accent)" />
+<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin:14px 0 6px">When</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ sh.whens }}" as="w" hint-placeholder-count="4"><button onClick="{{ w.tap }}" style="min-height:44px;padding:0 14px;background:{{ w.bg }};color:{{ w.fg }};border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer">{{ w.l }}</button></sc-for></div>
+<button class="blueprint" onClick="{{ doRebook }}" style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Ask {{ sh.first }}</span><lz-icon name="refresh-cw" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.quote }}" hint-placeholder-val="{{ false }}"><div>
+<div style="display:flex;border:1px solid var(--color-text);margin-bottom:6px"><sc-for list="{{ sh.kinds }}" as="k" hint-placeholder-count="2"><button onClick="{{ k.tap }}" disabled="{{ k.dis }}" style="flex:1;min-height:48px;padding:0 12px;border:0;background:{{ k.bg }};color:{{ k.fg }};font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ k.op }}">{{ k.l }}</button></sc-for></div>
+<div style="font-size:12px;line-height:17px;color:var(--color-neutral-700);margin-bottom:14px">{{ sh.kindNote }}</div>
+<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:6px">Price</div>
+<div style="display:flex;align-items:center;background:var(--color-surface);border:1px solid var(--color-divider)"><span style="padding:0 6px 0 14px;font-family:var(--font-heading);font-weight:600;font-size:24px;color:var(--color-accent-800)">NGN</span><input value="{{ f.amt }}" onChange="{{ fAmt }}" inputmode="numeric" placeholder="0" style="flex:1;min-width:0;height:60px;padding:0 12px 0 0;background:transparent;border:0;font-family:var(--font-heading);font-weight:600;font-size:36px;color:var(--color-text);outline:none" /></div>
+<div style="margin:14px 0;border-top:1px solid var(--color-text)"><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px solid var(--color-divider)"><span>Client pays</span><b>{{ sh.gross }}</b></div><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px solid var(--color-divider)"><span>Lezerv commission (20%)</span><span>− {{ sh.fee }}</span></div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0"><span style="font-family:var(--font-heading);font-weight:600;font-size:22px;text-transform:uppercase;letter-spacing:.03em">You receive</span><span style="font-family:var(--font-heading);font-weight:600;font-size:30px">{{ sh.net }}</span></div></div>
+<textarea value="{{ f.note }}" onChange="{{ fNote }}" placeholder="What is included (optional)" style="width:100%;min-height:72px;padding:10px 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text);resize:none" style-focus="border-color:var(--color-accent)"></textarea>
+<button class="blueprint" onClick="{{ doQuote }}" disabled="{{ sh.cantQuote }}" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ sh.quoteOp }}"><span>Send price</span><lz-icon name="send" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.decline }}" hint-placeholder-val="{{ false }}"><div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin-bottom:12px">The job goes back to matching artisans and you lose access to this chat. This is only possible before a price is agreed.</div>
+<div style="display:flex;flex-direction:column;gap:8px"><sc-for list="{{ sh.reasons }}" as="r" hint-placeholder-count="4"><button onClick="{{ r.tap }}" style="display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 14px;background:{{ r.bg }};border:{{ r.bd }};color:var(--color-text);font-size:15px;font-weight:700;text-align:left;cursor:pointer">{{ r.l }}<sc-if value="{{ r.on }}" hint-placeholder-val="{{ false }}"><lz-icon name="check" size="20" style="color:var(--color-accent-700)"></lz-icon></sc-if></button></sc-for></div>
+<button class="blueprint" onClick="{{ doDecline }}" disabled="{{ sh.cantDecline }}" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer;opacity:{{ sh.declineOp }}"><span>Can’t take it</span><lz-icon name="x" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.interest }}" hint-placeholder-val="{{ false }}"><div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin-bottom:12px">{{ sh.jobTitle }}. Lezerv reviews everyone who applies and assigns one artisan.</div>
+<textarea value="{{ f.note }}" onChange="{{ fNote }}" placeholder="Note to Lezerv (optional)" style="width:100%;min-height:88px;padding:10px 12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:0;font-size:16px;color:var(--color-text);resize:none" style-focus="border-color:var(--color-accent)"></textarea>
+<button class="blueprint" onClick="{{ doInterest }}" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>I’m interested</span><lz-icon name="check" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+</div></sc-if>
+
+<sc-if value="{{ sh.cancel }}" hint-placeholder-val="{{ false }}"><div>
+<div style="font-size:14px;line-height:21px;color:var(--color-neutral-800);margin-bottom:16px">{{ sh.jobTitle }} will be cancelled. You can post it again later.</div>
+<button class="blueprint" onClick="{{ doCancel }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer" style-hover="background:var(--color-accent-600)"><span>Cancel job</span><lz-icon name="x" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<button onClick="{{ close }}" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span>Keep job</span></button>
+</div></sc-if>
+</div>
+</div>
+</sc-if>
+</lz-phone>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;escrowGate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;autoReply&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+class Component extends DCLogic {
+  chatRef = React.createRef();
+  state = this.init();
+  get K() {
+    return {
+      ME: 2,
+      SERV: [{k:'Cleaning',ic:'sparkles'},{k:'Plumbing',ic:'droplets'},{k:'Electrical',ic:'zap'},{k:'AC & Cooling',ic:'wind'},{k:'Generator',ic:'power'},{k:'Laundry',ic:'shirt'},{k:'Cooking',ic:'chef-hat'},{k:'Repairs',ic:'wrench'}],
+      AREAS: ['Ikeja','Lekki','Victoria Island','Ikoyi','Yaba','Surulere','Gbagada','Ketu','Maryland','Ikorodu','Ajah','Agege','Oshodi','Isolo','Festac','Apapa','Mushin','Ojota','Magodo','Ogudu','Sangotedo','Epe','Badagry','Ojo'],
+      ART: [
+        {id:1,name:'Chinwe Okafor',ini:'CO',svc:'Cleaning',areas:['Lekki','Ajah','Ikeja'],rating:4.9,rev:128,yrs:7,jobs:212,ver:true,bio:'Home and office cleaning with a team of three. Deep cleans, move-in and move-out.'},
+        {id:2,name:'Tunde Adeyemi',ini:'TA',svc:'Plumbing',areas:['Lekki','Ajah','Surulere'],rating:4.8,rev:96,yrs:11,jobs:174,ver:true,bio:'Leaks, pumps, water heaters and bathroom fittings. I explain the fault before I fix it.'},
+        {id:3,name:'Ngozi Eze',ini:'NE',svc:'Generator',areas:['Ikeja','Surulere','Yaba'],rating:4.7,rev:64,yrs:9,jobs:101,ver:true,bio:'Servicing and repair for 2.5 to 20kVA generators and inverters.'},
+        {id:4,name:'Emeka Obi',ini:'EO',svc:'AC & Cooling',areas:['Victoria Island','Ikoyi','Lekki'],rating:4.6,rev:41,yrs:5,jobs:58,ver:false,bio:'AC installation, gas refill and servicing. Fridge and freezer repairs.'},
+        {id:5,name:'Bisi Adewale',ini:'BA',svc:'Cooking',areas:['Ikeja','Maryland','Yaba'],rating:4.9,rev:37,yrs:6,jobs:49,ver:true,bio:'Daily home cooking and event catering. Nigerian and continental.'}
+      ],
+      ST: {
+        open:{l:'Finding someone',bg:'transparent',fg:'var(--color-accent-800)',bd:'1px solid var(--color-accent)'},
+        assigned:{l:'Matched',bg:'var(--color-accent-200)',fg:'var(--color-accent-900)',bd:'1px solid var(--color-accent-200)'},
+        in_progress:{l:'In progress',bg:'var(--color-accent)',fg:'var(--color-bg)',bd:'1px solid var(--color-accent)'},
+        completed:{l:'Completed',bg:'var(--color-accent-800)',fg:'var(--color-bg)',bd:'1px solid var(--color-accent-800)'},
+        cancelled:{l:'Cancelled',bg:'var(--color-neutral-200)',fg:'var(--color-neutral-800)',bd:'1px dashed var(--color-neutral-600)'}
+      }
+    };
+  }
+  blank() { return {step:1,title:'',svc:'',area:'',areaQ:'',when:'Tomorrow',address:'',photos:0,phone:'0803 555 0142',budget:'',forArtisan:0,done:false,newId:0}; }
+  init() {
+    return {
+      role:'client', tab:'home', stack:[], sheet:null, toast:'', jobsTab:'active', fSvc:'All', fArea:'All', avail:true,
+      f:{amt:'',note:'',stars:0,reason:'',kind:'estimate',title:'',when:'This week',method:'bank'},
+      msg:'', draft:this.blank(), interests:{},
+      unread:{client1:true,artisan4:true},
+      jobs:[
+        {id:1,title:'Fix leaking kitchen sink',svc:'Plumbing',area:'Lekki',client:'me',cname:'Amaka O.',status:'assigned',artisan:2,price:{st:'quoted',amt:35000,kind:'estimate',note:'Replace the trap and seals, labour included. May change once I see the pipes.'},paid:false,visit:{when:'Fri 9 Oct, 10:00',done:false},photos:3,reviewed:false,rating:0,asked:false,interested:4,notified:14,posted:'Yesterday',desc:'Water drips under the sink whenever the tap runs. The cupboard floor is wet.'},
+        {id:2,title:'Deep clean 3-bedroom flat',svc:'Cleaning',area:'Ikeja',client:'me',cname:'Amaka O.',status:'completed',artisan:1,price:{st:'agreed',amt:45000,kind:'firm',note:''},paid:true,visit:null,photos:0,reviewed:false,rating:0,asked:false,interested:3,notified:11,posted:'12 Sep',desc:'Kitchen, three bedrooms, two bathrooms and the balcony.'},
+        {id:3,title:'Service the 5kVA generator',svc:'Generator',area:'Surulere',client:'me',cname:'Amaka O.',status:'open',artisan:null,price:{st:'none'},paid:false,visit:null,photos:2,reviewed:false,rating:0,asked:false,interested:2,notified:14,posted:'20 min ago',desc:'Hard to start in the morning and loud when running.'},
+        {id:4,title:'Replace bathroom tap',svc:'Plumbing',area:'Ajah',client:'other',cname:'Ifeoma A.',status:'assigned',artisan:2,price:{st:'none'},paid:false,visit:null,photos:1,reviewed:false,rating:0,asked:true,interested:0,notified:0,posted:'1 h ago',desc:'The mixer tap in the guest bathroom keeps dripping.'}
+      ],
+      chats:{
+        1:[{f:'s',t:'Tunde Adeyemi was matched to your job. Keep all chat and payment on Lezerv.',at:'Yesterday'},{f:'a',t:'Good afternoon Amaka. I have seen your photos. It looks like the trap and the seals.',at:'Yesterday 14:10'},{f:'c',t:'Yes please. Can you come on Friday?',at:'Yesterday 14:22'},{f:'a',t:'Friday 10:00 works. I will send an estimate now and confirm the price after I see the pipes.',at:'Yesterday 14:31'}],
+        2:[{f:'s',t:'Chinwe Okafor was matched to your job.',at:'12 Sep'},{f:'a',t:'We are done. Please check the balcony.',at:'12 Sep'},{f:'c',t:'All good. Thank you!',at:'12 Sep'}],
+        3:[],
+        4:[{f:'s',t:'Ifeoma asked for you again. Keep all chat and payment on Lezerv.',at:'1 h ago'},{f:'c',t:'Hello Tunde, it is the same style of tap as before.',at:'1 h ago'}]
+      },
+      board:[
+        {id:11,title:'Burst pipe under bathroom sink',svc:'Plumbing',area:'Surulere',budget:'₦20,000 to ₦30,000',count:3,posted:'12 min ago'},
+        {id:12,title:'Install new water heater',svc:'Plumbing',area:'Lekki',budget:'Not stated',count:5,posted:'1 h ago'},
+        {id:13,title:'Borehole pump not delivering',svc:'Borehole & Water',area:'Ajah',budget:'Not stated',count:1,posted:'3 h ago'}
+      ],
+      notifs:[
+        {id:1,role:'client',title:'Tunde sent you a price',body:'Fix leaking kitchen sink: Estimate ₦35,000',time:'2 h ago',read:false,link:{s:'job',id:1}},
+        {id:2,role:'client',title:'Rate your clean',body:'Chinwe finished Deep clean 3-bedroom flat',time:'12 Sep',read:false,link:{s:'job',id:2}},
+        {id:3,role:'client',title:'2 artisans are interested',body:'Service the 5kVA generator',time:'10 min ago',read:true,link:{s:'job',id:3}},
+        {id:4,role:'artisan',title:'A client asked for you again',body:'Replace bathroom tap in Ajah',time:'1 h ago',read:false,link:{s:'ajobs'}},
+        {id:5,role:'artisan',title:'New job in Surulere',body:'Burst pipe under bathroom sink',time:'12 min ago',read:false,link:{s:'board'}},
+        {id:6,role:'artisan',title:'You are approved',body:'Turn on Ready for work to see jobs',time:'3 Sep',read:true,link:{s:'account'}}
+      ]
+    };
+  }
+  reset = () => this.setState(this.init());
+  push = (o) => this.setState(s => ({stack:[...s.stack,o],sheet:null}));
+  pop = () => this.setState(s => ({stack:s.stack.slice(0,-1)}));
+  back = () => {
+    const s = this.state, top = s.stack[s.stack.length-1];
+    if (top && top.s === 'post' && !s.draft.done && s.draft.step > 1) this.setDraft({step:s.draft.step-1});
+    else this.pop();
+  };
+  setTab = (t) => this.setState({tab:t,stack:[],sheet:null});
+  setRole = (r) => this.setState({role:r,tab:r==='client'?'home':'board',stack:[],sheet:null});
+  openSheet = (o) => this.setState(s => ({sheet:o,f:{...s.f,...(o.f||{})}}));
+  close = () => this.setState({sheet:null});
+  toast = (m) => { this.setState({toast:m}); clearTimeout(this._t); this._t = setTimeout(() => this.setState({toast:''}), 2600); };
+  uj = (id, f) => this.setState(s => ({jobs:s.jobs.map(j => j.id === id ? {...j,...f(j)} : j)}));
+  say = (id, from, text, at) => this.setState(s => ({chats:{...s.chats,[id]:[...(s.chats[id]||[]),{f:from,t:text,at:at||'Now'}]}}));
+  ping = (role, title, body, link) => this.setState(s => ({notifs:[{id:Date.now()+Math.random(),role,title,body,time:'Now',read:false,link},...s.notifs]}));
+  setDraft = (p) => this.setState(s => ({draft:{...s.draft,...p}}));
+  openNotifs = () => this.push({s:'notifs'});
+  openInbox = () => this.push({s:'inbox'});
+  openPost = () => this.setState(s => ({draft:this.blank(),stack:[...s.stack,{s:'post'}]}));
+  openChat = (id) => this.setState(s => ({unread:{...s.unread,[s.role+id]:false},stack:[...s.stack,{s:'chat',id}],sheet:null}));
+  redact(t) {
+    return t.replace(/https?:\/\/\S+|www\.\S+/gi,'[link hidden]').replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,'[contact hidden]').replace(/\+?\d[\d\s\-().]{6,}\d/g,'[contact hidden]');
+  }
+  onMsg = (e) => this.setState({msg:e.target.value});
+  onKey = (e) => { if (e.key === 'Enter') this.send(); };
+  send = () => {
+    const st = this.state, top = st.stack[st.stack.length-1];
+    const raw = st.msg.trim();
+    if (!top || !raw) return;
+    const id = top.id, me = st.role === 'client' ? 'c' : 'a', clean = this.redact(raw);
+    this.setState(s => ({msg:'',chats:{...s.chats,[id]:[...(s.chats[id]||[]),{f:me,t:clean,at:'Now'},...(clean !== raw ? [{f:'s',t:'We hid a phone number, email or link from your message. Keep chat and payment on Lezerv.',at:''}] : [])]}}));
+    if (!(this.props && this.props.autoReply === false)) {
+      clearTimeout(this._r);
+      this._r = setTimeout(() => this.say(id, me === 'c' ? 'a' : 'c', me === 'c' ? 'Noted. I will confirm the time shortly.' : 'Thank you. That works for me.'), 1500);
+    }
+  };
+  fv = (k, fn) => (e) => { const v = e.target.value; this.setState(s => ({f:{...s.f,[k]:fn ? fn(v) : v}})); };
+  fAmt = this.fv('amt', v => v.replace(/\D/g,'').slice(0,9));
+  fNote = this.fv('note');
+  fTitle = this.fv('title');
+  dv = (k) => (e) => { const v = e.target.value; this.setDraft({[k]:v}); };
+  dTitle = this.dv('title'); dAreaQ = this.dv('areaQ'); dAddress = this.dv('address'); dPhone = this.dv('phone'); dBudget = this.dv('budget');
+  onArea = (e) => this.setState({fArea:e.target.value});
+  submitPost = () => {
+    const s = this.state, d = s.draft, K = this.K;
+    const id = Math.max(...s.jobs.map(j => j.id)) + 1;
+    const fa = d.forArtisan ? K.ART.find(a => a.id === d.forArtisan) : null;
+    const job = {id,title:d.title.trim(),svc:d.svc,area:d.area,client:'me',cname:'Amaka O.',status:'open',artisan:null,price:{st:'none'},paid:false,visit:null,photos:d.photos,reviewed:false,rating:0,asked:false,interested:0,notified:12,posted:'Just now',desc:d.address||'No extra details.',requested:fa?fa.name:''};
+    this.setState(st => ({jobs:[...st.jobs,job],chats:{...st.chats,[id]:[]},draft:{...st.draft,done:true,newId:id}}));
+  };
+  acceptQuote = (id) => {
+    this.uj(id, j => ({price:{...j.price,st:'agreed'}}));
+    this.say(id,'s','Amaka accepted the price. Lezerv recorded it with 20% commission.');
+    this.ping('artisan','Price accepted','Fix leaking kitchen sink: ₦35,000',{s:'ajobs'});
+    this.toast('Price agreed. Pay into escrow to confirm.');
+  };
+  declineQuote = (id) => { this.uj(id, j => ({price:{...j.price,st:'declined'}})); this.say(id,'s','Amaka declined the price.'); this.toast('Price declined'); };
+  doPay = () => {
+    const sh = this.state.sheet; if (!sh) return;
+    this.uj(sh.id, () => ({paid:true}));
+    this.say(sh.id,'s','Payment received. Lezerv holds it until the job is done.');
+    this.ping('artisan','Escrow funded','You can start the job now',{s:'ajobs'});
+    this.close(); this.toast('Payment held by Lezerv');
+  };
+  doReview = () => {
+    const s = this.state, sh = s.sheet; if (!sh || !s.f.stars) return;
+    this.uj(sh.id, () => ({reviewed:true,rating:s.f.stars}));
+    this.close(); this.toast('Thanks. The rating is saved.');
+  };
+  doRebook = () => {
+    const s = this.state, sh = s.sheet, prev = s.jobs.find(j => j.id === sh.id); if (!prev) return;
+    const id = Math.max(...s.jobs.map(j => j.id)) + 1;
+    const a = this.K.ART.find(x => x.id === prev.artisan);
+    const job = {id,title:s.f.title || prev.title,svc:prev.svc,area:prev.area,client:'me',cname:'Amaka O.',status:'assigned',artisan:prev.artisan,price:{st:'none'},paid:false,visit:null,photos:0,reviewed:false,rating:0,asked:true,interested:0,notified:0,posted:'Just now',desc:'Same address as '+prev.title+'. Preferred: '+s.f.when+'.'};
+    this.setState(st => ({jobs:[...st.jobs,job],chats:{...st.chats,[id]:[{f:'s',t:'Amaka asked for '+a.name.split(' ')[0]+' again. Keep all chat and payment on Lezerv.',at:'Now'}]},tab:'jobs',stack:[{s:'job',id}],sheet:null}));
+    this.toast('Asked '+a.name.split(' ')[0]+'. Waiting for a reply.');
+  };
+  doCancel = () => {
+    const sh = this.state.sheet; if (!sh) return;
+    this.uj(sh.id, () => ({status:'cancelled'}));
+    this.setState({sheet:null,stack:[],tab:'jobs',jobsTab:'done'}); this.toast('Job cancelled');
+  };
+  doQuote = () => {
+    const s = this.state, sh = s.sheet, n = Number(s.f.amt || 0); if (!sh || !n) return;
+    this.uj(sh.id, j => ({price:{st:'quoted',amt:n,kind:s.f.kind,note:s.f.note}}));
+    this.say(sh.id,'s','Tunde sent a price: ₦'+n.toLocaleString('en-US')+' ('+s.f.kind+').');
+    this.ping('client','Tunde sent you a price','Fix leaking kitchen sink: ₦'+n.toLocaleString('en-US'),{s:'job',id:sh.id});
+    this.close(); this.toast('Price sent to the client');
+  };
+  doDecline = () => {
+    const s = this.state, sh = s.sheet; if (!sh || !s.f.reason) return;
+    this.uj(sh.id, j => ({status:'open',artisan:null,price:{st:'none'},asked:false,visit:null}));
+    this.ping('client','Tunde could not take your job','We have told matching artisans again',{s:'jobs'});
+    this.close(); this.toast('Job returned to the pool');
+  };
+  doInterest = () => {
+    const sh = this.state.sheet; if (!sh) return;
+    this.setState(s => ({interests:{...s.interests,[sh.id]:true},sheet:null})); this.toast('Interest sent to Lezerv');
+  };
+  startJob = (id) => { this.uj(id, () => ({status:'in_progress'})); this.say(id,'s','Tunde started the job.'); };
+  completeJob = (id) => {
+    this.uj(id, () => ({status:'completed'})); this.say(id,'s','Tunde marked the job complete.');
+    this.ping('client','Job completed','Please rate your artisan',{s:'job',id}); this.toast('Marked complete');
+  };
+  visitDone = (id) => { this.uj(id, j => ({visit:{...j.visit,done:true}})); this.toast('Visit recorded. You can send a firm price.'); };
+  toggleAvail = () => this.setState(s => ({avail:!s.avail}));
+  goLink = (n) => {
+    this.setState(s => ({notifs:s.notifs.map(x => x.id === n.id ? {...x,read:true} : x)}));
+    const l = n.link;
+    if (l.s === 'job') this.setState(s => ({tab:'jobs',stack:[{s:'job',id:l.id}]}));
+    else this.setTab(l.s);
+  };
+  renderVals() {
+    const st = this.state, K = this.K, isC = st.role === 'client', ME = K.ME, d = st.draft, f = st.f;
+    const top = st.stack[st.stack.length-1] || null;
+    const scr = top ? top.s : st.tab;
+    const s = {};
+    ['home','find','jobs','account','board','ajobs','inbox','earn','artisan','job','chat','notifs','post'].forEach(n => { s[n] = scr === n; });
+    const num = n => Number(n).toLocaleString('en-US');
+    const fmt = n => '₦' + num(n);
+    const jno = id => 'J-' + String(140 + id).padStart(4,'0');
+    const art = id => K.ART.find(a => a.id === id);
+    const jobs = st.jobs, byId = id => jobs.find(j => j.id === id);
+    const first = n => n.split(' ')[0];
+    const gate = !(this.props && this.props.escrowGate === false);
+    const cj = top && (top.s === 'job' || top.s === 'chat') ? byId(top.id) : null;
+    const mut = 'var(--color-neutral-700)';
+    const btn = (on, tap, l, ic) => ({l,ic,tap,bg:on?'var(--color-text)':'transparent',fg:on?'var(--color-bg)':'var(--color-text)'});
+    const roleBtns = [btn(isC,() => this.setRole('client'),'Client','user'),btn(!isC,() => this.setRole('artisan'),'Artisan','wrench')];
+
+    const T = isC ? [{k:'home',l:'Home',ic:'home'},{k:'find',l:'Find',ic:'search'},{k:'post',l:'Post',ic:'plus',post:true},{k:'jobs',l:'Jobs',ic:'briefcase'},{k:'account',l:'Account',ic:'user'}]
+      : [{k:'board',l:'Board',ic:'briefcase'},{k:'ajobs',l:'My jobs',ic:'wrench'},{k:'inbox',l:'Messages',ic:'message-square'},{k:'earn',l:'Earnings',ic:'wallet'},{k:'account',l:'Account',ic:'user'}];
+    const anyUnreadChat = Object.keys(st.unread).some(k => st.unread[k] && k.indexOf(st.role) === 0);
+    const tabs = T.map(t => { const on = !t.post && st.tab === t.k; return {l:t.l,ic:t.ic,bg:t.post?'var(--color-accent)':'transparent',fg:t.post?'var(--color-bg)':(on?'var(--color-text)':mut),bar:on?'var(--color-accent)':(t.post?'var(--color-accent)':'transparent'),dot:t.k==='inbox'&&anyUnreadChat,tap:t.post?this.openPost:() => this.setTab(t.k)}; });
+    const titles = {find:'Find artisans',jobs:'My jobs',account:'Account',board:'Job board',ajobs:'My jobs',inbox:'Messages',earn:'Earnings'};
+    const hdr = {brand:isC && st.tab === 'home',plain:!(isC && st.tab === 'home'),title:titles[st.tab] || ''};
+    const myNotifs = st.notifs.filter(n => n.role === st.role);
+    const unread = myNotifs.filter(n => !n.read).length;
+
+    let ph = {title:'',sub:''};
+    if (top) {
+      if (scr === 'artisan') ph = {title:art(top.id).name,sub:art(top.id).svc};
+      else if (scr === 'job') ph = {title:'Job',sub:cj ? cj.svc + ' · ' + cj.area : ''};
+      else if (scr === 'chat') ph = {title:cj ? (isC ? (cj.artisan ? art(cj.artisan).name : 'Chat') : cj.cname) : 'Chat',sub:cj ? cj.title : ''};
+      else if (scr === 'notifs') ph = {title:'Notifications',sub:''};
+      else if (scr === 'inbox') ph = {title:'Messages',sub:''};
+      else if (scr === 'post') ph = {title:'Post a job',sub:d.done ? 'Posted' : 'Step ' + d.step + ' of 3'};
+    }
+
+    const homeSv = K.SERV.map((x, i) => ({k:x.k,ic:x.ic,n:'0' + (i + 1),tap:() => this.setState(p => ({draft:{...this.blank(),svc:x.k},stack:[...p.stack,{s:'post'}]}))}));
+    const how = [{n:'01',t:'Pick a service',d:'Tell us what you need and where.'},{n:'02',t:'Get matched',d:'Verified artisans apply. Lezerv assigns one.'},{n:'03',t:'Relax',d:'Agree a price in chat, then rate the work.'}];
+    const myJobs = jobs.filter(j => j.client === 'me');
+    const qj = myJobs.find(j => j.status === 'assigned' && j.price.st === 'quoted');
+    const pj = myJobs.find(j => j.price.st === 'agreed' && !j.paid && j.status !== 'completed');
+    const active = qj ? {title:qj.title,sub:first(art(qj.artisan).name) + ' sent a price: ' + fmt(qj.price.amt) + '.',tap:() => this.setState({tab:'jobs',stack:[{s:'job',id:qj.id}]})}
+      : pj ? {title:pj.title,sub:'Price agreed. Pay into escrow so ' + first(art(pj.artisan).name) + ' can start.',tap:() => this.setState({tab:'jobs',stack:[{s:'job',id:pj.id}]})} : null;
+
+    const flt = K.ART.filter(a => (st.fSvc === 'All' || a.svc === st.fSvc) && (st.fArea === 'All' || a.areas.indexOf(st.fArea) >= 0));
+    const found = flt.map(a => ({name:a.name,ini:a.ini,ver:a.ver,line:'★ ' + a.rating + ' (' + a.rev + ') · ' + a.yrs + ' yrs · ' + a.jobs + ' jobs',svc:a.svc,areas:a.areas.slice(0,2).join(', '),tap:() => this.push({s:'artisan',id:a.id})}));
+    const chips = ['All'].concat(K.SERV.map(x => x.k)).map(k => { const on = st.fSvc === k; return {k,bg:on?'var(--color-text)':'transparent',fg:on?'var(--color-bg)':'var(--color-text)',tap:() => this.setState({fSvc:k})}; });
+    const pa = scr === 'artisan' ? art(top.id) : null;
+    const av = pa ? {name:pa.name,ini:pa.ini,svc:pa.svc,ver:pa.ver,rating:pa.rating,rev:pa.rev,yrs:pa.yrs,jobs:pa.jobs,areas:pa.areas.join(', '),bio:pa.bio,first:first(pa.name),post:() => this.setState(p => ({draft:{...this.blank(),svc:pa.svc,forArtisan:pa.id},stack:[...p.stack,{s:'post'}]}))} : {name:'',ini:'',svc:'',ver:false,rating:'',rev:'',yrs:'',jobs:'',areas:'',bio:'',first:'',post:() => {}};
+    const reviews = [{n:'Folake',r:5,t:'Came on time, explained the fault and left the place clean.'},{n:'Chidi',r:5,t:'Fair price and no surprises.'}];
+
+    const jobTabs = [['active','Active'],['done','Done']].map(x => ({l:x[1],bar:st.jobsTab === x[0] ? 'var(--color-accent)' : 'transparent',fg:st.jobsTab === x[0] ? 'var(--color-text)' : mut,tap:() => this.setState({jobsTab:x[0]})}));
+    const jl = myJobs.filter(j => st.jobsTab === 'active' ? (j.status !== 'completed' && j.status !== 'cancelled') : (j.status === 'completed' || j.status === 'cancelled')).reverse();
+    const jobList = jl.map(j => {
+      const p = j.price || {st:'none'}, a = j.artisan ? art(j.artisan) : null;
+      let line = j.status === 'open' ? 'Waiting for interest · ' + j.interested + ' so far' : '';
+      if (a) line = 'With ' + a.name;
+      if (p.st === 'quoted') line = (p.kind === 'firm' ? 'Firm ' : 'Estimate ') + fmt(p.amt) + ' from ' + first(a.name);
+      if (p.st === 'agreed') line = 'Agreed ' + fmt(p.amt) + (j.paid ? ' · paid into escrow' : ' · payment due');
+      return {no:jno(j.id),title:j.title,meta:[j.svc,j.area,j.posted].join(' · '),pill:K.ST[j.status],attn:j.status === 'assigned' && p.st === 'quoted',unread:!!st.unread['client' + j.id],line,tap:() => this.push({s:'job',id:j.id})};
+    });
+
+    const jdOf = j => {
+      const a = j.artisan ? art(j.artisan) : null, p = j.price || {st:'none'};
+      const flags = [true,j.status !== 'open' && j.status !== 'cancelled',j.status === 'in_progress' || j.status === 'completed',j.status === 'completed'];
+      const steps = ['Posted','Matched','In progress','Done'].map((l, i) => ({l,node:flags[i] ? 'var(--color-accent-800)' : 'transparent',nb:flags[i] ? 'var(--color-accent-800)' : 'var(--color-neutral-600)',line:i < 3 ? (flags[i + 1] ? 'var(--color-accent-800)' : 'var(--color-neutral-400)') : 'transparent',fg:flags[i] ? 'var(--color-text)' : mut}));
+      const live = j.status === 'assigned' || j.status === 'in_progress' || j.status === 'completed';
+      return {
+        pill:K.ST[j.status],title:j.title,no:jno(j.id),svc:j.svc,areaPosted:j.area + ' · ' + j.posted,steps,
+        open:j.status === 'open',area:j.area,notified:j.notified,interested:j.interested,hasReq:!!j.requested,req:j.requested ? 'You asked for ' + j.requested + '. If they cannot take it, matching artisans are notified.' : '',
+        widen:() => this.toast('Widened to nearby areas. 9 more artisans notified.'),
+        hasA:!!a && live,aName:a ? a.name : '',aFirst:a ? first(a.name) : '',aIni:a ? a.ini : '',aLine:a ? '★ ' + a.rating + ' · ' + a.jobs + ' jobs · ' + a.svc : '',
+        chat:() => this.openChat(j.id),unread:!!st.unread['client' + j.id],
+        pNone:live && j.status !== 'completed' && p.st === 'none',pQuoted:p.st === 'quoted' && j.status === 'assigned',pDeclined:p.st === 'declined',pAgreed:p.st === 'agreed',
+        kindLabel:p.kind === 'firm' ? 'Firm price' : 'Estimate',amt:p.amt ? fmt(p.amt) : '',amtN:p.amt ? num(p.amt) : '',note:p.note || 'No note.',
+        warn:p.kind === 'firm' ? 'Firm price. It will not change.' : 'An estimate can change after a site visit.',
+        accept:() => this.acceptQuote(j.id),decline:() => this.declineQuote(j.id),
+        canPay:p.st === 'agreed' && !j.paid && j.status !== 'completed',paid:j.paid,
+        escrowText:j.status === 'completed' ? 'Released to ' + (a ? a.name : 'the artisan') + '.' : 'Held by Lezerv until you confirm the job is done.',
+        pay:() => this.openSheet({t:'pay',id:j.id}),
+        hasVisit:!!j.visit,visitText:j.visit ? (j.visit.done ? 'Site visit done · call-out fee ₦5,000, credited to the job' : 'Site visit proposed · ' + j.visit.when) : '',
+        desc:j.desc,hasPhotos:j.photos > 0,photos:Array.from({length:j.photos},(_, i) => ({i})),
+        canReview:j.status === 'completed' && !j.reviewed,review:() => this.openSheet({t:'review',id:j.id,f:{stars:0,note:''}}),
+        reviewed:j.reviewed,ratingTxt:'You rated ' + (a ? a.name : '') + ' ' + j.rating + ' out of 5',
+        canRebook:j.status === 'completed' && !!a,rebookLabel:a ? 'Book ' + first(a.name) + ' again' : '',rebook:() => this.openSheet({t:'rebook',id:j.id,f:{title:j.title,when:'This week'}}),
+        canCancel:j.status === 'open' || j.status === 'assigned',cancel:() => this.openSheet({t:'cancel',id:j.id})
+      };
+    };
+    const jd = cj && scr === 'job' ? jdOf(cj) : jdOf({status:'open',price:{st:'none'},title:'',svc:'',area:'',posted:'',notified:0,interested:0,photos:0,desc:'',id:0,artisan:null,reviewed:false});
+
+    const mine = m => (m.f === 'c' && isC) || (m.f === 'a' && !isC);
+    const cmsgs = (cj ? (st.chats[cj.id] || []) : []).map(m => m.f === 's'
+      ? {t:m.t,at:m.at,al:'center',bg:'transparent',fg:'var(--color-neutral-800)',bd:'1px dashed var(--color-neutral-500)',fs:12,ta:'center'}
+      : {t:m.t,at:m.at,al:mine(m) ? 'flex-end' : 'flex-start',bg:mine(m) ? 'var(--color-accent-800)' : 'transparent',fg:mine(m) ? 'var(--color-bg)' : 'var(--color-text)',bd:mine(m) ? '1px solid var(--color-accent-800)' : '1px solid var(--color-text)',fs:15,ta:'left'});
+
+    const notifList = myNotifs.map(n => ({title:n.title,body:n.body,time:n.time,bg:n.read ? 'transparent' : 'var(--color-accent-100)',bd:n.read ? 'var(--color-divider)' : 'var(--color-accent)',dot:n.read ? 'transparent' : 'var(--color-accent)',tap:() => this.goLink(n)}));
+    const convs = jobs.filter(j => (isC ? (j.client === 'me' && j.artisan) : (j.artisan === ME && j.status !== 'open')) && (st.chats[j.id] || []).length).map(j => {
+      const c = st.chats[j.id], last = c[c.length - 1], nm = isC ? art(j.artisan).name : j.cname, un = !!st.unread[st.role + j.id];
+      return {name:nm,ini:nm.split(' ').map(x => x[0]).join('').slice(0,2),job:j.title,last:last.t,at:last.at,unread:un,w:un ? 700 : 400,tap:() => this.openChat(j.id)};
+    });
+
+    const acc = isC ? {name:'Amaka Okonkwo',ini:'AO',sub:'amaka@example.com',art:false} : {name:'Tunde Adeyemi',ini:'TA',sub:'Plumbing · Lekki, Ajah, Surulere',art:true,availTxt:st.avail ? 'You are visible for jobs in your areas.' : 'You are hidden from new jobs.',trackBg:st.avail ? 'var(--color-accent)' : 'transparent',knobBg:st.avail ? 'var(--color-bg)' : 'var(--color-text)',knobPos:st.avail ? 'flex-end' : 'flex-start'};
+    const accRows = [
+      {ic:'bell',l:'Notifications',sub:unread + ' unread',fg:'var(--color-text)',tap:this.openNotifs},
+      {ic:'users',l:'Refer and earn',sub:'Code LZ-' + (isC ? 'AMAKA' : 'TUNDE') + ' · 5 points per completed referral',fg:'var(--color-text)',tap:() => this.toast('Referral link copied')},
+      {ic:'life-buoy',l:'Help and support',sub:'Ask the assistant or talk to a person',fg:'var(--color-text)',tap:() => this.toast('Support assistant opens here')},
+      {ic:'download',l:'Export my data',sub:'Account, jobs, messages and reviews',fg:'var(--color-text)',tap:() => this.toast('Export is being prepared')},
+      {ic:'trash-2',l:'Delete my account',sub:'Self-service. Confirmed with your password.',fg:'var(--color-accent-800)',tap:() => this.toast('Deletion needs your password to confirm')}
+    ];
+
+    const boardList = st.board.map(b => { const done = !!st.interests[b.id]; return {svc:b.svc,area:b.area,posted:b.posted,title:b.title,budget:b.budget,count:b.count + (done ? 1 : 0),done,label:done ? 'Interest sent' : 'I’m interested',ic:done ? 'check' : 'arrow-right',bg:done ? 'transparent' : 'var(--color-accent)',fg:done ? 'var(--color-text)' : 'var(--color-bg)',bd:done ? 'var(--color-text)' : 'var(--color-accent)',cur:done ? 'default' : 'pointer',tap:() => this.openSheet({t:'interest',id:b.id,f:{note:''}})}; });
+
+    const ajRaw = jobs.filter(j => j.artisan === ME && ['assigned','in_progress','completed'].indexOf(j.status) >= 0).sort((x, y) => (y.asked ? 1 : 0) - (x.asked ? 1 : 0));
+    const ajList = ajRaw.map(j => {
+      const p = j.price || {st:'none'}, agreed = p.st === 'agreed', cf = first(j.cname);
+      const waitPay = gate && agreed && !j.paid && j.status === 'assigned';
+      const canStart = j.status === 'assigned' && agreed && !waitPay;
+      const canQuote = j.status === 'assigned' && !agreed;
+      let stage = '';
+      if (j.status === 'completed') stage = 'Completed. ' + fmt(Math.round(p.amt * 0.8)) + ' released to your earnings.';
+      else if (j.status === 'in_progress') stage = 'In progress. Mark complete when the work is done.';
+      else if (waitPay) stage = 'Price agreed. Waiting for ' + cf + ' to pay into escrow. Switch to Client to pay.';
+      else if (agreed) stage = gate ? 'Escrow is funded. You can start.' : 'Price agreed. You can start.';
+      else if (p.st === 'quoted') stage = 'Waiting for ' + cf + ' to reply to your ' + p.kind + ' of ' + fmt(p.amt) + '.';
+      else if (p.st === 'declined') stage = cf + ' declined. Send a revised price.';
+      else stage = 'Send a price so ' + cf + ' can accept it.';
+      const hasQ = p.st === 'quoted';
+      return {
+        no:jno(j.id),title:j.title,meta:j.cname + ' · ' + j.svc + ' · ' + j.area,pill:j.status === 'assigned' && p.st === 'none' ? {l:'New',bg:'var(--color-accent-200)',fg:'var(--color-accent-900)',bd:'1px solid var(--color-accent-200)'} : K.ST[j.status],asked:j.asked,
+        hasVisit:!!j.visit,visitText:j.visit ? (j.visit.done ? 'Visit done. Call-out fee ₦5,000' : 'Visit ' + j.visit.when) : '',
+        stage,hasPayout:agreed,payoutTxt:'You receive after 20% commission',payout:agreed ? fmt(Math.round(p.amt * 0.8)) : '',
+        canQuote,quoteLabel:p.st === 'quoted' ? 'Revise price' : (p.st === 'declined' ? 'Send revised price' : 'Send price'),quoteBg:hasQ ? 'transparent' : 'var(--color-accent)',quoteFg:hasQ ? 'var(--color-text)' : 'var(--color-bg)',quoteBd:hasQ ? 'var(--color-text)' : 'var(--color-accent)',
+        quote:() => this.openSheet({t:'quote',id:j.id,f:{amt:p.amt ? String(p.amt) : '',note:'',kind:'estimate'}}),
+        canVisit:!!j.visit && !j.visit.done && j.status === 'assigned',visitDone:() => this.visitDone(j.id),
+        canStart,start:() => this.startJob(j.id),canComplete:j.status === 'in_progress',complete:() => this.completeJob(j.id),
+        canDecline:j.status === 'assigned' && !agreed,decline:() => this.openSheet({t:'decline',id:j.id,f:{reason:''}}),
+        chat:() => this.openChat(j.id),unread:!!st.unread['artisan' + j.id]
+      };
+    });
+
+    const mj = jobs.filter(j => j.artisan === ME);
+    const rel = mj.filter(j => j.status === 'completed' && j.price.st === 'agreed').reduce((a, j) => a + j.price.amt * 0.8, 0);
+    const esc = mj.filter(j => (j.status === 'assigned' || j.status === 'in_progress') && j.price.st === 'agreed' && j.paid).reduce((a, j) => a + j.price.amt * 0.8, 0);
+    const earn = {availN:num(64000 + rel),escrow:fmt(esc),paid:fmt(112000),withdraw:() => this.toast('Add a payout account first')};
+
+    const stepNames = ['What','Where','Photos'];
+    const stepBars = [1,2,3].map(n => ({n:'0' + n,l:stepNames[n - 1],bg:n <= d.step ? 'var(--color-accent-800)' : 'var(--color-neutral-300)',fg:n <= d.step ? 'var(--color-text)' : mut}));
+    const aq = d.areaQ.toLowerCase();
+    const canNext = d.step === 1 ? (d.title.trim().length > 2 && !!d.svc) : (d.step === 2 ? !!d.area : d.phone.trim().length > 6);
+    const pv = {
+      bars:stepBars,s1:d.step === 1 && !d.done,s2:d.step === 2 && !d.done,s3:d.step === 3 && !d.done,done:d.done,notDone:!d.done,hasPrev:d.step > 1,
+      hasFor:!!d.forArtisan,forName:d.forArtisan ? art(d.forArtisan).name : '',
+      services:K.SERV.map(x => ({k:x.k,ic:x.ic,bg:d.svc === x.k ? 'var(--color-text)' : 'transparent',fg:d.svc === x.k ? 'var(--color-bg)' : 'var(--color-text)',tap:() => this.setDraft({svc:x.k})})),
+      areas:K.AREAS.filter(a => a.toLowerCase().indexOf(aq) >= 0).map(a => ({n:a,on:d.area === a,bg:d.area === a ? 'var(--color-accent-100)' : 'transparent',w:d.area === a ? 700 : 400,tap:() => this.setDraft({area:a})})),
+      whens:['Today','Tomorrow','This week','Flexible'].map(w => ({l:w,bg:d.when === w ? 'var(--color-text)' : 'transparent',fg:d.when === w ? 'var(--color-bg)' : 'var(--color-text)',tap:() => this.setDraft({when:w})})),
+      photos:Array.from({length:d.photos},(_, i) => ({i,rm:() => this.setDraft({photos:d.photos - 1})})),count:d.photos,canAdd:d.photos < 10,add:() => this.setDraft({photos:d.photos + 1}),
+      cant:!canNext,nextOp:canNext ? 1 : 0.45,nextLabel:d.step < 3 ? 'Continue' : 'Post job',next:() => d.step < 3 ? this.setDraft({step:d.step + 1}) : this.submitPost(),
+      svc:d.svc,area:d.area,
+      next3:[{n:'1',t:'Artisans apply',d:'Matching artisans see your job and express interest.'},{n:'2',t:'Lezerv assigns one',d:'You get a notification and chat opens.'},{n:'3',t:'Agree a price',d:'The artisan sends a price. You accept or decline.'}],
+      view:() => this.setState({tab:'jobs',stack:[{s:'job',id:d.newId}]}),home:() => this.setTab('home')
+    };
+
+    const sj = st.sheet && st.sheet.id ? byId(st.sheet.id) : null;
+    const sa = sj && sj.artisan ? art(sj.artisan) : null;
+    const t = st.sheet ? st.sheet.t : '';
+    const titles2 = {pay:'Pay into escrow',review:'Rate your artisan',rebook:sa ? 'Book ' + first(sa.name) + ' again' : 'Book again',quote:'Send a price',decline:'Can’t take this job?',interest:'Show interest',cancel:'Cancel this job?'};
+    const sel = (on) => ({bg:on ? 'var(--color-accent-100)' : 'transparent',bd:on ? '1px solid var(--color-accent)' : '1px solid var(--color-divider)'});
+    const amtN = sj && sj.price && sj.price.amt ? sj.price.amt : 0;
+    const qn = Number(f.amt || 0), firmOk = !!(sj && sj.visit && sj.visit.done);
+    const kind = firmOk ? f.kind : 'estimate';
+    const sh = {
+      title:titles2[t] || '',pay:t === 'pay',review:t === 'review',rebook:t === 'rebook',quote:t === 'quote',decline:t === 'decline',interest:t === 'interest',cancel:t === 'cancel',
+      amt:fmt(amtN),amtN:num(amtN),net:fmt(Math.round(amtN * 0.8)),first:sa ? first(sa.name) : '',name:sa ? sa.name : '',
+      methods:[{k:'bank',ic:'landmark',l:'Bank transfer',sub:'Pay from any Nigerian bank app'},{k:'card',ic:'credit-card',l:'Card',sub:'Verve, Mastercard, Visa'},{k:'ussd',ic:'hash',l:'USSD',sub:'No data needed'}].map(m => ({...m,...sel(f.method === m.k),on:f.method === m.k,tap:() => this.setState(p => ({f:{...p.f,method:m.k}}))})),
+      stars:[1,2,3,4,5].map(n => ({label:n + ' star' + (n > 1 ? 's' : ''),fill:f.stars >= n ? 'currentColor' : 'none',tap:() => this.setState(p => ({f:{...p.f,stars:n}}))})),cantReview:!f.stars,reviewOp:f.stars ? 1 : 0.45,
+      whens:['Today','Tomorrow','This week','Flexible'].map(w => ({l:w,bg:f.when === w ? 'var(--color-text)' : 'transparent',fg:f.when === w ? 'var(--color-bg)' : 'var(--color-text)',tap:() => this.setState(p => ({f:{...p.f,when:w}}))})),
+      kinds:[{k:'estimate',l:'Estimate'},{k:'firm',l:firmOk ? 'Firm' : 'Firm (after a visit)'}].map(x => { const dis = x.k === 'firm' && !firmOk, on = kind === x.k; return {l:x.l,dis,op:dis ? 0.45 : 1,bg:on ? 'var(--color-text)' : 'transparent',fg:on ? 'var(--color-bg)' : 'var(--color-text)',tap:() => this.setState(p => ({f:{...p.f,kind:x.k}}))}; }),
+      kindNote:kind === 'firm' ? 'Firm price after a recorded visit. Once agreed it is locked.' : 'Sent before a visit. The client sees a “may change” notice.',
+      gross:fmt(qn),fee:fmt(Math.round(qn * 0.2)),net2:fmt(qn - Math.round(qn * 0.2)),cantQuote:!qn,quoteOp:qn ? 1 : 0.45,
+      reasons:['Too far from me','Not the right skill','Not available that day','Other'].map(r => ({l:r,on:f.reason === r,...sel(f.reason === r),tap:() => this.setState(p => ({f:{...p.f,reason:r}}))})),cantDecline:!f.reason,declineOp:f.reason ? 1 : 0.45,
+      jobTitle:t === 'interest' ? ((st.board.find(b => b.id === (st.sheet && st.sheet.id)) || {}).title || '') : (sj ? sj.title : '')
+    };
+    sh.net = t === 'quote' ? sh.net2 : sh.net;
+
+    return {
+      s,sh,f,draft:d,pv,jd,av,acc,earn,hdr,ph,tabs,roleBtns,isClient:isC,
+      showTop:!top,showPush:!!top,showTabs:!top,
+      hasUnread:unread > 0,unread,hasUnreadChat:anyUnreadChat,
+      hasActive:!!active,active:active || {title:'',sub:'',tap:() => {}},services:homeSv,how,
+      areaOpts:K.AREAS.map(n => ({n})),fArea:st.fArea,chips,found,noFound:found.length === 0,reviews,
+      jobTabs,jobList,noJobs:jobList.length === 0,
+      emptyTitle:st.jobsTab === 'active' ? 'No active jobs' : 'Nothing finished yet',emptyBody:st.jobsTab === 'active' ? 'Post a job and verified artisans will apply.' : 'Completed and cancelled jobs appear here.',
+      cmsgs,msg:st.msg,chatRef:this.chatRef,notifList,convs,noConvs:convs.length === 0,accRows,
+      boardList,boardBg:st.avail ? 'transparent' : 'var(--color-accent-100)',boardBd:st.avail ? 'var(--color-divider)' : 'var(--color-accent)',boardIc:st.avail ? 'circle-check' : 'circle-alert',
+      boardHead:st.avail ? 'Ready for work' : 'You are hidden',boardSub:st.avail ? 'Jobs in Lekki, Ajah and Surulere that match Plumbing.' : 'Turn on Ready for work in Account to see new jobs.',
+      ajList,noAj:ajList.length === 0,
+      hasSheet:!!st.sheet,hasToast:!!st.toast,toast:st.toast
+    };
+  }
+  componentDidUpdate() { const c = this.chatRef.current; if (c) c.scrollTop = c.scrollHeight; }
+}
+</script>
+</body>
+</html>

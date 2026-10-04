@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/styles.css">
+<script src="_ds/industry-4dd1c70c-5041-40ab-85ae-d91b014675b8/_ds_bundle.js"></script>
+<script src="lz-icon.js"></script>
+<script src="lz-phone.js"></script>
+<style>body{margin:0;background-color:var(--color-bg);background-image:linear-gradient(color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb, var(--color-text) 6%, transparent) 1px, transparent 1px);background-size:32px 32px;color:var(--color-text);font-family:var(--font-body)}button{font-family:inherit}lz-phone *{scrollbar-width:none}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-600)}.dv-turn{padding:48px 56px 64px}.dv-tid{font:700 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-text);color:var(--color-bg);text-decoration:none}.dv-gh{display:flex;align-items:center;gap:14px;margin:64px 0 26px}.dv-gh .n{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)}.dv-gh .l{font-family:var(--font-heading);font-weight:600;font-size:34px;line-height:1;letter-spacing:.02em;text-transform:uppercase}.dv-gh i{flex:1;height:1px;background:var(--color-divider)}.dv-opts{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}.dv-oid{font:700 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-neutral-300);color:var(--color-text);text-decoration:none}.dv-opt:target .dv-oid{background:var(--color-accent);color:var(--color-bg)}.dv-olabel{display:flex;align-items:baseline;gap:10px;font-size:13px;line-height:18px;color:var(--color-neutral-800);max-width:780px}.dv-plate{background:var(--color-bg);box-sizing:border-box}.lb{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700)}.hd{font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.02em;line-height:1}.dv-next{margin:30px 0 0;font-size:13px;color:var(--color-neutral-700)}</style>
+</helmet>
+<section class="dv-turn" id="t1">
+<div style="display:flex;align-items:center;gap:12px"><a class="dv-tid" href="#t1">1</a><span class="lb">Sheet set · round 1 · Android</span><span style="flex:1;height:1px;background:var(--color-divider)"></span></div>
+<h1 style="font-size:96px;line-height:84px;text-transform:uppercase;margin:20px 0 14px;letter-spacing:-.01em">Lezerv app</h1>
+<div style="max-width:860px;font-size:16px;line-height:25px;display:flex;flex-direction:column;gap:10px">
+<div>Clickable client and artisan flows are in <a href="Lezerv App.dc.html">Lezerv App</a>. This board holds the navigation map, flow diagrams, the screens the prototype does not cover, the component library, the mobile type scale and the technical plan.</div>
+<div><b>Assumptions.</b> Android first; the same layouts port to iOS. Industry system: Barlow Condensed, square objects with registration marks, hairlines, one steel accent. Status is shown by label, fill and line style so it reads without colour. Light theme only for v1. Items marked <b>PROPOSAL</b> are new or need a backend change. Nothing in the brief is contradicted.</div>
+</div>
+
+<div class="dv-gh"><span class="n">01</span><span class="l">Navigation</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Role-aware tab bars. A user switches role in Account.</div>
+<div class="dv-plate blueprint" style="width:780px;padding:26px;display:grid;grid-template-columns:1fr 1fr;gap:36px">
+<sc-for list="{{ navs }}" as="n" hint-placeholder-count="2"><div>
+<div class="hd" style="font-size:40px;margin-bottom:14px">{{ n.role }}</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--color-text);border-bottom:1px solid var(--color-divider);background:var(--color-bg)"><sc-for list="{{ n.tabs }}" as="t" hint-placeholder-count="5"><div style="height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-family:var(--font-heading);font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;line-height:1;background:{{ t.bg }};color:{{ t.fg }};border-top:3px solid {{ t.bar }};margin-top:-1px"><lz-icon name="{{ t.ic }}" size="22"></lz-icon>{{ t.l }}</div></sc-for></div>
+<div style="margin-top:16px;display:flex;flex-direction:column"><sc-for list="{{ n.notes }}" as="x" hint-placeholder-count="5"><div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px"><b style="width:76px;flex:none;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-700);padding-top:2px">{{ x.k }}</b><span>{{ x.v }}</span></div></sc-for></div>
+</div></sc-for>
+<div style="grid-column:1 / span 2;border-top:1px solid var(--color-text);padding-top:14px;font-size:13px;line-height:20px"><b>Always present:</b> bell with unread count, top right. Clients also get a messages icon beside it; artisans have Messages as a tab. Support lives in Account. Marketing pages (About, Careers, Blog, Terms, Privacy) sit in a More list under Account. Admin stays web-only for v1.</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Deep-link map. Notifications already carry a link, so a push tap opens the right screen.</div>
+<div class="dv-plate blueprint" style="width:780px;padding:22px 26px">
+<div style="display:grid;grid-template-columns:190px 72px 170px 1fr;font-size:13px;line-height:18px">
+<div class="lb" style="padding-bottom:8px;border-bottom:1px solid var(--color-text)">Push</div><div class="lb" style="padding-bottom:8px;border-bottom:1px solid var(--color-text)">To</div><div class="lb" style="padding-bottom:8px;border-bottom:1px solid var(--color-text)">Route</div><div class="lb" style="padding-bottom:8px;border-bottom:1px solid var(--color-text)">Lands on</div>
+<sc-for list="{{ links }}" as="r" hint-placeholder-count="8"><div style="padding:9px 12px 9px 0;border-bottom:1px solid var(--color-divider);font-weight:700">{{ r.p }}</div><div style="padding:9px 0;border-bottom:1px solid var(--color-divider)">{{ r.to }}</div><div style="padding:9px 0;border-bottom:1px solid var(--color-divider);font-family:ui-monospace,Menlo,monospace;font-size:12px">{{ r.route }}</div><div style="padding:9px 0;border-bottom:1px solid var(--color-divider)">{{ r.lands }}</div></sc-for>
+</div>
+<div style="margin-top:12px;font-size:12px;line-height:17px;color:var(--color-neutral-700)">PROPOSAL: route names are new for mobile. Universal links on lezerv.com open the same routes, and referral links use them too.</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">02</span><span class="l">Flow diagrams</span><i></i></div>
+<div class="dv-opts">
+<sc-for list="{{ flows }}" as="fl" hint-placeholder-count="5"><div class="dv-opt" id="{{ fl.id }}"><div class="dv-olabel"><a class="dv-oid" href="#{{ fl.id }}">{{ fl.id }}</a>{{ fl.label }}</div>
+<div class="dv-plate blueprint" style="width:780px;padding:22px 26px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:12px"><sc-for list="{{ fl.cols }}" as="c" hint-placeholder-count="3"><div class="lb" style="padding-bottom:6px;border-bottom:1px solid var(--color-text)">{{ c }}</div></sc-for></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px"><sc-for list="{{ fl.steps }}" as="s" hint-placeholder-count="8"><div style="grid-column:{{ s.c }};grid-row:{{ s.n }};display:flex;gap:10px;padding:10px 12px;border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);font-size:13px;line-height:18px;background:var(--color-bg)"><span class="hd" style="font-size:22px;color:var(--color-accent-700);width:22px;flex:none">{{ s.n }}</span><span>{{ s.t }}</span></div></sc-for></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div></sc-for>
+</div>
+
+<div class="dv-gh"><span class="n">03</span><span class="l">Screens beyond the prototype</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1h"><div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Splash. Replaces the near-black launch screen so there is no dark flash into the light app.</div>
+<lz-phone tone="accent"><div style="flex:1;background-color:var(--color-accent-900);background-image:linear-gradient(color-mix(in srgb, var(--color-bg) 9%, transparent) 1px, transparent 1px),linear-gradient(90deg, color-mix(in srgb, var(--color-bg) 9%, transparent) 1px, transparent 1px);background-size:24px 24px;color:var(--color-bg);padding:28px 26px;display:flex;flex-direction:column;justify-content:space-between">
+<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-300)"><span>Lagos</span><span>Sheet 00</span></div>
+<div class="blueprint" style="border:1px solid color-mix(in srgb, var(--color-bg) 40%, transparent);padding:30px 20px"><div style="display:flex;align-items:center;gap:14px"><span style="width:44px;height:44px;border:1px solid var(--color-bg);display:flex;align-items:center;justify-content:center"><span style="width:16px;height:16px;background:var(--color-accent-400)"></span></span><span class="hd" style="font-size:84px;letter-spacing:.06em">Lezerv</span></div><div style="margin-top:14px;font-size:16px;line-height:24px;color:var(--color-accent-200)">Verified help for your home.</div><i class="corner tl" style="color:var(--color-bg)"></i><i class="corner tr" style="color:var(--color-bg)"></i><i class="corner bl" style="color:var(--color-bg)"></i><i class="corner br" style="color:var(--color-bg)"></i></div>
+<div><div style="height:2px;background:color-mix(in srgb, var(--color-bg) 25%, transparent)"><div style="width:42%;height:2px;background:var(--color-accent-400)"></div></div><div style="margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-300)">Loading · v1.0</div></div>
+</div></lz-phone></div>
+
+<div class="dv-opt" id="1i"><div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Notification priming. Shown after the first job is posted, once there is a reason to allow push. PROPOSAL.</div>
+<lz-phone><div style="flex:1;padding:30px 22px 20px;display:flex;flex-direction:column">
+<span class="blueprint" style="width:64px;height:64px;border:1px solid var(--color-accent);background:var(--color-accent-100);display:flex;align-items:center;justify-content:center;color:var(--color-accent-800)"><lz-icon name="bell" size="32"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></span>
+<div class="hd" style="font-size:60px;line-height:54px;margin:22px 0 12px">Know the moment someone applies.</div>
+<div style="font-size:16px;line-height:24px;color:var(--color-neutral-800)">Artisans reply fast. Turn on notifications so you do not have to keep the app open.</div>
+<div style="margin-top:22px;border-top:1px solid var(--color-text)"><sc-for list="{{ primeRows }}" as="r" hint-placeholder-count="3"><div style="display:flex;gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--color-divider)"><lz-icon name="{{ r.ic }}" size="22" style="color:var(--color-accent-700)"></lz-icon><span style="font-size:15px;line-height:21px">{{ r.t }}</span></div></sc-for></div>
+<div style="flex:1"></div>
+<button class="blueprint" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:56px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer"><span>Allow notifications</span><lz-icon name="bell" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<button style="margin-top:10px;min-height:48px;background:transparent;border:0;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px;cursor:pointer;color:var(--color-text)">Not now</button>
+<div style="font-size:12px;line-height:16px;color:var(--color-neutral-700);margin-top:4px">You can change this later in Account.</div>
+</div></lz-phone></div>
+
+<div class="dv-opt" id="1j"><div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Artisan onboarding, step 2 of 4: verification. Documents go to a private bucket.</div>
+<lz-phone><div style="flex:none;display:flex;align-items:center;gap:4px;padding:2px 16px 2px 4px;min-height:56px;background:var(--color-bg)"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><lz-icon name="arrow-left" size="24"></lz-icon></span><div><div class="hd" style="font-size:24px;line-height:26px">Become an artisan</div><div style="font-size:12px;color:var(--color-neutral-700)">Verification</div></div></div>
+<div style="height:1px;background:var(--color-text);opacity:.25"></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:14px 20px 4px"><sc-for list="{{ kycBars }}" as="b" hint-placeholder-count="4"><div><div style="height:3px;background:{{ b.bg }}"></div><div class="lb" style="margin-top:6px;font-size:10px;color:{{ b.fg }}">{{ b.l }}</div></div></sc-for></div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:18px">
+<div><div class="lb" style="margin-bottom:6px">ID type</div><div style="display:flex;border:1px solid var(--color-text)"><span style="flex:1;padding:12px 10px;background:var(--color-text);color:var(--color-bg);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase">NIN</span><span style="flex:1;padding:12px 10px;border-left:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase">Voter’s card</span><span style="flex:1;padding:12px 10px;border-left:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.05em;text-transform:uppercase">Passport</span></div></div>
+<div><div class="lb" style="margin-bottom:6px">ID number</div><div style="height:50px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);display:flex;align-items:center;font-size:16px;letter-spacing:.08em">123 456 789 01</div></div>
+<div style="display:flex;flex-direction:column;gap:10px"><div class="lb">Documents</div>
+<sc-for list="{{ kycDocs }}" as="d" hint-placeholder-count="3"><div class="blueprint" style="display:flex;align-items:center;gap:12px;padding:10px;border:{{ d.bd }};background:{{ d.bg }}"><span style="width:52px;height:52px;flex:none;background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 6px,var(--color-neutral-300) 6px,var(--color-neutral-300) 7px);display:flex;align-items:center;justify-content:center;color:var(--color-neutral-700)"><lz-icon name="{{ d.ic }}" size="22"></lz-icon></span><span style="flex:1"><span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:22px;text-transform:uppercase;letter-spacing:.03em">{{ d.l }}</span><span style="display:block;font-size:12px;line-height:16px;color:var(--color-neutral-700)">{{ d.s }}</span></span><lz-icon name="{{ d.ic2 }}" size="22" style="color:var(--color-accent-700)"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for></div>
+<div style="display:flex;gap:10px;font-size:12px;line-height:17px;color:var(--color-neutral-700)"><lz-icon name="lock" size="16"></lz-icon>Stored privately. Only Lezerv’s verification team can open them.</div>
+</div>
+<div style="flex:none;display:flex;gap:8px;padding:14px 20px 12px;border-top:1px solid var(--color-text);background:var(--color-bg)"><span style="width:54px;height:54px;flex:none;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:center"><lz-icon name="arrow-left" size="22"></lz-icon></span><button class="blueprint" style="flex:1;display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left"><span>Continue</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div>
+</lz-phone></div>
+
+<div class="dv-opt" id="1k"><div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a>Payout account for artisans. Bank fields exist in the database but no screen collects them yet. PROPOSAL, needs backend work for BVN and name match.</div>
+<lz-phone><div style="flex:none;display:flex;align-items:center;gap:4px;padding:2px 16px 2px 4px;min-height:56px;background:var(--color-bg)"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><lz-icon name="arrow-left" size="24"></lz-icon></span><div class="hd" style="font-size:24px">Payout account</div></div>
+<div style="height:1px;background:var(--color-text);opacity:.25"></div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px">
+<div style="font-size:15px;line-height:22px;color:var(--color-neutral-800)">Lezerv pays you here after each completed job, minus 20% commission.</div>
+<div><div class="lb" style="margin-bottom:6px">Bank</div><div style="height:50px;padding:0 12px;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:space-between;font-size:16px">Guaranty Trust Bank<lz-icon name="chevron-right" size="20"></lz-icon></div></div>
+<div><div class="lb" style="margin-bottom:6px">Account number</div><div style="height:50px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);display:flex;align-items:center;font-size:18px;letter-spacing:.14em">0123456789</div></div>
+<div class="blueprint" style="padding:12px 14px;border:1px solid var(--color-accent);background:var(--color-accent-100);display:flex;gap:12px;align-items:center"><lz-icon name="badge-check" size="22" style="color:var(--color-accent-700)"></lz-icon><div><div class="lb" style="color:var(--color-accent-800)">Account name</div><div class="hd" style="font-size:24px;margin-top:3px">Tunde Adeyemi</div></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div><div class="lb" style="margin-bottom:6px">BVN</div><div style="height:50px;padding:0 12px;background:var(--color-surface);border:1px solid var(--color-divider);display:flex;align-items:center;font-size:18px;letter-spacing:.2em">••••••••••• </div><div style="font-size:12px;line-height:17px;color:var(--color-neutral-700);margin-top:6px">Used once to confirm it is you. Lezerv never shows it again.</div></div>
+</div>
+<div style="flex:none;padding:14px 20px 12px;border-top:1px solid var(--color-text);background:var(--color-bg)"><button class="blueprint" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left"><span>Verify and save</span><lz-icon name="shield-check" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button></div>
+</lz-phone></div>
+
+<div class="dv-opt" id="1l"><div class="dv-olabel"><a class="dv-oid" href="#1l">1l</a>Offline and loading. Saved lists stay readable, a skeleton marks data that is still arriving, and unsent messages wait with a retry.</div>
+<lz-phone><div style="flex:none;display:flex;align-items:center;padding:2px 4px 2px 20px;min-height:56px;background:var(--color-bg)"><span class="hd" style="font-size:28px;letter-spacing:.04em">My jobs</span></div>
+<div style="display:flex;gap:10px;align-items:center;padding:10px 20px;background:var(--color-accent-100);border-top:1px solid var(--color-accent);border-bottom:1px solid var(--color-accent);font-size:13px;line-height:18px;color:var(--color-accent-900)"><lz-icon name="wifi-off" size="20"></lz-icon><span><b>You’re offline.</b> Showing saved jobs. Messages send when you reconnect.</span></div>
+<div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px">
+<div class="blueprint" style="padding:14px;border:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="padding:3px 8px;background:var(--color-accent-200);color:var(--color-accent-900);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Matched</span><span class="lb" style="font-size:10px">Saved 10 min ago</span></div><div class="hd" style="font-size:26px;line-height:26px">Fix leaking kitchen sink</div><div style="font-size:13px;color:var(--color-neutral-700)">Plumbing · Lekki</div><div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px dashed var(--color-neutral-600);font-size:13px"><lz-icon name="clock" size="18"></lz-icon><span><b>Message not sent.</b> Retry when online.</span></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div class="blueprint" style="padding:14px;border:1px solid var(--color-divider);display:flex;flex-direction:column;gap:10px"><div style="height:18px;width:90px;background:var(--color-neutral-300)"></div><div style="height:26px;width:80%;background:var(--color-neutral-300)"></div><div style="height:14px;width:55%;background:var(--color-neutral-200)"></div><div style="height:14px;width:70%;background:var(--color-neutral-200)"></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div class="blueprint" style="padding:14px;border:1px solid var(--color-divider);display:flex;flex-direction:column;gap:10px;opacity:.7"><div style="height:18px;width:90px;background:var(--color-neutral-300)"></div><div style="height:26px;width:65%;background:var(--color-neutral-300)"></div><div style="height:14px;width:60%;background:var(--color-neutral-200)"></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+</div>
+<div style="flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--color-text);background:var(--color-bg)"><sc-for list="{{ miniTabs }}" as="t" hint-placeholder-count="5"><div style="height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--font-heading);font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;line-height:1;background:{{ t.bg }};color:{{ t.fg }};border-top:3px solid {{ t.bar }};margin-top:-1px"><lz-icon name="{{ t.ic }}" size="22"></lz-icon>{{ t.l }}</div></sc-for></div>
+</lz-phone></div>
+</div>
+
+<div class="dv-opts" style="margin-top:44px">
+<div class="dv-opt" id="1m"><div class="dv-olabel"><a class="dv-oid" href="#1m">1m</a>Empty, error and special states. Each says what happened and offers one next step.</div>
+<div class="dv-plate blueprint" style="width:780px;padding:22px 26px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+<sc-for list="{{ states }}" as="s" hint-placeholder-count="6"><div class="blueprint" style="padding:14px;border:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px;min-height:190px"><lz-icon name="{{ s.ic }}" size="26" style="color:var(--color-accent-700)"></lz-icon><div class="hd" style="font-size:25px;line-height:25px">{{ s.t }}</div><div style="font-size:13px;line-height:19px;color:var(--color-neutral-800);flex:1">{{ s.d }}</div><div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 12px;border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:.05em;text-transform:uppercase">{{ s.b }}<lz-icon name="arrow-right" size="16"></lz-icon></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+
+<div class="dv-opt" id="1n"><div class="dv-olabel"><a class="dv-oid" href="#1n">1n</a>Push notifications as they appear on Android. Each one deep-links with the route from 1b.</div>
+<div class="dv-plate blueprint" style="width:780px;padding:22px 26px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<sc-for list="{{ pushes }}" as="p" hint-placeholder-count="6"><div class="blueprint" style="padding:12px 14px;border:1px solid var(--color-text);background:var(--color-bg)">
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--color-neutral-700);margin-bottom:6px"><span style="width:16px;height:16px;border:1px solid var(--color-text);display:flex;align-items:center;justify-content:center"><span style="width:6px;height:6px;background:var(--color-accent)"></span></span><b style="letter-spacing:.08em;text-transform:uppercase">Lezerv</b><span>· {{ p.when }}</span><span style="flex:1"></span><span>{{ p.to }}</span></div>
+<div style="font-weight:700;font-size:15px;line-height:20px">{{ p.t }}</div><div style="font-size:14px;line-height:20px;color:var(--color-neutral-800)">{{ p.b }}</div>
+<div style="display:flex;gap:16px;margin-top:10px"><sc-for list="{{ p.acts }}" as="a" hint-placeholder-count="2"><span style="font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-700)">{{ a }}</span></sc-for></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">04</span><span class="l">Payment and escrow</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1o"><div class="dv-olabel"><a class="dv-oid" href="#1o">1o</a>Escrow state on a job. Designed now, built when Paystack keys arrive. Disputes and refunds are not in the product yet, so that state is marked as a gap.</div>
+<div class="dv-plate blueprint" style="width:1180px;padding:24px 26px">
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0">
+<sc-for list="{{ escrow }}" as="e" hint-placeholder-count="5"><div style="padding:0 14px 0 0"><div style="display:flex;align-items:center"><span style="width:14px;height:14px;flex:none;background:{{ e.node }};border:1px solid {{ e.nb }}"></span><span style="flex:1;height:1px;background:{{ e.line }}"></span></div>
+<div class="hd" style="font-size:28px;margin:10px 0 6px">{{ e.t }}</div>
+<div style="font-size:13px;line-height:19px;color:var(--color-neutral-800);min-height:78px">{{ e.d }}</div>
+<div style="margin-top:8px;font-size:12px;line-height:17px"><div><b>Client sees:</b> {{ e.c }}</div><div style="margin-top:4px"><b>Artisan sees:</b> {{ e.a }}</div></div></div></sc-for>
+</div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">05</span><span class="l">Component library</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1p"><div class="dv-olabel"><a class="dv-oid" href="#1p">1p</a>Components on the Industry tokens. Square corners, hairline frames, registration marks on framed objects, one solid action per view.</div>
+<div class="dv-plate blueprint" style="width:1180px;padding:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:34px 30px">
+<div><div class="lb" style="margin-bottom:10px">Buttons</div><div style="display:flex;flex-direction:column;gap:10px">
+<button class="blueprint" style="display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left"><span>Primary</span><lz-icon name="arrow-right" size="22"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></button>
+<button style="display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px solid var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left"><span>Secondary</span><lz-icon name="x" size="20"></lz-icon></button>
+<button style="display:flex;align-items:center;min-height:48px;padding:0 14px;background:transparent;color:var(--color-text);border:1px dashed var(--color-text);font-family:var(--font-heading);font-weight:600;font-size:18px;letter-spacing:.05em;text-transform:uppercase;text-align:left">Can’t take it</button>
+<button style="display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:0 16px;background:var(--color-accent);color:var(--color-bg);border:1px solid var(--color-accent);font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.05em;text-transform:uppercase;text-align:left;opacity:.45"><span>Disabled</span><lz-icon name="lock" size="22"></lz-icon></button>
+<span style="font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px">Text action</span></div></div>
+<div><div class="lb" style="margin-bottom:10px">Status pills</div><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ tags }}" as="t" hint-placeholder-count="10"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:{{ t.bg }};color:{{ t.fg }};border:{{ t.bd }};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">{{ t.l }}</span></sc-for></div>
+<div class="lb" style="margin:22px 0 10px">Price states</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;border:1px dashed var(--color-accent)"><span class="lb" style="color:var(--color-accent-800)">Estimate</span><span class="hd" style="font-size:30px">₦35,000</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;border:1px solid var(--color-accent-800)"><span class="lb" style="color:var(--color-accent-800)">Firm</span><span class="hd" style="font-size:30px">₦45,000</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--color-accent-800);color:var(--color-bg)"><span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase"><lz-icon name="check" size="14"></lz-icon>Agreed</span><span class="hd" style="font-size:30px">₦45,000</span></div></div></div>
+<div><div class="lb" style="margin-bottom:10px">Artisan card, rating, verified</div>
+<div class="blueprint" style="display:flex;gap:12px;padding:12px;border:1px solid var(--color-divider)"><span style="width:60px;height:68px;flex:none;background:var(--color-accent-200);color:var(--color-accent-800);border:1px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:26px;letter-spacing:.04em">TA</span><span style="display:flex;flex-direction:column;gap:2px"><span class="hd" style="font-size:24px;display:flex;align-items:center;gap:6px">Tunde Adeyemi<lz-icon name="badge-check" size="18" style="color:var(--color-accent-700)"></lz-icon></span><span style="font-size:13px;color:var(--color-neutral-800)">★ 4.8 (96) · 11 yrs · 174 jobs</span><span class="lb" style="color:var(--color-accent-700);margin-top:4px">Plumbing · Lekki, Ajah</span></span><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+<div style="display:flex;gap:6px;margin-top:12px;align-items:center;color:var(--color-accent-700)"><lz-icon name="star" size="22" fill="currentColor"></lz-icon><lz-icon name="star" size="22" fill="currentColor"></lz-icon><lz-icon name="star" size="22" fill="currentColor"></lz-icon><lz-icon name="star" size="22" fill="currentColor"></lz-icon><lz-icon name="star" size="22"></lz-icon><span style="margin-left:6px;color:var(--color-text);font-weight:700;font-size:14px">4.0</span><span style="flex:1"></span><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="badge-check" size="13"></lz-icon>Verified</span></div>
+<div class="lb" style="margin:22px 0 10px">Photo picker</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><div class="blueprint" style="aspect-ratio:1;background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 6px,var(--color-neutral-300) 6px,var(--color-neutral-300) 7px);display:flex;align-items:center;justify-content:center"><lz-icon name="image" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div><div class="blueprint" style="aspect-ratio:1;background:repeating-linear-gradient(45deg,var(--color-neutral-200),var(--color-neutral-200) 6px,var(--color-neutral-300) 6px,var(--color-neutral-300) 7px);display:flex;align-items:center;justify-content:center"><lz-icon name="image" size="20"></lz-icon><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div><div style="aspect-ratio:1;border:1px dashed var(--color-text);display:flex;align-items:center;justify-content:center"><lz-icon name="camera" size="24"></lz-icon></div></div></div>
+<div><div class="lb" style="margin-bottom:10px">Quote strips</div><div style="display:flex;flex-direction:column;gap:10px">
+<div style="padding:12px;border:1px dashed var(--color-neutral-600);display:flex;gap:10px;font-size:14px"><lz-icon name="clock" size="20"></lz-icon>Waiting for Tunde to send a price.</div>
+<div style="padding:12px;border:1px solid var(--color-accent);background:var(--color-accent-100)"><div class="lb" style="color:var(--color-accent-800)">Tunde sent a price · Estimate</div><div class="hd" style="font-size:36px;margin:4px 0">₦35,000</div><div style="display:flex;gap:6px;font-size:12px;color:var(--color-accent-800)"><lz-icon name="info" size="14"></lz-icon>An estimate can change after a site visit.</div></div>
+<div style="padding:12px;border:1px solid var(--color-text);display:flex;justify-content:space-between;align-items:center"><span class="hd" style="font-size:30px">₦45,000</span><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase"><lz-icon name="check" size="13"></lz-icon>Agreed</span></div></div></div>
+<div><div class="lb" style="margin-bottom:10px">Chat bubbles</div><div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+<div style="max-width:80%;padding:10px 12px;border:1px solid var(--color-text);font-size:15px;line-height:20px">Friday 10:00 works.</div>
+<div style="max-width:80%;padding:10px 12px;background:var(--color-accent-800);color:var(--color-bg);border:1px solid var(--color-accent-800);font-size:15px;line-height:20px;align-self:flex-end">Call me on [contact hidden]</div>
+<div style="padding:8px 12px;border:1px dashed var(--color-neutral-500);font-size:12px;line-height:17px;text-align:center;align-self:center;color:var(--color-neutral-800)">We hid a phone number from your message.</div></div>
+<div class="lb" style="margin:22px 0 10px">Stepper</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr)"><sc-for list="{{ rail }}" as="p" hint-placeholder-count="4"><div><div style="display:flex;align-items:center"><span style="width:12px;height:12px;flex:none;background:{{ p.node }};border:1px solid {{ p.nb }}"></span><span style="flex:1;height:1px;background:{{ p.line }}"></span></div><div class="lb" style="margin-top:6px;font-size:10px;color:{{ p.fg }}">{{ p.l }}</div></div></sc-for></div></div>
+<div><div class="lb" style="margin-bottom:10px">Bottom sheet</div>
+<div style="height:230px;position:relative;background:color-mix(in srgb, var(--color-neutral-900) 55%, transparent);display:flex;flex-direction:column;justify-content:flex-end"><div style="background:var(--color-bg);border-top:1px solid var(--color-text);padding:14px 14px 12px"><div class="hd" style="font-size:28px;margin-bottom:6px">Can’t take this job?</div><div style="font-size:12px;line-height:17px;color:var(--color-neutral-800);margin-bottom:10px">The job goes back to matching artisans.</div><div style="display:flex;justify-content:space-between;align-items:center;min-height:40px;padding:0 12px;border:1px solid var(--color-accent);background:var(--color-accent-100);font-size:14px;font-weight:700">Too far from me<lz-icon name="check" size="18" style="color:var(--color-accent-700)"></lz-icon></div></div></div></div>
+<div><div class="lb" style="margin-bottom:10px">Toast and bell badge</div>
+<div style="background:var(--color-text);color:var(--color-bg);padding:13px 15px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center"><lz-icon name="circle-check" size="20"></lz-icon>Price sent to the client</div>
+<div style="display:flex;gap:20px;margin-top:16px;align-items:center"><span style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center"><lz-icon name="bell" size="26"></lz-icon><span style="position:absolute;top:5px;right:3px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;background:var(--color-accent-800);color:var(--color-bg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">2</span></span><span style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center"><lz-icon name="message-square" size="26"></lz-icon><span style="position:absolute;top:8px;right:6px;width:9px;height:9px;background:var(--color-accent)"></span></span></div></div>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">06</span><span class="l">Type and theme</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1q"><div class="dv-olabel"><a class="dv-oid" href="#1q">1q</a>Mobile type scale. Barlow Condensed for display and actions, Barlow for reading. The web scale (40, 32, 24) is too small for headings here and too large for body.</div>
+<div class="dv-plate blueprint" style="width:780px;padding:22px 26px">
+<sc-for list="{{ typeScale }}" as="r" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:96px 1fr 150px;gap:14px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--color-divider)"><span class="lb">{{ r.n }}</span><span style="{{ r.css }}">{{ r.sample }}</span><span style="font-size:12px;color:var(--color-neutral-700)">{{ r.spec }}</span></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+<div class="dv-opt" id="1r"><div class="dv-olabel"><a class="dv-oid" href="#1r">1r</a>Theme decision: light only for v1.</div>
+<div class="dv-plate blueprint" style="width:380px;padding:22px 24px;display:flex;flex-direction:column;gap:10px"><div class="hd" style="font-size:34px">Light only</div>
+<sc-for list="{{ darkWhy }}" as="w" hint-placeholder-count="4"><div style="display:flex;gap:10px;font-size:14px;line-height:20px"><lz-icon name="check" size="18" style="color:var(--color-accent-700)"></lz-icon><span>{{ w }}</span></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">07</span><span class="l">Open decisions</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1s"><div class="dv-olabel"><a class="dv-oid" href="#1s">1s</a>The four open decisions from the brief, with the recommendation applied. All PROPOSAL.</div>
+<div class="dv-plate blueprint" style="width:1180px;padding:24px 26px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px">
+<sc-for list="{{ decisions }}" as="d" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:8px"><div class="lb" style="color:var(--color-accent-700)">{{ d.n }}</div><div class="hd" style="font-size:30px;line-height:28px">{{ d.q }}</div><div style="font-size:14px;line-height:21px;font-weight:700">{{ d.a }}</div><div style="font-size:13px;line-height:20px;color:var(--color-neutral-800)">{{ d.w }}</div><div style="margin-top:4px;padding:8px 10px;border:1px dashed var(--color-neutral-600);font-size:12px;line-height:17px"><b>Backend:</b> {{ d.b }}</div></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+
+<div class="dv-gh"><span class="n">08</span><span class="l">Technical plan</span><i></i></div>
+<div class="dv-opts">
+<div class="dv-opt" id="1t"><div class="dv-olabel"><a class="dv-oid" href="#1t">1t</a>Architecture proposal, building on §11 of the brief.</div>
+<div class="dv-plate blueprint" style="width:1180px;padding:24px 26px;display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px">
+<sc-for list="{{ arch }}" as="a" hint-placeholder-count="8"><div style="padding:16px 0;border-top:1px solid var(--color-text)"><div style="display:flex;gap:12px;align-items:baseline;margin-bottom:8px"><span class="lb" style="color:var(--color-accent-700)">{{ a.n }}</span><span class="hd" style="font-size:30px">{{ a.h }}</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><sc-for list="{{ a.l }}" as="x" hint-placeholder-count="4"><div style="display:flex;gap:10px;font-size:14px;line-height:21px"><span style="width:6px;height:6px;flex:none;margin-top:8px;background:var(--color-accent)"></span><span>{{ x }}</span></div></sc-for></div></div></sc-for>
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div></div>
+</div>
+<p class="dv-next">Try next: “make the splash and onboarding feel warmer” · “show the support bot to human handoff” · “add the iOS variant of the tab bar and sheets”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const mut = 'var(--color-neutral-700)';
+    const tab = (l, ic, on, post) => ({l, ic, bg: post ? 'var(--color-accent)' : 'transparent', fg: post ? 'var(--color-bg)' : (on ? 'var(--color-text)' : mut), bar: on || post ? 'var(--color-accent)' : 'transparent'});
+    const navs = [
+      {role: 'Client', tabs: [tab('Home','home',true),tab('Find','search'),tab('Post','plus',false,true),tab('Jobs','briefcase'),tab('Account','user')], notes: [
+        {k:'Home',v:'Post a job, services grid, “needs your reply” strip, how it works, trust block.'},
+        {k:'Find',v:'Artisans by area and service. Profile ends in Post a job for this artisan.'},
+        {k:'Post',v:'Centre action. Three steps, then the “finding someone” state.'},
+        {k:'Jobs',v:'Active and Done. Chat, price, escrow, review, rebook live inside each job.'},
+        {k:'Account',v:'Role switch, notifications, referral, support, export, delete.'}]},
+      {role: 'Artisan', tabs: [tab('Board','briefcase',true),tab('My jobs','wrench'),tab('Messages','message-square'),tab('Earnings','wallet'),tab('Account','user')], notes: [
+        {k:'Board',v:'Open jobs in my areas and services. Express interest with a note.'},
+        {k:'My jobs',v:'Assigned jobs: send price, site visit, start, complete, can’t take it.'},
+        {k:'Messages',v:'All conversations by last message. New tab, since dispatch is time sensitive.'},
+        {k:'Earnings',v:'Available, in escrow, paid out, payout account. PROPOSAL.'},
+        {k:'Account',v:'Ready for work, verification status, services and areas, support.'}]}
+    ];
+    const links = [
+      {p:'New job in your area',to:'Artisan',route:'/board/:jobId',lands:'Board, job card focused'},
+      {p:'A client asked for you again',to:'Artisan',route:'/jobs/:jobId',lands:'My jobs, Asked for you badge'},
+      {p:'Price accepted · Escrow funded',to:'Artisan',route:'/jobs/:jobId',lands:'My jobs, Start job enabled'},
+      {p:'You are approved',to:'Artisan',route:'/account/verification',lands:'Account, Ready for work toggle'},
+      {p:'Matched with an artisan',to:'Client',route:'/jobs/:jobId',lands:'Job detail, chat open'},
+      {p:'Artisan sent you a price',to:'Client',route:'/jobs/:jobId#price',lands:'Job detail at the price card'},
+      {p:'New message',to:'Both',route:'/chat/:jobId',lands:'Chat thread'},
+      {p:'Job completed · rate your artisan',to:'Client',route:'/jobs/:jobId#review',lands:'Review sheet open'},
+      {p:'Referral link',to:'Guest',route:'/r/:code',lands:'Store, or app Home with code saved'}
+    ];
+    const L = (id, label, cols, steps) => ({id, label, cols, steps: steps.map((s, i) => ({n: i + 1, c: s[0], t: s[1]}))});
+    const flows = [
+      L('1c','Client posts a job with photos, is matched, agrees a price, visit, completion, review, rebook.',['Client','Lezerv','Artisan'],[[1,'Posts a job, up to 10 photos, service and area.'],[2,'Job is open. Matching approved artisans are notified.'],[3,'Sees it on the Board and shows interest.'],[2,'Assigns one artisan. Chat opens for both.'],[3,'Proposes a site visit time. Optional.'],[3,'Sends an estimate, or a firm price after the visit.'],[1,'Accepts the price and pays into escrow.'],[3,'Starts the job, then marks it complete.'],[1,'Rates 1 to 5 and leaves a comment.'],[1,'Taps Book again to ask the same artisan.']]),
+      L('1d','Artisan onboarding with KYC, approval, job board, interest, assignment, price, start, complete.',['Artisan','Lezerv','Job'],[[1,'Opens Become an artisan. Profile, services, areas.'],[1,'Verification: ID type and number, photo ID, proof of address, passport photo.'],[2,'Profile is pending. The team is emailed.'],[2,'Admin reviews documents, approves and sets Verified.'],[1,'Gets “You are approved”. Turns on Ready for work.'],[1,'Board shows matching jobs. Shows interest.'],[2,'Assigns the artisan. Chat opens.'],[1,'Sends price, starts the job, marks it complete.'],[3,'Completed count goes up. Earnings are released.']]),
+      L('1e','Quote states: estimate versus firm.',['Artisan','State','Client'],[[1,'Sends a price before any visit. It is labelled Estimate.'],[2,'Quoted · estimate'],[3,'Accepts, or declines. A decline lets the artisan revise.'],[1,'Records the site visit and the call-out fee.'],[2,'Visited'],[1,'Sends a firm price.'],[3,'Accepts. The firm price locks.']]),
+      L('1f','Decline an assigned job. Only before a price is agreed.',['Artisan','Lezerv','Client'],[[1,'Taps Can’t take it and picks a reason in a sheet.'],[2,'Job returns to open. Artisan leaves the chat.'],[2,'Matching artisans are notified again.'],[3,'Is told: we’re finding someone.'],[2,'Assigns a new artisan. Chat re-opens.']]),
+      L('1g','Guest to account. Browse first, sign up only when posting.',['Guest','App','Backend'],[[1,'Browses services, prices and artisans without an account.'],[1,'Taps Post a job.'],[2,'Sheet asks for phone or email. Password comes later. PROPOSAL: phone OTP.'],[3,'Auth user and profile are created by the trigger.'],[2,'Returns to the form with the service pre-filled.'],[1,'Posts the job.'],[2,'Asks for notification permission, see 1i.']])
+    ];
+    const primeRows = [{ic:'banknote',t:'An artisan sends you a price'},{ic:'badge-check',t:'Lezerv matches you with someone'},{ic:'message-square',t:'You get a new message'}];
+    const kycBars = ['Profile','Verify','Services','Review'].map((l, i) => ({l: '0' + (i + 1) + ' ' + l, bg: i < 2 ? 'var(--color-accent-800)' : 'var(--color-neutral-300)', fg: i < 2 ? 'var(--color-text)' : mut}));
+    const kycDocs = [
+      {l:'Photo ID',s:'Uploaded · tap to replace',ic:'file-text',ic2:'circle-check',bd:'1px solid var(--color-accent)',bg:'var(--color-accent-100)'},
+      {l:'Proof of address',s:'Utility bill, last 3 months',ic:'camera',ic2:'upload',bd:'1px dashed var(--color-text)',bg:'transparent'},
+      {l:'Passport photograph',s:'Face clearly visible',ic:'user',ic2:'camera',bd:'1px dashed var(--color-text)',bg:'transparent'}
+    ];
+    const miniTabs = [tab('Home','home'),tab('Find','search'),tab('Post','plus',false,true),tab('Jobs','briefcase',true),tab('Account','user')];
+    const states = [
+      {ic:'search',t:'No artisans here yet',d:'No approved artisans cover this area and service.',b:'Post a job instead'},
+      {ic:'briefcase',t:'No active jobs',d:'Posted jobs appear here with their status.',b:'Post a job'},
+      {ic:'message-square',t:'No messages yet',d:'Chat opens once Lezerv matches you with someone.',b:'Go to Jobs'},
+      {ic:'wifi-off',t:'Couldn’t load',d:'Check your connection. Saved data is still shown above.',b:'Try again'},
+      {ic:'circle-alert',t:'Account suspended',d:'You cannot take new jobs. The team can explain why.',b:'Contact support'},
+      {ic:'clock',t:'Still finding someone',d:'No interest after the first window. We widen the area and alert the team. PROPOSAL.',b:'Widen to nearby areas'}
+    ];
+    const pushes = [
+      {when:'now',to:'Artisan',t:'New job in Surulere',b:'Burst pipe under bathroom sink',acts:['View job','Show interest']},
+      {when:'1m',to:'Artisan',t:'A client asked for you again',b:'Replace bathroom tap in Ajah',acts:['View job','Can’t take it']},
+      {when:'2m',to:'Client',t:'Tunde sent you a price',b:'Fix leaking kitchen sink · Estimate ₦35,000',acts:['View price']},
+      {when:'5m',to:'Client',t:'You’re matched with Chinwe',b:'Deep clean 3-bedroom flat. Chat is open.',acts:['Open chat']},
+      {when:'8m',to:'Both',t:'Tunde: Friday 10:00 works',b:'New message on Fix leaking kitchen sink',acts:['Reply','View job']},
+      {when:'1h',to:'Artisan',t:'You are approved',b:'Turn on Ready for work to see jobs.',acts:['Open account']}
+    ];
+    const escrow = [
+      {t:'Price agreed',d:'Client accepts the price. Lezerv records the amount and the 20% commission.',c:'Accept done, Pay into escrow button',a:'Agreed price, waiting for payment',node:'var(--color-accent-800)',nb:'var(--color-accent-800)',line:'var(--color-accent-800)'},
+      {t:'Funded',d:'Client pays by card, bank transfer or USSD through Paystack. A webhook confirms it.',c:'Payment received',a:'Escrow funded, Start job enabled',node:'var(--color-accent-800)',nb:'var(--color-accent-800)',line:'var(--color-accent-800)'},
+      {t:'Held',d:'Money stays with Lezerv while the job is in progress.',c:'Held by Lezerv with a lock icon',a:'In escrow on the Earnings tab',node:'var(--color-accent-800)',nb:'var(--color-accent-800)',line:'var(--color-neutral-400)'},
+      {t:'Released',d:'Job is marked complete and the client confirms or the window passes. Payout minus commission.',c:'Released, review prompt',a:'Available to withdraw',node:'transparent',nb:'var(--color-neutral-600)',line:'var(--color-neutral-400)'},
+      {t:'Dispute · gap',d:'Not in the product yet. The brief lists disputes, refunds and a no-show policy as unbuilt.',c:'Report a problem entry, to design',a:'Payout paused, to design',node:'transparent',nb:'var(--color-neutral-600)',line:'transparent'}
+    ];
+    const tag = (l, bg, fg, bd) => ({l, bg, fg, bd});
+    const tags = [
+      tag('Finding someone','transparent','var(--color-accent-800)','1px solid var(--color-accent)'),
+      tag('Matched','var(--color-accent-200)','var(--color-accent-900)','1px solid var(--color-accent-200)'),
+      tag('In progress','var(--color-accent)','var(--color-bg)','1px solid var(--color-accent)'),
+      tag('Completed','var(--color-accent-800)','var(--color-bg)','1px solid var(--color-accent-800)'),
+      tag('Cancelled','var(--color-neutral-200)','var(--color-neutral-800)','1px dashed var(--color-neutral-600)'),
+      tag('Estimate','transparent','var(--color-accent-800)','1px dashed var(--color-accent)'),
+      tag('Firm','transparent','var(--color-accent-800)','1px solid var(--color-accent-800)'),
+      tag('Reply needed','var(--color-accent-800)','var(--color-bg)','1px solid var(--color-accent-800)'),
+      tag('Asked for you','var(--color-accent-800)','var(--color-bg)','1px solid var(--color-accent-800)'),
+      tag('Pending review','var(--color-neutral-200)','var(--color-text)','1px solid var(--color-neutral-300)')
+    ];
+    const rail = ['Posted','Matched','In progress','Done'].map((l, i) => ({l, node: i < 2 ? 'var(--color-accent-800)' : 'transparent', nb: i < 2 ? 'var(--color-accent-800)' : 'var(--color-neutral-600)', line: i < 1 ? 'var(--color-accent-800)' : (i < 3 ? 'var(--color-neutral-400)' : 'transparent'), fg: i < 2 ? 'var(--color-text)' : mut}));
+    const H = (px, lh) => 'font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:' + px + 'px;line-height:' + lh + 'px';
+    const B = (px, lh, w) => 'font-size:' + px + 'px;line-height:' + lh + 'px;font-weight:' + (w || 400);
+    const typeScale = [
+      {n:'Display',css:H(60,54),sample:'Post a job',spec:'Barlow Cond. 600 · 60/54 · caps'},
+      {n:'Numeral',css:H(68,64),sample:'₦35,000',spec:'Barlow Cond. 600 · 68/64'},
+      {n:'H1',css:H(44,42),sample:'Fix leaking sink',spec:'Barlow Cond. 600 · 44/42 · caps'},
+      {n:'H2',css:H(34,32),sample:'Job posted',spec:'Barlow Cond. 600 · 34/32 · caps'},
+      {n:'H3',css:H(26,26),sample:'Tunde Adeyemi',spec:'Barlow Cond. 600 · 26/26 · caps'},
+      {n:'Button',css:H(20,22) + ';letter-spacing:.05em',sample:'Pay into escrow',spec:'Barlow Cond. 600 · 20 · .05em'},
+      {n:'Body',css:B(16,24),sample:'Verified artisans apply and Lezerv picks one for you.',spec:'Barlow 400 · 16/24'},
+      {n:'Body small',css:B(14,20),sample:'Held by Lezerv until the job is done.',spec:'Barlow 400 · 14/20'},
+      {n:'Caption',css:B(12,16),sample:'Photos are resized on your phone to save data.',spec:'Barlow 400 · 12/16'},
+      {n:'Label',css:B(11,14,700) + ';letter-spacing:.12em;text-transform:uppercase',sample:'Area · posted',spec:'Barlow 700 · 11 · .12em · caps'}
+    ];
+    const darkWhy = ['The brief keeps the light theme and the Industry system is a light technical ground.','Registration marks and hairlines are drawn from ink on paper and need a rethink on dark.','Dark can follow in v2 once components are stable. The tokens are already role-based.','Outdoor use in daylight favours light.'];
+    const decisions = [
+      {n:'01',q:'Legacy bookings, Track, Payment',a:'Retire them from navigation.',w:'No screen creates bookings. Keep a read-only Past orders list in Account for existing orders, with Pay and Track inside it. Remove it once the last order closes.',b:'None.'},
+      {n:'02',q:'Artisan Request form',a:'Replace with Post a job for this artisan.',w:'The old form writes to a table no screen reads. The new button opens the job form with the artisan asked first, like Rebook, and falls back to the pool if they decline.',b:'create_service_job gets an optional preferred artisan.'},
+      {n:'03',q:'Unfilled jobs',a:'“We’re finding someone” plus a widen step.',w:'Client sees how many artisans were notified. After a window with no interest the area widens and the team is alerted. The client can also widen manually.',b:'Timer job and a widen-area RPC.'},
+      {n:'04',q:'Is Messages a tab?',a:'Yes for artisans, no for clients.',w:'Artisans juggle several chats and need speed. Clients have one or two jobs, so chat stays in the job and a header icon opens the inbox.',b:'Inbox list query only.'}
+    ];
+    const arch = [
+      {n:'01',h:'Capacitor or React Native',l:['Keep Capacitor 8 and build a dedicated mobile UI shell in the same codebase. The shells exist, the services layer is reused as is, and one team ships web and app.','Avoid a website in a wrapper: bottom tabs, sheets, native pickers, safe areas, plus real native features, which also answers store review.','Revisit React Native only if a low-end Android prototype stutters on lists or chat. The RPC contract and this design carry over unchanged.']},
+      {n:'02',h:'Native capabilities',l:['Push (FCM), camera and library with client-side compression, deep links, secure session storage, network status, share, haptics, status bar and safe areas.','Biometric unlock for returning users is optional.','Crash reporting before launch: Sentry or Firebase Crashlytics.']},
+      {n:'03',h:'Push pipeline',l:['New device_tokens table and a register RPC. Token saved on login, removed on sign out.','The notifications table is already the event source. An insert triggers an Edge Function that sends through FCM, using title, body and link.','Tap opens the link as a deep link, see 1b. Mark the notification read on open.']},
+      {n:'04',h:'Offline and poor network',l:['Cache lists and detail with a query cache persisted on device. Skeletons instead of a single Loading.','Optimistic chat send with a retry queue. Re-subscribe to Realtime on app resume. Offline banner from the network plugin.','Resize photos on the phone before upload to fit the 5 MB limit and save data.']},
+      {n:'05',h:'Deep links',l:['Android App Links with assetlinks.json and iOS associated domains for lezerv.com.','Route table follows 1b. Referral links open the app with the code stored, or the store listing.']},
+      {n:'06',h:'Authentication',l:['Today: email and password. PROPOSAL: phone OTP through an SMS provider such as Termii, since the roadmap already wants one for SMS.','Move the session from web storage to native storage. Fail loudly in native builds when the backend env vars are missing.','Read admin status from profiles only. Remove the four hard-coded emails.']},
+      {n:'07',h:'Release pipeline and environments',l:['Separate staging Supabase project. CI: lint and tests, build, cap sync, signed AAB, upload to the Play internal track. iOS follows.','Version from one source. Store listing, icons, screenshots and privacy labels prepared before submission.','Replace the manual AWS web deploy with the same pipeline.']},
+      {n:'08',h:'Phased delivery',l:['MVP, Lagos: post a job, board, chat, price accept, reviews, KYC onboarding, push, deep links, self-service account deletion.','v1: Paystack escrow, payouts, site visits with photos, rebook, phone OTP, Messages tab, offline queue.','v2: disputes and refunds, unfilled-job escalation, referral sharing, Abuja and Port Harcourt, admin companion for approvals and support.']}
+    ];
+    return {navs, links, flows, primeRows, kycBars, kycDocs, miniTabs, states, pushes, escrow, tags, rail, typeScale, darkWhy, decisions, arch};
+  }
+}
+</script>
+</body>
+</html>
