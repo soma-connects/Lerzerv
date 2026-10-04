@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark: the square "L" from the prototype, with blueprint corner ticks.
+     Replace with the real Lezerv logo once the file is supplied. Safe zone is the centre 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- L -->
+    <path android:fillColor="#FFFFFF" android:pathData="M42,36h8v30h16v7h-24z" />
+    <!-- corner ticks -->
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.7"
+        android:pathData="M30,33h7v1h-7zM33,30h1v7h-1zM71,33h7v1h-7zM74,30h1v7h-1zM30,75h7v1h-7zM33,72h1v7h-1zM71,75h7v1h-7zM74,72h1v7h-1z" />
+</vector>

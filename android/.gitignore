@@ -1,0 +1,14 @@
+# Gradle / Android Studio
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+# desktop verification build
+verify-desktop/.gradle/
+verify-desktop/.kotlin/
+verify-desktop/build/

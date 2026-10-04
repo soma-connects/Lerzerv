@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors Lz.Bg / Lz.Accent in ui/theme/Theme.kt -->
+    <color name="lz_bg">#F2F2F3</color>
+    <color name="lz_accent">#1F6040</color>
+</resources>
