@@ -8,8 +8,8 @@ import androidx.compose.runtime.setValue
 import com.lezerv.app.data.AREAS
 import com.lezerv.app.data.DEMO_OTP
 
-/** Steps of the phone sign-in flow, shown full screen over the app. */
-enum class AuthStep { Welcome, Phone, Code, Details }
+/** Steps of the sign-in flow, shown full screen over the app. [Email] is for existing lezerv.com accounts (live only). */
+enum class AuthStep { Welcome, Phone, Code, Details, Email }
 
 data class Address(val id: Int, val label: String, val street: String, val area: String, val note: String, val x: Float, val y: Float) {
     val title get() = "$label · $street"
@@ -42,6 +42,11 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     var phoneDraft by mutableStateOf("")
     var code by mutableStateOf("")
     var codeSentAt by mutableLongStateOf(0L); private set
+    // email sign-in (website accounts)
+    var emailDraft by mutableStateOf("")
+    var password by mutableStateOf("")
+    private var viaEmail = false
+    private var beforeEmail = AuthStep.Welcome
 
     // ───────────── profile ─────────────
     var name by mutableStateOf(if (signedIn) "Amaka Obi" else "")
@@ -109,15 +114,26 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     val phoneValid get() = phoneDraft.length == 10 && phoneDraft.first() in "789"
 
-    /** PROPOSAL: send the code by SMS through a provider such as Termii. */
+    /** Live: Supabase texts the code (its SMS provider, e.g. Termii or Twilio). Demo: any number works. */
     fun sendCode() {
         if (!phoneValid) { app.toast("Enter a 10-digit mobile number, e.g. 803 555 4417"); return }
+        viaEmail = false
+        val live = app.live
+        if (live != null) live.sendCode(phoneDraft) else onCodeSent()
+    }
+
+    internal fun onCodeSent() {
+        if (authStep == AuthStep.Code) app.toast("New code sent")
         code = ""; codeSentAt = app.now; authStep = AuthStep.Code
     }
 
     val resendIn: Int get() = (30 - ((app.now - codeSentAt) / 1000).toInt()).coerceAtLeast(0)
 
-    fun resendCode() { if (resendIn == 0) { codeSentAt = app.now; app.toast("New code sent") } }
+    fun resendCode() {
+        if (resendIn > 0) return
+        val live = app.live
+        if (live != null) live.sendCode(phoneDraft) else onCodeSent()
+    }
 
     fun onCodeInput(v: String) {
         code = v.filter(Char::isDigit).take(6)
@@ -125,9 +141,38 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     }
 
     fun verifyCode() {
+        val live = app.live
+        if (live != null) { if (code.length == 6) live.verifyCode(phoneDraft, code); return }
         if (code != DEMO_OTP) { app.toast("That code doesn’t match. Check the SMS and try again."); return }
         phone = phoneDraft
         if (name.isBlank()) authStep = AuthStep.Details else finishAuth()
+    }
+
+    // ── email (people who signed up on lezerv.com) ──
+
+    fun startEmail() { beforeEmail = authStep ?: AuthStep.Welcome; password = ""; authStep = AuthStep.Email }
+
+    val emailValid get() = EMAIL.matches(emailDraft.trim()) && password.length >= 6
+
+    fun signInWithEmail() {
+        if (!emailValid) { app.toast(if (!EMAIL.matches(emailDraft.trim())) "Check the email address" else "Passwords are at least 6 characters"); return }
+        viaEmail = true
+        app.live?.signInWithEmail(emailDraft.trim(), password)
+    }
+
+    /**
+     * Live sign-in worked (or a saved one was restored). New accounts have no name yet, so
+     * they get the details step; [restored] ones go straight in without a welcome toast.
+     */
+    internal fun onLiveSignIn(fullName: String, email: String, phone: String?, restored: Boolean) {
+        password = ""
+        name = fullName.trim(); this.email = email
+        this.phone = phone ?: phoneDraft.takeIf { !viaEmail && it.length == 10 }.orEmpty()
+        when {
+            name.isBlank() -> authStep = AuthStep.Details
+            restored -> { signedIn = true; authStep = null }
+            else -> finishAuth()
+        }
     }
 
     val detailsValid get() = name.trim().split(' ').count { it.length > 1 } >= 2 && (email.isBlank() || EMAIL.matches(email.trim()))
@@ -135,10 +180,11 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     fun saveDetails() {
         if (!detailsValid) { app.toast(if (email.isNotBlank() && !EMAIL.matches(email.trim())) "Check the email address" else "Add your first and last name"); return }
         name = name.trim(); email = email.trim()
-        finishAuth()
+        val live = app.live
+        if (live != null) live.saveDetails(name, email.ifBlank { null }) else finishAuth()
     }
 
-    private fun finishAuth() {
+    internal fun finishAuth() {
         signedIn = true; authStep = null
         app.toast("Welcome, $firstName")
         afterAuth?.invoke(); afterAuth = null
@@ -149,14 +195,20 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         authStep = when (authStep) {
             AuthStep.Code -> AuthStep.Phone
             AuthStep.Phone -> if (authFromGate) { afterAuth = null; null } else AuthStep.Welcome
-            AuthStep.Details -> AuthStep.Code
+            AuthStep.Email -> beforeEmail
+            AuthStep.Details -> {
+                val live = app.live
+                // Live, the code is already used up, so going back signs out instead of leaving you half in.
+                if (live != null) { live.cancelSignIn(); if (viaEmail) AuthStep.Email else AuthStep.Phone } else AuthStep.Code
+            }
             else -> null
         }
     }
 
     /** Signing out clears everything personal, so the next person on this phone sees none of it. */
     fun signOut() {
-        signedIn = false; name = ""; email = ""; phone = ""; phoneDraft = ""; code = ""
+        app.live?.signOut()
+        signedIn = false; name = ""; email = ""; phone = ""; phoneDraft = ""; code = ""; emailDraft = ""; password = ""
         addresses = emptyList(); cards = emptyList(); trustedContact = "Not set"
         app.reset(withHistory = false)
         authStep = AuthStep.Welcome; authFromGate = false
@@ -165,6 +217,8 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     /** Google Play requires apps with accounts to offer deletion inside the app. PROPOSAL: backend job deletes data within 30 days. */
     fun deleteAccount() {
         deleting = false
+        val live = app.live
+        if (live != null) { live.requestDeletion { signOut(); app.toast("Deletion requested. We remove your account within 30 days.") }; return }
         signOut()
         app.toast("Your account is scheduled for deletion")
     }
@@ -182,8 +236,11 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     fun saveProfile() {
         if (!detailsValid) { app.toast("Add your first and last name, and a valid email or none"); return }
         name = name.trim(); email = email.trim()
-        app.back(); app.toast("Profile saved")
+        val live = app.live
+        if (live != null) live.saveProfile(name, email.ifBlank { null }) else onProfileSaved()
     }
+
+    internal fun onProfileSaved() { if (app.top == Pushed.EditProfile) app.back(); app.toast("Profile saved") }
 
     // ═════════════════════════════ addresses ═════════════════════════════
 

@@ -4,6 +4,10 @@ What every screen in the native app needs from the backend, what already exists 
 `soma-connects/Lerzerv` (`supabase/migrations/0001–0018` on `main`, plus `0019` and `0020` on
 unmerged branches), and what is missing.
 
+> **Update:** step 1 of §5 is done (the app is connected, see §6), and the
+> `claude/mobile-backend` branch adds **0021** (security fix) and **0022** (phone identities,
+> approximate map positions, app support tickets).
+
 **Status key**
 
 | Status | Meaning |
@@ -119,17 +123,25 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
 
 ## 3. Security and privacy findings
 
-1. **Exact artisan locations are public.** `artisans_select_public` lets anyone, including
-   signed-out visitors using the public key, read every column of approved artisans,
-   including `lat` and `lng`. The website saves these (`artisanService.ts` passes `p_lat`
-   and `p_lng`). If they are home addresses, that leaks where artisans live.
-   **Fix:** `revoke select (lat, lng, geog) on public.artisans from anon, authenticated` and
-   serve rounded positions from an RPC (`map_artisans`). The design already says "approximate
-   area until booking".
-2. **Phone-only users get no profile** (1.2). Fix before shipping phone OTP.
-3. **Column protection on `artisans` is correct.** Owners can only update profile fields;
-   status, verification and ratings are locked (0005 column grants). No action needed.
-4. `notify()` is correctly blocked from direct client calls (0010).
+1. **CRITICAL: anyone can make themselves an admin.** A signed-in user can delete their
+   own `profiles` row and insert a new one with `role = 'admin'`; the insert policy only
+   checks the id. Admin unlocks every admin RPC and RLS bypass. **Fixed by 0021**
+   (profiles insert must be `role = 'customer'`, delete is admin-only, inserts limited to
+   `id, email, full_name`). Apply on its own, as soon as possible; the header of 0021 has
+   queries to check whether anyone already did it.
+2. **HIGH: self-approved artisans.** A user can insert an `artisans` row that is already
+   `approved` and `is_verified`, skipping KYC. **Fixed by 0021** (inserts go through
+   `upsert_artisan_profile` only).
+3. **LOW: ambassadors could start with points.** **Fixed by 0021** (insert requires zero).
+4. **Exact artisan locations are public.** `artisans_select_public` exposes `lat`/`lng` of
+   approved artisans to anyone with the public key. **Fixed by 0022** without breaking the
+   website's `select('*')`: the exact point moves to `artisan_private` and the public row
+   only keeps a rounding to ~550 m; `map_artisans` serves those.
+5. **Phone-only users got no profile** (1.2). **Fixed by 0022** (`profiles.email` nullable,
+   `profiles.phone`, `handle_new_user` stores the phone, backfill).
+6. **To review:** `bookings` inserts. The website syncs guest bookings with
+   `payment_status` from the client; check that a client can't mark their own booking paid.
+7. Column protection on `artisans` updates and `notify()` blocking (0010) are correct.
 
 ---
 
@@ -178,3 +190,21 @@ Each step ships something usable and unblocks the next.
 In total, of the 47 screen needs above, **16 are ready**, **14 need small changes**, and
 **17 are missing**. The missing ones cluster in three places: payments, live tracking and
 the direct-booking flow.
+
+---
+
+## 6. What the app uses now (live mode)
+
+`state/LiveSync.kt` drives it; `data/remote/SupabaseApi.kt` holds every call.
+
+| App | Backend call | Notes |
+|---|---|---|
+| Map | `map_artisans(lat, lng, 10 km)` | Falls back to `search_artisans` if 0022 isn't applied: pins then sit at the right distance in an approximate direction |
+| Profile | `get_artisan_public` | Reviews; services and prices still use typical Lagos prices (`artisan_services` is missing) |
+| Sign-in | Auth: phone OTP, or email + password | Then `profiles` for name, email, phone |
+| Send request | `create_service_job` | Until `book_artisan` exists, the description names the chosen artisan (with their id) for the team to assign |
+| Jobs | `service_jobs` with category and artisan embedded | Status line reads `status`, `quoted_amount`, `agreed_amount` |
+| Messages, chat | `conversations`, `messages`, `send_message`, Realtime inserts | Server redaction is what's shown |
+| Notifications | `notifications`, update `read`, Realtime inserts | `type` routes: `message` → Messages, `support_reply` → support chat, others → Jobs |
+| Support, report | `support_tickets`, `open_support_ticket` (0022), `reply_support_ticket`, Realtime | Reports link the job |
+| Delete account | `open_support_ticket` | Until a deletion Edge Function exists |

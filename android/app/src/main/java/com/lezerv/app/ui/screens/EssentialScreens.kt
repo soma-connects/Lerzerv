@@ -42,7 +42,6 @@ import com.lezerv.app.data.REPORT_REASONS
 import com.lezerv.app.data.SAFETY_REASON
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.TERMS
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.naira
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.state.Pushed
@@ -264,7 +263,7 @@ fun CancelSheet(s: LezervState) {
 @Composable
 fun ReceiptScreen(s: LezervState, number: String) {
     val p = s.pastJob(number) ?: return
-    val a = artisan(p.artisanId) ?: return
+    val a = s.artisan(p.artisanId) ?: return
     FormPage(bar = {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlineButton("Share", { s.shareText("Lezerv receipt ${p.number}: ${p.title} with ${a.name}, ${p.date}. Total ${naira(p.total)}.") }, Modifier.weight(1f), icon = "upload")
@@ -303,14 +302,15 @@ private val Hatch = androidx.compose.ui.graphics.Brush.linearGradient(
 
 @Composable
 fun ReportScreen(s: LezervState) {
-    FormPage(bar = { PrimaryWide("Send report", "send", { s.submitReport() }, alpha = if (s.reportText.trim().length >= 10) 1f else .5f) }) {
-        Txt("Tell us what went wrong with ${s.reportJob}. We pause the artisan’s payout while we look into it.", body(14, 20, color = Lz.Neutral800))
+    FormPage(bar = { PrimaryWide("Send report", "send", { s.submitReport() }, alpha = if (s.reportText.trim().length >= 10 && s.live?.busy != true) 1f else .5f) }) {
+        Txt("Tell us what went wrong with ${s.reportJob}. " + if (s.isLive) "Our team looks into it and replies in your support chat." else "We pause the artisan’s payout while we look into it.", body(14, 20, color = Lz.Neutral800))
         Column {
             FormLabel("What happened")
             REPORT_REASONS.forEachIndexed { i, r -> RadioRow(r, s.reportReason == i, { s.reportReason = i }, { }, 48.dp) }
         }
         Column { FormLabel("Details"); LzField(s.reportText, { s.reportText = it.take(600) }, "What did you expect, and what happened instead?", singleLine = false, minHeight = 110.dp) }
-        Column {
+        // Photo upload isn't connected yet (needs a storage bucket for reports), so live hides it.
+        if (!s.isLive) Column {
             FormLabel("Photos (optional, up to 3)")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 repeat(s.reportPhotos) { Box(Modifier.size(72.dp).blueprint().background(Hatch), contentAlignment = Alignment.Center) { LzIcon("image", 20, Lz.Neutral700) } }
@@ -328,8 +328,8 @@ fun HelpScreen(s: LezervState) {
     var open by remember { mutableIntStateOf(-1) }
     FormPage(bar = null) {
         PrimaryWide("Chat with Lezerv Support", "message-square", { s.openChat(SUPPORT) })
-        val recent = s.job?.number ?: s.past.firstOrNull { !it.cancelled }?.number
-        if (s.role == Role.Client && recent != null) LinkRow("circle-alert", "Report a problem with $recent", "Pauses the payout while we check", { s.startReport(recent) })
+        val recent = s.reportable
+        if (s.role == Role.Client && recent != null) LinkRow("circle-alert", "Report a problem with ${recent.first}", if (s.isLive) "Our team reviews it and replies in support chat" else "Pauses the payout while we check", { s.startReport(recent.first, jobId = recent.second) })
         SectionRule("01", "Common questions", gutter = 0.dp)
         Column {
             FAQS.forEachIndexed { i, f ->
@@ -420,7 +420,7 @@ fun DeleteAccountSheet(s: LezervState) {
         Txt("DELETE YOUR ACCOUNT?", heading(30, 30, weight = 700))
         Column(Modifier.padding(top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                "Your profile, saved addresses and cards are removed within 30 days.",
+                if (s.isLive) "We send the request to our team; your profile and history are removed within 30 days." else "Your profile, saved addresses and cards are removed within 30 days.",
                 "Receipts we must keep by law are kept, without your contact details.",
                 if (s.job != null) "Your live booking is cancelled and refunded first." else "Any open support tickets are closed.",
                 "This can’t be undone. You can sign up again with the same number.",
@@ -436,10 +436,10 @@ fun DeleteAccountSheet(s: LezervState) {
 @Composable
 fun EditProfileScreen(s: LezervState) {
     val a = s.account
-    FormPage(bar = { PrimaryWide("Save", "check", { a.saveProfile() }, alpha = if (a.detailsValid) 1f else .5f) }) {
+    FormPage(bar = { PrimaryWide("Save", "check", { a.saveProfile() }, alpha = if (a.detailsValid && s.live?.busy != true) 1f else .5f) }) {
         Column { FormLabel("Full name"); LzField(a.name, { a.name = it.take(60) }, "First and last name", capitalizeWords = true) }
         Column {
-            Row { FormLabel("Phone", Modifier.weight(1f)); Txt("VERIFIED", label(11, .08f, Lz.Accent700)) }
+            Row { FormLabel("Phone", Modifier.weight(1f)); if (a.phone.length == 10) Txt("VERIFIED", label(11, .08f, Lz.Accent700)) }
             LzField(a.phoneMasked, { }, "", enabled = false)
             Txt("To change your number we’ll text a code to the new one.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
         }

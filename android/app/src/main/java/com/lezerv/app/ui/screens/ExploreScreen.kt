@@ -45,11 +45,11 @@ import com.lezerv.app.data.Artisan
 import com.lezerv.app.data.SERVICES
 import com.lezerv.app.data.UX
 import com.lezerv.app.data.UY
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.fixed1
 import com.lezerv.app.data.naira
 import com.lezerv.app.data.pad2
 import com.lezerv.app.state.LezervState
+import com.lezerv.app.state.NEARBY_KM
 import com.lezerv.app.state.Pushed
 import com.lezerv.app.state.Sheet
 import com.lezerv.app.ui.components.IconBox
@@ -114,7 +114,7 @@ internal fun PannableMap(s: LezervState, content: @Composable androidx.compose.f
 @Composable
 fun ExploreScreen(s: LezervState) {
     val list = s.visibleArtisans
-    val sel = artisan(s.selected)
+    val sel = s.artisan(s.selected)
     val sheetH by animateDpAsState(if (sel != null) 214.dp else if (s.sheet == Sheet.List) 470.dp else 132.dp, tween(250, easing = CssEase), label = "sheet")
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -197,7 +197,7 @@ private fun SearchBar(s: LezervState) {
         Box(
             Modifier.padding(end = 2.dp).size(44.dp).background(Lz.Accent100).border(1.dp, Lz.Accent).tap { s.openTab(com.lezerv.app.state.Tab.ClientAccount) }.semantics { contentDescription = "Account" },
             contentAlignment = Alignment.Center,
-        ) { Txt("AO", heading(17, weight = 700, color = Lz.Accent800)) }
+        ) { if (s.account.signedIn) Txt(s.account.initials, heading(17, weight = 700, color = Lz.Accent800)) else LzIcon("user", 20, Lz.Accent800) }
     }
 }
 
@@ -245,7 +245,7 @@ private fun SelectedArtisan(s: LezervState, a: Artisan) {
 }
 
 @Composable
-internal fun AvailTag(a: Artisan) = if (a.online) Tag("Available now", Lz.Accent, Color.White, Lz.Accent) else Tag("Busy until 3 pm", fg = Lz.Accent800, border = Lz.Accent)
+internal fun AvailTag(a: Artisan) = if (a.online) Tag("Available now", Lz.Accent, Color.White, Lz.Accent) else Tag(a.busyLabel, fg = Lz.Accent800, border = Lz.Accent)
 
 @Composable
 private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
@@ -260,7 +260,7 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                 Txt("${list.count { it.online }}", heading(30, 30, weight = 700, color = Lz.Accent))
                 Txt(" NEAR YOU", heading(30, 30, weight = 700))
             }
-            Txt("Available $catL within 2.5 km · Lekki Phase 1", body(13, color = Lz.Neutral700), Modifier.padding(top = 3.dp))
+            Txt(if (s.isLive) "Available $catL within $NEARBY_KM km" else "Available $catL within 2.5 km · Lekki Phase 1", body(13, color = Lz.Neutral700), Modifier.padding(top = 3.dp))
         }
         val listOpen = s.sheet == Sheet.List
         OutlineButton(if (listOpen) "Map" else "List", { s.toggleSheet() }, icon = if (listOpen) "map" else "list", height = 40.dp, fontSize = 16)
@@ -282,7 +282,7 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                     }
                     Column(Modifier.weight(1f)) {
                         Txt(a.name.uppercase(), heading(20, 22), ellipsis = true)
-                        Txt("${a.service.label} · ★ ${fixed1(a.rating)} · ${if (a.online) "Available now" else "Busy until 3 pm"}", body(12, 17, color = Lz.Neutral800))
+                        Txt("${a.service.label} · ★ ${fixed1(a.rating)} · ${if (a.online) "Available now" else a.busyLabel}", body(12, 17, color = Lz.Neutral800))
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Txt("${fixed1(a.km)} km", heading(20, 22))
@@ -290,8 +290,13 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                     }
                 }
             }
-            if (list.isEmpty()) EmptyState("search", "No artisans here yet", "Nobody nearby matches this search and service.", "Clear search", Modifier.padding(20.dp)) {
-                s.query = ""; s.pickCategory("all")
+            when {
+                list.isNotEmpty() -> Unit
+                s.live?.loadingArtisans == true -> Txt("Finding artisans near you…", body(14, color = Lz.Neutral700), Modifier.padding(20.dp))
+                s.isLive && s.artisans.isEmpty() -> EmptyState("map-pin", "No artisans nearby yet", "Lezerv is still signing up artisans around here. Try again later.", "Try again", Modifier.padding(20.dp)) { s.live?.reload() }
+                else -> EmptyState("search", "No artisans here yet", "Nobody nearby matches this search and service.", "Clear search", Modifier.padding(20.dp)) {
+                    s.query = ""; s.pickCategory("all")
+                }
             }
         }
     }

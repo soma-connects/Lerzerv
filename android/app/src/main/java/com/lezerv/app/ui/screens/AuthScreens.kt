@@ -35,6 +35,7 @@ import com.lezerv.app.ui.components.IconBox
 import com.lezerv.app.ui.components.LzField
 import com.lezerv.app.ui.components.PhoneTransformation
 import com.lezerv.app.ui.components.PrimaryWide
+import com.lezerv.app.ui.components.Secret
 import com.lezerv.app.ui.components.Txt
 import com.lezerv.app.ui.components.blueprint
 import com.lezerv.app.ui.components.borderBottom
@@ -48,7 +49,8 @@ import com.lezerv.app.ui.theme.label
 
 /**
  * Phone sign-in, full screen over the app. Guests can "look around first" and are only
- * asked to sign in when they pay (Board flow 1g). PROPOSAL: phone OTP via an SMS provider.
+ * asked to sign in when they book (Board flow 1g). Live, Supabase Auth sends and checks
+ * the SMS code; people with a lezerv.com account can also sign in with their email.
  */
 @Composable
 fun AuthFlow(s: LezervState) {
@@ -57,7 +59,7 @@ fun AuthFlow(s: LezervState) {
     Column(Modifier.fillMaxSize().background(Lz.Bg).tap { }) {
         if (step != AuthStep.Welcome) Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconBox("arrow-left", { a.authBack() }, iconSize = 24, border = null, modifier = Modifier.semantics { contentDescription = "Back" })
-            Txt("STEP ${step.ordinal} OF 3", label(color = Lz.Neutral700), Modifier.padding(start = 4.dp))
+            Txt(if (step == AuthStep.Email) "LEZERV.COM ACCOUNT" else "STEP ${step.ordinal} OF 3", label(color = Lz.Neutral700), Modifier.padding(start = 4.dp))
         }
         // Scrolls when the keyboard is up, yet keeps the button at the bottom: the column is at
         // least as tall as the screen and SpaceBetween pushes the two groups apart.
@@ -70,21 +72,25 @@ fun AuthFlow(s: LezervState) {
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 when (step) {
-                    AuthStep.Welcome -> Welcome(a)
-                    AuthStep.Phone -> PhoneStep(a)
+                    AuthStep.Welcome -> Welcome(s, a)
+                    AuthStep.Phone -> PhoneStep(s, a)
                     AuthStep.Code -> CodeStep(s, a)
-                    AuthStep.Details -> DetailsStep(a)
+                    AuthStep.Details -> DetailsStep(s, a)
+                    AuthStep.Email -> EmailStep(s, a)
                 }
             }
         }
     }
 }
 
+/** Buttons dim while the server is answering (and ignore taps: see LiveSync.act). */
+private fun ready(s: LezervState, valid: Boolean) = if (valid && s.live?.busy != true) 1f else .5f
+
 /** "8035554417" → "803 555 4417". */
 private fun formatPhone(d: String) = listOf(d.take(3), d.drop(3).take(3), d.drop(6)).filter { it.isNotEmpty() }.joinToString(" ")
 
 @Composable
-private fun Welcome(a: AccountState) {
+private fun Welcome(s: LezervState, a: AccountState) {
     Column {
         Box(Modifier.blueprint().size(56.dp).background(Lz.Accent), contentAlignment = Alignment.Center) { Txt("L", heading(38, weight = 700, color = Lz.Bg)) }
         Txt("HELP FOR YOUR HOME, RIGHT ON THE MAP.", heading(52, 48), Modifier.padding(top = 24.dp, bottom = 12.dp))
@@ -102,21 +108,23 @@ private fun Welcome(a: AccountState) {
         Box(Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 48.dp).tap { a.browseAsGuest() }, contentAlignment = Alignment.CenterStart) {
             Txt("LOOK AROUND FIRST", body(14, weight = 700, tracking = .06f).copy(textDecoration = TextDecoration.Underline))
         }
+        if (s.isLive) EmailLink(a)
         Txt("By continuing you agree to Lezerv’s Terms and Privacy policy.", body(12, 16, color = Lz.Neutral700))
     }
 }
 
 @Composable
-private fun PhoneStep(a: AccountState) {
+private fun PhoneStep(s: LezervState, a: AccountState) {
     Column {
         Txt("YOUR PHONE NUMBER", heading(44, 42), Modifier.padding(bottom = 10.dp))
         Txt("We’ll text you a 6-digit code. Artisans never see your number.", body(15, 22, color = Lz.Neutral800), Modifier.padding(bottom = 22.dp))
         FormLabel("Mobile number")
         LzField(a.phoneDraft, a::onPhoneInput, "803 555 4417", keyboard = KeyboardType.Phone, style = body(18, tracking = .06f), prefix = "+234", transformation = PhoneTransformation)
-        Txt("PROPOSAL: codes are sent by SMS through a provider such as Termii.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
+        if (!s.isLive) Txt("PROPOSAL: codes are sent by SMS through a provider such as Termii.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
     }
     Column(Modifier.padding(top = 28.dp)) {
-        PrimaryWide("Send code", "send", { a.sendCode() }, alpha = if (a.phoneValid) 1f else .5f)
+        PrimaryWide("Send code", "send", { a.sendCode() }, alpha = ready(s, a.phoneValid))
+        if (s.isLive) EmailLink(a)
     }
 }
 
@@ -150,16 +158,17 @@ private fun CodeStep(s: LezervState, a: AccountState) {
             val wait = a.resendIn
             Txt(if (wait > 0) "Resend code in ${wait}s" else "Resend code", body(13, weight = if (wait > 0) 400 else 700, color = if (wait > 0) Lz.Neutral700 else Lz.Accent700),
                 Modifier.weight(1f).then(if (wait == 0) Modifier.tap { a.resendCode() } else Modifier))
-            if (s.demo) Txt("Demo: fill $DEMO_OTP", body(13, weight = 700, color = Lz.Accent700), Modifier.tap { a.onCodeInput(DEMO_OTP) })
+            // Live, the real code comes by SMS; the shortcut would only fail.
+            if (s.demo && !s.isLive) Txt("Demo: fill $DEMO_OTP", body(13, weight = 700, color = Lz.Accent700), Modifier.tap { a.onCodeInput(DEMO_OTP) })
     }
     }
     Column(Modifier.padding(top = 28.dp)) {
-        PrimaryWide("Verify", "check", { a.verifyCode() }, alpha = if (a.code.length == 6) 1f else .5f)
+        PrimaryWide("Verify", "check", { a.verifyCode() }, alpha = ready(s, a.code.length == 6))
     }
 }
 
 @Composable
-private fun DetailsStep(a: AccountState) {
+private fun DetailsStep(s: LezervState, a: AccountState) {
     Column {
         Txt("WHAT SHOULD WE CALL YOU?", heading(44, 42), Modifier.padding(bottom = 10.dp))
         Txt("Artisans see your first name only.", body(15, 22, color = Lz.Neutral800), Modifier.padding(bottom = 22.dp))
@@ -169,6 +178,30 @@ private fun DetailsStep(a: AccountState) {
         LzField(a.email, { a.email = it.trim().take(80) }, "you@example.com", keyboard = KeyboardType.Email)
     }
     Column(Modifier.padding(top = 28.dp)) {
-        PrimaryWide("Finish", "arrow-right", { a.saveDetails() }, alpha = if (a.detailsValid) 1f else .5f)
+        PrimaryWide("Finish", "arrow-right", { a.saveDetails() }, alpha = ready(s, a.detailsValid))
+    }
+}
+
+/** The website signs people up by email; they keep using that account here. */
+@Composable
+private fun EmailStep(s: LezervState, a: AccountState) {
+    Column {
+        Txt("SIGN IN WITH EMAIL", heading(44, 42), Modifier.padding(bottom = 10.dp))
+        Txt("For accounts made on lezerv.com. New to Lezerv? Go back and use your phone.", body(15, 22, color = Lz.Neutral800), Modifier.padding(bottom = 22.dp))
+        FormLabel("Email")
+        LzField(a.emailDraft, { a.emailDraft = it.trim().take(80) }, "you@example.com", keyboard = KeyboardType.Email)
+        FormLabel("Password", Modifier.padding(top = 18.dp))
+        LzField(a.password, { a.password = it.take(72) }, "Your lezerv.com password", keyboard = KeyboardType.Password, transformation = Secret)
+        Txt("Forgot it? Reset it on lezerv.com, then come back.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
+    }
+    Column(Modifier.padding(top = 28.dp)) {
+        PrimaryWide("Sign in", "arrow-right", { a.signInWithEmail() }, alpha = ready(s, a.emailValid))
+    }
+}
+
+@Composable
+private fun EmailLink(a: AccountState) {
+    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).tap { a.startEmail() }, contentAlignment = Alignment.CenterStart) {
+        Txt("I HAVE A LEZERV.COM ACCOUNT", body(14, weight = 700, tracking = .06f, color = Lz.Accent700).copy(textDecoration = TextDecoration.Underline))
     }
 }

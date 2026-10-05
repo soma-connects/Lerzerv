@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -46,13 +47,11 @@ import com.lezerv.app.data.LAUNDRY_STEPS
 import com.lezerv.app.data.OPTIONS
 import com.lezerv.app.data.PICKUP_WINDOWS
 import com.lezerv.app.data.Pt
-import com.lezerv.app.data.REVIEWS
 import com.lezerv.app.data.SERVICE_STEPS
 import com.lezerv.app.data.SLOTS
 import com.lezerv.app.data.UX
 import com.lezerv.app.data.UY
 import com.lezerv.app.data.WHENS
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.fixed1
 import com.lezerv.app.data.naira
 import com.lezerv.app.data.optionPrice
@@ -137,7 +136,7 @@ internal fun HomePin(x: Float, y: Float, stem: Int = 10) = com.lezerv.app.ui.map
 
 @Composable
 fun ProfileScreen(s: LezervState, id: String) {
-    val a = artisan(id) ?: return
+    val a = s.artisan(id) ?: return
     ScrollWithBar(bar = {
         BarFigure("From", naira(a.from), a.unit, modifier = Modifier.weight(1f))
         PrimaryButton({ s.startBooking(a.id) }) {
@@ -188,7 +187,9 @@ fun ProfileScreen(s: LezervState, id: String) {
         }
         SectionRule("03", "Reviews", Modifier.padding(top = 26.dp, bottom = 4.dp))
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 24.dp)) {
-            REVIEWS.forEach { r ->
+            val reviews = s.reviewsFor(a.id)
+            if (reviews.isNullOrEmpty()) Txt(if (reviews == null) "Loading reviews…" else "No written reviews yet.", body(14, 21, color = Lz.Neutral700), Modifier.padding(vertical = 12.dp))
+            reviews.orEmpty().forEach { r ->
                 Column(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp)) {
                     Row {
                         Txt("${r.name} · ${"★".repeat(r.stars)}${"☆".repeat(5 - r.stars)}", body(13, weight = 700), Modifier.weight(1f))
@@ -214,13 +215,14 @@ private fun Stat(k: String, v: String, sub: String, modifier: Modifier) {
 
 @Composable
 fun BookScreen(s: LezervState) {
-    val a = artisan(s.bookArtisan) ?: return
+    val a = s.artisan(s.bookArtisan) ?: return
     val bt = s.bookTotal()
     ScrollWithBar(bar = {
-        BarFigure("Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
-        PrimaryButton({ s.openPay() }) {
-            Txt("PAY", heading(20, tracking = .05f, color = Color.White))
-            LzIcon("arrow-right", 20, Color.White)
+        // Live there are no payments yet: the request goes to Lezerv, who confirm artisan and price.
+        BarFigure(if (s.isLive) "Estimate" else "Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
+        PrimaryButton({ if (s.isLive) s.sendRequest() else s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
+            Txt(if (s.isLive) "SEND REQUEST" else "PAY", heading(20, tracking = .05f, color = Color.White))
+            LzIcon(if (s.isLive) "send" else "arrow-right", 20, Color.White)
         }
     }) {
         if (a.laundry) LaundryForm(s) else ServiceForm(s, a)
@@ -249,12 +251,12 @@ fun BookScreen(s: LezervState) {
                 Box { if (s.note.isEmpty()) Txt(if (a.laundry) "Anything to know? Stains, delicate items, gate code" else "Describe the problem. Photos help the artisan bring the right parts.", body(14, 20, color = Lz.Neutral600)); inner() }
             },
         )
-        SectionRule(if (a.laundry) "05" else "04", "Payment", Modifier.padding(top = 24.dp, bottom = 4.dp))
+        SectionRule(if (a.laundry) "05" else "04", if (s.isLive) "Estimate" else "Payment", Modifier.padding(top = 24.dp, bottom = 4.dp))
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
             KvLine(if (a.laundry) "Items" else OPTIONS.getValue(a.svc)[s.option], naira(bt.sub))
             if (bt.extra > 0) KvLine("Express return", naira(bt.extra))
             KvLine("Lezerv service fee (5%)", naira(bt.fee))
-            EscrowNote(Modifier.padding(top = 14.dp))
+            if (s.isLive) RequestNote(a.first, Modifier.padding(top = 14.dp)) else EscrowNote(Modifier.padding(top = 14.dp))
         }
     }
 }
@@ -268,6 +270,18 @@ private fun EscrowNote(modifier: Modifier) {
             Txt("Held by Lezerv until you confirm the job is done.", body(13, 19, weight = 700, color = Lz.Accent800))
             Txt("If the artisan doesn’t show, you get a full refund.", body(13, 19, color = Lz.Accent800))
             Box(Modifier.border(1.dp, Lz.Accent700).padding(horizontal = 5.dp, vertical = 1.dp)) { Txt("PROPOSAL", label(10, .1f, Lz.Accent800)) }
+        }
+    }
+}
+
+/** Live mode: what "Send request" does, since nothing is paid yet. */
+@Composable
+private fun RequestNote(first: String, modifier: Modifier) {
+    Row(modifier.fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        LzIcon("send", 20, Lz.Accent700)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Txt("Nothing to pay now.", body(13, 19, weight = 700, color = Lz.Accent800))
+            Txt("Lezerv confirms $first and the final price with you in chat before work starts.", body(13, 19, color = Lz.Accent800))
         }
     }
 }

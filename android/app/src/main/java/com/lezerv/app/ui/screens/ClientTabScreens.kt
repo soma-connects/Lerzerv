@@ -32,7 +32,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.REVIEW_TAGS
-import com.lezerv.app.data.artisan
+import com.lezerv.app.data.SERVICE
+import com.lezerv.app.data.remote.appCategory
+import com.lezerv.app.data.remote.jobStatus
+import com.lezerv.app.data.remote.shortDate
 import com.lezerv.app.data.naira
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.state.Pushed
@@ -59,6 +62,7 @@ import com.lezerv.app.ui.theme.label
 
 @Composable
 fun ClientJobsScreen(s: LezervState) {
+    if (s.isLive) { LiveJobsScreen(s); return }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
         SectionRule("01", "Active", Modifier.padding(top = 20.dp, bottom = 12.dp))
         val j = s.job
@@ -85,7 +89,7 @@ fun ClientJobsScreen(s: LezervState) {
         SectionRule("02", "Past", Modifier.padding(top = 28.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
             s.past.forEach { p ->
-                val pa = artisan(p.artisanId) ?: return@forEach
+                val pa = s.artisan(p.artisanId) ?: return@forEach
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.push(Pushed.Receipt(p.number)) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(p.title.uppercase(), heading(20, 22))
@@ -98,32 +102,76 @@ fun ClientJobsScreen(s: LezervState) {
     }
 }
 
+/**
+ * Live Jobs tab: the person's service_jobs. Each one moves open → assigned → in progress →
+ * completed as Lezerv's team and the artisan act on it; realtime notifications refresh it.
+ */
+@Composable
+private fun LiveJobsScreen(s: LezervState) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
+        SectionRule("01", "Active", Modifier.padding(top = 20.dp, bottom = 12.dp))
+        val active = s.liveActive
+        if (active.isEmpty()) EmptyState("briefcase", "No active jobs", "Requests you send show here, with their status, until the job is done.", "Find someone nearby", Modifier.padding(horizontal = 20.dp)) { s.openTab(com.lezerv.app.state.Tab.Explore) }
+        Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            active.forEach { j ->
+                val chat = s.live?.conversationFor(j.id)
+                Row(
+                    Modifier.fillMaxWidth().blueprint().background(Lz.Accent100).border(1.dp, Lz.Accent)
+                        .tap { if (chat != null) s.openChat(chat.id) else s.toast("Chat opens once Lezerv assigns an artisan.") }.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    LzIcon(SERVICE[j.category?.slug?.let(::appCategory) ?: "repair"]?.icon ?: "wrench", 26, Lz.Accent700)
+                    Column(Modifier.weight(1f)) {
+                        Txt((j.category?.name ?: "Request").uppercase(), label(color = Lz.Accent800))
+                        Txt(j.title.uppercase(), heading(22, 24, weight = 700))
+                        Txt(jobStatus(j), body(13, color = Lz.Accent800))
+                    }
+                    LzIcon(if (chat != null) "message-square" else "clock", 20)
+                }
+            }
+        }
+        SectionRule("02", "Past", Modifier.padding(top = 28.dp, bottom = 4.dp))
+        Column(Modifier.padding(horizontal = 20.dp)) {
+            s.livePast.forEach { j ->
+                val again = s.artisan(j.assignedArtisanId)
+                Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Txt(j.title.uppercase(), heading(20, 22))
+                        Txt(listOfNotNull(j.artisan?.displayName, shortDate(j.createdAt), jobStatus(j)).joinToString(" · "), body(12, color = Lz.Neutral800))
+                    }
+                    if (again != null) OutlineButton("Book again", { s.startBooking(again.id) }, icon = "refresh-cw", height = 40.dp, fontSize = 15)
+                }
+            }
+            if (s.livePast.isEmpty()) Txt("Finished and cancelled jobs show here.", body(13, color = Lz.Neutral700), Modifier.padding(vertical = 14.dp))
+        }
+    }
+}
+
 // ───────────────────────────── messages ─────────────────────────────
 
 @Composable
 fun MessagesScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        val threads = s.messages.keys.filter { it != "client" }
-        if (threads.isEmpty()) EmptyState("message-square", "No messages yet", "Chat opens once you book someone.", "Go to Jobs", Modifier.padding(20.dp)) { s.openTab(com.lezerv.app.state.Tab.ClientJobs) }
-        threads.forEach { k ->
-            val last = s.messages.getValue(k).last()
-            if (k == com.lezerv.app.data.SUPPORT) {
-                SupportThreadRow(last.text, last.at) { s.openChat(k) }
+        val threads = s.threads
+        if (threads.isEmpty()) EmptyState("message-square", "No messages yet", if (s.isLive) "Chat opens once an artisan is assigned to your job." else "Chat opens once you book someone.", "Go to Jobs", Modifier.padding(20.dp)) { s.openTab(com.lezerv.app.state.Tab.ClientJobs) }
+        threads.forEach { t ->
+            if (t.support) {
+                SupportThreadRow(t.preview, t.at) { s.openChat(t.key) }
                 return@forEach
             }
-            val a = artisan(k) ?: return@forEach
             Row(
-                Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.openChat(k) }.padding(horizontal = 20.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.openChat(t.key) }.padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Initials(a.ini, 48, 52, 20)
+                Initials(t.ini, 48, 52, 20)
                 Column(Modifier.weight(1f)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt(a.name.uppercase(), heading(20, 22), Modifier.weight(1f), ellipsis = true)
-                        Txt(last.at, body(11, color = Lz.Neutral700))
+                        Txt(t.name.uppercase(), heading(20, 22), Modifier.weight(1f), ellipsis = true)
+                        Txt(t.at, body(11, color = Lz.Neutral700))
                     }
-                    Txt((if (last.me) "You: " else "") + last.text, body(13, 18, color = Lz.Neutral800), ellipsis = true)
+                    Txt(t.preview, body(13, 18, color = Lz.Neutral800), ellipsis = true)
                 }
             }
         }
@@ -232,6 +280,7 @@ internal fun AccountHeader(ini: String, name: String, sub: @Composable () -> Uni
 internal fun demoRows(s: LezervState): List<AccountRow> = if (!s.demo) emptyList() else listOf(
     AccountRow("refresh-cw", "Demo · switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
     AccountRow("wifi-off", "Demo · ${if (s.offline) "go back online" else "simulate offline"}", "Shows the offline banner and queued messages") { s.toggleOfflineDemo() },
+) + if (s.isLive) emptyList() else listOf( // live, a reset would wipe real data and sign in a sample user
     AccountRow("refresh-cw", "Demo · reset", "Start the demo from the beginning") { s.reset(); s.account.loadDemoUser() },
 )
 

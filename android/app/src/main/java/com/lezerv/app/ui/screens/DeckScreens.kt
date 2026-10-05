@@ -20,7 +20,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.PAY_METHODS
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.naira
 import com.lezerv.app.state.ClientJob
 import com.lezerv.app.state.LezervState
@@ -45,7 +44,7 @@ import com.lezerv.app.ui.theme.label
 /** PROPOSAL: Paystack isn't connected yet, so the chosen method is recorded but not charged. */
 @Composable
 fun PaySheet(s: LezervState) {
-    val a = artisan(s.bookArtisan) ?: return
+    val a = s.artisan(s.bookArtisan) ?: return
     val b = s.bookTotal()
     Box(Modifier.fillMaxSize().background(Lz.Scrim).tap { s.closePay() }, contentAlignment = Alignment.BottomCenter) {
         Column(Modifier.fillMaxWidth().background(Lz.Bg).borderTop(2.dp, Lz.Ink).tap { }.verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)) {

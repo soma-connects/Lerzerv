@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.SERVICE
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.fixed1
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.state.Pushed
@@ -208,12 +207,12 @@ private fun TopBar(s: LezervState) {
 }
 
 private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when (p) {
-    is Pushed.Profile -> artisan(p.artisanId)?.let { it.name to "${SERVICE.getValue(it.svc).label} · ${fixed1(it.km)} km away" } ?: ("" to "")
-    Pushed.Book -> artisan(s.bookArtisan)?.let { (if (it.laundry) "Laundry pickup" else "Book ${it.first}") to "${it.name} · ${SERVICE.getValue(it.svc).label}" } ?: ("" to "")
+    is Pushed.Profile -> s.artisan(p.artisanId)?.let { it.name to "${SERVICE.getValue(it.svc).label} · ${fixed1(it.km)} km away" } ?: ("" to "")
+    Pushed.Book -> s.artisan(s.bookArtisan)?.let { (if (it.laundry) "Laundry pickup" else "Book ${it.first}") to "${it.name} · ${SERVICE.getValue(it.svc).label}" } ?: ("" to "")
     Pushed.Track -> s.job?.let { j -> (if (j.laundry) "Laundry order" else "Live job") to "${j.title} · ${s.jobArtisan?.name}" } ?: ("Job" to "")
     Pushed.Chat -> when {
         s.chatWith == com.lezerv.app.data.SUPPORT -> "Lezerv Support" to "Usually replies within a few hours"
-        s.role == Role.Client -> artisan(s.chatWith)?.name.orEmpty() to "Contact details are hidden"
+        s.role == Role.Client -> s.threadName(s.chatWith) to (s.live?.conversation(s.chatWith)?.job?.title?.let { "$it · contact details are hidden" } ?: "Contact details are hidden")
         else -> "Amaka O." to "Contact details are hidden"
     }
     Pushed.Navigate -> "Job · Leaking sink" to "Amaka O. · Lekki Phase 1"
@@ -244,7 +243,7 @@ private fun NavBar(s: LezervState) {
     Row(Modifier.fillMaxWidth().height(76.dp).background(Lz.Bg).borderTop(2.dp, Lz.Ink)) {
         tabs.forEach { t ->
             val on = s.tab == t
-            val dot = t == Tab.ClientJobs && s.job != null && !on
+            val dot = t == Tab.ClientJobs && (s.job != null || s.liveActive.isNotEmpty()) && !on
             Column(
                 Modifier.weight(1f).fillMaxWidth().height(76.dp).tap { s.openTab(t) }.semantics { contentDescription = t.label },
                 horizontalAlignment = Alignment.CenterHorizontally,

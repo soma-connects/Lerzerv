@@ -19,7 +19,6 @@ import com.lezerv.app.data.SERVICE_FEE
 import com.lezerv.app.data.SLOTS
 import com.lezerv.app.data.UX
 import com.lezerv.app.data.UY
-import com.lezerv.app.data.artisan
 import com.lezerv.app.data.maskContacts
 import com.lezerv.app.data.naira
 import com.lezerv.app.data.optionPrice
@@ -35,6 +34,19 @@ import com.lezerv.app.data.REPORT_REASONS
 import com.lezerv.app.data.SEED_MESSAGES
 import com.lezerv.app.data.SEED_PAST
 import com.lezerv.app.data.SUPPORT
+import com.lezerv.app.data.REVIEWS
+import com.lezerv.app.data.Review
+import com.lezerv.app.data.remote.LezervApi
+import com.lezerv.app.data.remote.NewJob
+import com.lezerv.app.data.remote.active
+import com.lezerv.app.data.remote.areaSlug
+import com.lezerv.app.data.remote.backendSlug
+import com.lezerv.app.data.remote.initialsOf
+import com.lezerv.app.data.remote.timeLabel
+import kotlinx.coroutines.CoroutineScope
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 enum class Role { Client, Artisan }
@@ -89,19 +101,28 @@ sealed interface Route {
     data object Earnings : Route
     data object Payout : Route
     data class Receipt(val number: String) : Route
+    /** Live mode: the Jobs tab, or the Messages list. */
+    data object Jobs : Route
+    data object Messages : Route
 }
 
-/** An entry in the notifications inbox (bell, top right). */
+/** An entry in the notifications inbox (bell, top right). [remoteId] = its notifications row, when live. */
 data class Notice(
     val id: Int, val role: Role, val title: String, val body: String, val ago: String,
-    val route: Route, val action: String, val read: Boolean = false,
+    val route: Route, val action: String, val read: Boolean = false, val remoteId: String? = null,
 )
 
 enum class Sheet { Peek, List }
 
-/** [pending] = written while offline; it is sent automatically on reconnect. */
-/** [system] = a centred line Lezerv writes into the thread (bookings, hidden details, payments). */
-data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false, val pending: Boolean = false, val system: Boolean = false)
+/**
+ * One chat line. [pending] = written while offline (demo); sent on reconnect.
+ * [system] = a centred line Lezerv writes into the thread (bookings, hidden details, payments).
+ * [id] = the backend row, when live, so a message that arrives twice is shown once.
+ */
+data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false, val pending: Boolean = false, val system: Boolean = false, val id: String? = null)
+
+/** A row in the Messages tab: an artisan chat or the support thread. */
+data class ThreadRow(val key: String, val name: String, val ini: String, val preview: String, val at: String, val support: Boolean = false)
 
 /** The client's live booking. [stage] indexes SERVICE_STEPS or LAUNDRY_STEPS; [t] is 0..1 progress along the route. */
 data class ClientJob(
@@ -149,6 +170,17 @@ class LezervState(
     /** Sign-in, profile, addresses, cards, settings: see AccountState. */
     val account = AccountState(this, signedIn)
 
+    /** The real backend, once [connect]ed (MainViewModel does it when one is configured). Null = sample data. */
+    var live: LiveSync? = null; private set
+    val isLive get() = live != null
+
+    /** Switches from sample data to the backend: the map empties, then fills with real artisans. */
+    fun connect(api: LezervApi, scope: CoroutineScope) {
+        if (live != null) return
+        replaceArtisans(emptyList())
+        live = LiveSync(this, api, scope).also { it.start() }
+    }
+
     /** Platform hooks set by MainActivity (dial a number, open the share sheet). Null in previews. */
     var dial: ((String) -> Unit)? = null
     var share: ((String) -> Unit)? = null
@@ -173,6 +205,10 @@ class LezervState(
     val top: Pushed? get() = stack.lastOrNull()
 
     // ── explore ──
+    /** Everyone on the map: sample artisans, or the backend's once LiveSync loads them. */
+    var artisans by mutableStateOf(ARTISANS); private set
+    fun artisan(id: String?): Artisan? = artisans.firstOrNull { it.id == id }
+    fun replaceArtisans(list: List<Artisan>) { artisans = list; if (selected != null && artisan(selected) == null) selected = null }
     var category by mutableStateOf("all")
     var query by mutableStateOf("")
     var selected by mutableStateOf<String?>(null)
@@ -204,6 +240,8 @@ class LezervState(
 
     // ── report a problem ──
     var reportJob by mutableStateOf(""); private set
+    /** The service_jobs id behind [reportJob], when live. */
+    private var reportJobId: String? = null
     var reportReason by mutableIntStateOf(0)
     var reportText by mutableStateOf("")
     var reportPhotos by mutableIntStateOf(0)
@@ -306,7 +344,10 @@ class LezervState(
 
     // ───────────────────────────── navigation ─────────────────────────────
 
-    fun push(p: Pushed) { stack = stack + p }
+    fun push(p: Pushed) {
+        stack = stack + p
+        if (p is Pushed.Profile) live?.loadReviews(p.artisanId)
+    }
 
     /** True while system back should stay inside the app; false lets Android close it. */
     val canGoBack: Boolean get() = account.authStep != null || cancelling || account.pickingAddress || account.deleting || paying || showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
@@ -343,7 +384,7 @@ class LezervState(
 
     val visibleArtisans by derivedStateOf {
         val q = query.trim().lowercase()
-        ARTISANS.filter { (category == "all" || it.svc == category) && (q.isEmpty() || it.name.lowercase().contains(q) || it.service.label.lowercase().contains(q)) }
+        artisans.filter { (category == "all" || it.svc == category) && (q.isEmpty() || it.name.lowercase().contains(q) || it.service.label.lowercase().contains(q)) }
             .sortedBy { it.km }
     }
 
@@ -387,6 +428,43 @@ class LezervState(
     fun openPay() = account.requireSignIn { payMethod = if (account.defaultCard != null) 1 else 0; paying = true }
     fun closePay() { paying = false }
 
+    /**
+     * Live mode's "Send request" (no payments on the backend yet): posts the job with what
+     * the form says, naming the chosen artisan so the team can assign them.
+     */
+    fun sendRequest() = account.requireSignIn {
+        val live = live ?: return@requireSignIn
+        val a = artisan(bookArtisan) ?: return@requireSignIn
+        val ad = account.currentAddress
+        if (ad == null) { toast("Add where the artisan should come"); account.editAddress(null); return@requireSignIn }
+        val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+        val details = if (a.laundry) LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" } +
+            " · pickup ${PICKUP_WINDOWS[pickupWindow]}" + (if (express) " · express return" else "") else null
+        live.requestJob(
+            NewJob(
+                title = title, categorySlug = backendSlug(a.svc), areaSlug = areaSlug(ad.area),
+                description = listOfNotNull("Requested artisan: ${a.name} (${a.id})", details, note.trim().takeIf { it.isNotEmpty() }).joinToString("\n"),
+                addressText = "${ad.street}, ${ad.area}" + if (ad.note.isNotBlank()) " · ${ad.note}" else "",
+                scheduledFor = scheduledFor(a), budgetNote = "App estimate ${naira(bookTotal().total)}",
+            ),
+            a.first,
+        )
+    }
+
+    /** "Later today" / "Schedule" + a time slot → an ISO timestamp; "Now" and laundry → none. */
+    private fun scheduledFor(a: Artisan, zone: ZoneId = ZoneId.systemDefault()): String? {
+        if (a.laundry || whenIdx == 0) return null
+        val day = Instant.ofEpochMilli(clock()).atZone(zone).toLocalDate().plusDays(if (whenIdx == 2) 1 else 0)
+        return day.atTime(LocalTime.parse(SLOTS[slot])).atZone(zone).toOffsetDateTime().toString()
+    }
+
+    /** The request is in: show it under Jobs, and (first time) ask about notifications. */
+    internal fun onRequestSent(artisanFirst: String) {
+        stack = emptyList(); tab = Tab.ClientJobs; selected = null
+        val msg = "Request sent. We’ll confirm $artisanFirst and the price with you."
+        if (!primed) { showPrime = true; afterPrimeToast = msg } else toast(msg)
+    }
+
     /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
     fun artisanTakeHome(b: BookTotal) = ((b.sub + b.extra) * 0.8).roundToInt()
 
@@ -429,11 +507,38 @@ class LezervState(
 
     // ───────────────────────────── chat ─────────────────────────────
 
-    fun openChat(artisanId: String?) {
-        chatWith = artisanId; draft = ""
-        if (artisanId == SUPPORT && messages[SUPPORT].isNullOrEmpty())
+    /** Opens a thread: an artisan id (demo), a backend conversation id (live) or [SUPPORT]. */
+    fun openChat(key: String?) {
+        val live = live
+        if (live != null && key == SUPPORT && !account.signedIn) { account.requireSignIn { openChat(key) }; return }
+        chatWith = key; draft = ""
+        if (live != null && key != null) { if (key == SUPPORT) live.openSupport() else live.openConversation(key) }
+        if (key == SUPPORT && messages[SUPPORT].isNullOrEmpty())
             system(SUPPORT, "Lezerv Support usually replies within a few hours. Include your job number if it’s about a job.")
         push(Pushed.Chat)
+    }
+
+    /** Who a thread is with, for the chat's title bar. */
+    fun threadName(key: String?): String = when (key) {
+        SUPPORT -> "Lezerv Support"
+        else -> live?.conversation(key)?.artisan?.displayName ?: artisan(key)?.name.orEmpty()
+    }
+
+    /** The Messages list: backend conversations when live, otherwise every thread in [messages]. */
+    val threads: List<ThreadRow> get() {
+        val support = messages[SUPPORT]?.lastOrNull()?.let { ThreadRow(SUPPORT, "Lezerv Support", "LZ", it.text, it.at, support = true) }
+            ?: live?.ticket?.let { ThreadRow(SUPPORT, "Lezerv Support", "LZ", it.subject, timeLabel(it.lastReplyAt ?: it.createdAt, now, ZoneId.systemDefault()), support = true) }
+        val live = live ?: return messages.keys.filter { it != "client" && it != SUPPORT }.mapNotNull { k ->
+            val a = artisan(k) ?: return@mapNotNull null
+            val last = messages.getValue(k).last()
+            ThreadRow(k, a.name, a.ini, (if (last.me) "You: " else "") + last.text, last.at)
+        } + listOfNotNull(support)
+        return live.conversations.map { c ->
+            val name = c.artisan?.displayName ?: "Artisan"
+            val last = messages[c.id]?.lastOrNull()
+            ThreadRow(c.id, name, initialsOf(name), last?.let { (if (it.me) "You: " else "") + it.text } ?: c.job?.title.orEmpty(),
+                last?.at ?: timeLabel(c.lastMessageAt, now, ZoneId.systemDefault()))
+        } + listOfNotNull(support)
     }
 
     /** Which thread the chat screen shows: support, the artisan's one client, or the chosen artisan. */
@@ -447,6 +552,8 @@ class LezervState(
     fun send() {
         val t = draft.trim()
         if (t.isEmpty()) return
+        val live = live
+        if (live != null && chatKey != "client") { draft = ""; live.send(chatKey, t); return }
         val m = maskContacts(t)
         messages = messages + (chatKey to (messages[chatKey].orEmpty() + Message(true, m, "Now", m != t, pending = offline)))
         draft = ""
@@ -546,15 +653,28 @@ class LezervState(
 
     // ───────────────────────────── report a problem ─────────────────────────────
 
-    /** Opens the report form for a job; [reason] pre-selects one (e.g. safety). */
-    fun startReport(number: String, reason: Int = 0) {
-        reportJob = number; reportReason = reason; reportText = ""; reportPhotos = 0
+    /** Opens the report form for a job; [reason] pre-selects one (e.g. safety). [jobId] = its backend row, when live. */
+    fun startReport(number: String, reason: Int = 0, jobId: String? = null) {
+        reportJob = number; reportJobId = jobId; reportReason = reason; reportText = ""; reportPhotos = 0
         push(Pushed.Report)
+    }
+
+    /** The job "Report a problem" in Help points at: the live booking or the latest finished one. */
+    val reportable: Pair<String, String?>? get() {
+        val live = live ?: return (job?.number ?: past.firstOrNull { !it.cancelled }?.number)?.let { it to null }
+        return live.jobs.firstOrNull { it.status != "open" && it.status != "cancelled" }?.let { "“${it.title}”" to it.id }
     }
 
     /** PROPOSAL: creates a support ticket and pauses the artisan's payout until it's resolved. */
     fun submitReport() {
         if (reportText.trim().length < 10) { toast("Tell us a bit more (at least a sentence)"); return }
+        live?.let { l ->
+            l.report(reportJobId, REPORT_REASONS[reportReason], reportText.trim()) {
+                if (top == Pushed.Report) stack = stack.dropLast(1)
+                toast("Report sent. We reply in your support chat.")
+            }
+            return
+        }
         val ticket = "LZ-${nextTicket++}"
         val reason = REPORT_REASONS[reportReason]
         system(SUPPORT, "Ticket $ticket opened for $reportJob: $reason. “${reportText.trim()}”" + if (reportPhotos > 0) " · $reportPhotos photo${if (reportPhotos > 1) "s" else ""}" else "")
@@ -575,6 +695,21 @@ class LezervState(
         messages = messages + (key to (messages[key].orEmpty() + Message(false, text, "Now", system = true)))
     }
 
+    internal fun systemLine(key: String, text: String) = system(key, text)
+
+    /** A message from the backend; skipped if that row is already shown (it can arrive twice). */
+    internal fun addToThread(key: String, m: Message) {
+        val list = messages[key].orEmpty()
+        if (m.id != null && list.any { it.id == m.id }) return
+        messages = messages + (key to list + m)
+    }
+
+    /** A freshly loaded thread replaces what was there, keeping anything newer that arrived meanwhile. */
+    internal fun mergeThread(key: String, loaded: List<Message>) {
+        val ids = loaded.mapNotNull { it.id }.toSet()
+        messages = messages + (key to loaded + messages[key].orEmpty().filter { it.id != null && it.id !in ids })
+    }
+
     /**
      * The one thing the client must do right now, if any: shown as a "Needs your reply" card
      * on the map. Derived from the job, so it can never disagree with the tracking screen.
@@ -593,6 +728,13 @@ class LezervState(
         notices = listOf(Notice(nextNoticeId++, r, title, body, "now", route, action)) + notices
     }
 
+    internal fun newNoticeId() = nextNoticeId++
+
+    /** The backend's notifications replace the previous copy; ones made on the phone stay. */
+    internal fun replaceNotices(list: List<Notice>) { notices = list + notices.filter { it.remoteId == null } }
+
+    internal fun addNotice(n: Notice) { if (notices.none { it.remoteId != null && it.remoteId == n.remoteId }) notices = listOf(n) + notices }
+
     /** Client job milestones that would arrive as push notifications. */
     private fun onStage(j: ClientJob) {
         val a = artisan(j.artisanId) ?: return
@@ -606,6 +748,7 @@ class LezervState(
     /** Tap on a notice: mark it read and go where it points (deep link). */
     fun openNotice(n: Notice) {
         notices = notices.map { if (it.id == n.id) it.copy(read = true) else it }
+        if (!n.read && n.remoteId != null) live?.markRead(n.remoteId)
         when (val r = n.route) {
             Route.Track -> if (job != null) stack = listOf(Pushed.Track).also { tab = Tab.ClientJobs } else openTab(Tab.ClientJobs)
             Route.Review -> if (job != null) { stack = listOf(Pushed.Track); tab = Tab.ClientJobs; openReview() } else openTab(Tab.ClientJobs)
@@ -614,10 +757,15 @@ class LezervState(
             Route.Earnings -> openTab(Tab.Earnings)
             Route.Payout -> { stack = emptyList(); tab = Tab.ArtisanAccount; push(Pushed.Payout) }
             is Route.Receipt -> { stack = emptyList(); tab = Tab.ClientJobs; push(Pushed.Receipt(r.number)) }
+            Route.Jobs -> openTab(Tab.ClientJobs)
+            Route.Messages -> openTab(Tab.Messages)
         }
     }
 
-    fun markAllRead() { notices = notices.map { if (it.role == role) it.copy(read = true) else it } }
+    fun markAllRead() {
+        if (notices.any { it.remoteId != null && !it.read }) live?.markAllRead()
+        notices = notices.map { if (it.role == role) it.copy(read = true) else it }
+    }
 
     /** Priming answer. "Allow" hands over to Android's own permission dialog (API 33+). */
     fun answerPrime(allow: Boolean) {
@@ -684,7 +832,11 @@ class LezervState(
 
     // ── helpers for screens ──
     val jobArtisan: Artisan? get() = artisan(job?.artisanId)
+    /** Reviews on a profile: sample ones, or the backend's (null while they load). */
+    fun reviewsFor(artisanId: String): List<Review>? = live?.let { it.reviews[artisanId] } ?: if (isLive) null else REVIEWS
+    /** Live jobs still happening / finished, for the Jobs tab. */
+    val liveActive get() = live?.jobs.orEmpty().filter { it.active }
+    val livePast get() = live?.jobs.orEmpty().filterNot { it.active }
     fun serviceLabel(a: Artisan) = SERVICE.getValue(a.svc).label
     val clientPos get() = com.lezerv.app.data.Pt(UX, UY)
-    val allArtisans get() = ARTISANS
 }

@@ -35,6 +35,8 @@ data class Artisan(
     val from: Int, val unit: String,
     val online: Boolean, val verified: Boolean, val laundry: Boolean = false,
     val bio: String,
+    /** Shown instead of "Available now". The sample data invents a time; the backend only knows on/off. */
+    val busyLabel: String = "Busy until 3 pm",
 ) {
     val km: Double get() = hypot((x - UX).toDouble(), (y - UY).toDouble()) / KM
     val eta: Int get() = (km * 5 + 4).roundToInt()
@@ -55,7 +57,6 @@ val ARTISANS = listOf(
     Artisan("a10", "Ada Clean Co.", "AC", "clean", 612f, 504f, 4.8, 180, 300, 18000, "per visit", true, true, bio = "Team of three for large homes and offices."),
 )
 
-fun artisan(id: String?): Artisan? = ARTISANS.firstOrNull { it.id == id }
 
 /** Service options per category; each is priced at the artisan's "from" × [MULT]. */
 val OPTIONS = mapOf(

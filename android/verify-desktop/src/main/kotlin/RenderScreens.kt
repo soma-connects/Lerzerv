@@ -112,6 +112,24 @@ fun main(args: Array<String>) {
     state().apply { openTab(Tab.ClientJobs); push(Pushed.Receipt("J-0141")); startReport("J-0141"); reportText = "The sink still drips after the visit."; submitReport(); openTab(Tab.Messages); openChat("support") }.let { shot("71-support-chat", it) }
     state().apply { openTab(Tab.ClientAccount); push(Pushed.EditProfile) }.let { shot("72-edit-profile", it) }
 
+    // Live mode on the in-memory fake backend (same data as LiveChecks), times in Lagos.
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Africa/Lagos"))
+    fun live(signedIn: Boolean = true) = liveApp(FakeBackend(sessionUser = if (signedIn) "user-1" else null))
+    fun LezervState.withAddress() = apply { account.editAddress(null); account.formStreet = "4 Bishop Aboyade Cole St"; account.formArea = "Ikate"; account.saveAddress() }
+    liveApp(FakeBackend().apply { hangArtisans = true }).apply { account.browseAsGuest(); sheet = Sheet.List }.let { shot("80-live-loading", it) }
+    live().let { shot("81-live-explore", it) }
+    live(signedIn = false).let { shot("82-live-welcome", it) }
+    live(signedIn = false).apply { account.startEmail(); account.emailDraft = "amaka@example.com"; account.password = "secret12" }.let { shot("83-live-email", it) }
+    live().apply { push(Pushed.Profile("7f3e")) }.let { shot("84-live-profile", it) }
+    live().withAddress().apply { startBooking("7f3e"); option = 1 }.let { shot("85-live-book", it) }
+    live().withAddress().apply { startBooking("7f3e"); option = 1; sendRequest(); answerPrime(false) }.let { shot("86-live-jobs", it) }
+    live().apply { openTab(Tab.Messages) }.let { shot("87-live-messages", it) }
+    live().apply { openTab(Tab.Messages); openChat("conv1"); draft = "Call me on 0803 555 4417"; send() }.let { shot("88-live-chat", it) }
+    live().apply { openTab(Tab.Messages); openChat(com.lezerv.app.data.SUPPORT); draft = "My receipt for the deep clean is missing."; send() }.let { shot("89-live-support", it) }
+    live().apply { openTab(Tab.ClientJobs); push(Pushed.Notifications) }.let { shot("90-live-notifications", it) }
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.Help) }.let { shot("91-live-help", it) }
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.Help); reportable?.let { startReport(it.first, 1, it.second) }; reportText = "Still dripping after the visit." }.let { shot("92-live-report", it) }
+
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
     guest().apply {

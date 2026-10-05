@@ -16,7 +16,10 @@ go online, accept requests, navigate to the client and get paid.
 app/src/main/java/com/lezerv/app/
 ├── android/MainActivity.kt   Android entry point: fonts, edge-to-edge, system back, ViewModel
 ├── state/LezervState.kt      ALL app state + actions (ported from the prototype's INIT/tick/handlers)
+├── state/AccountState.kt     Sign-in, profile, addresses, cards, settings
+├── state/LiveSync.kt         Live mode: fills the state from the backend and sends actions to it
 ├── data/SampleData.kt        Sample artisans, prices, copy; formatting helpers (₦, decimals, masking)
+├── data/remote/              Backend layer: LezervApi (interface), SupabaseApi, DTOs, mappers
 └── ui/
     ├── LezervApp.kt          Root: top bars, bottom navigation, snackbar, 100 ms ticker
     ├── theme/Theme.kt        Design tokens (colours, Barlow Condensed / Archivo text styles)
@@ -28,9 +31,9 @@ app/src/main/java/com/lezerv/app/
 ```
 
 The pattern is **state → UI**: screens read fields of `LezervState` (Compose snapshot
-state) and call its methods; Compose redraws whatever read a field that changed. When the
-backend exists, `LezervState`'s actions become calls to a repository, and nothing in
-`ui/` needs to know.
+state) and call its methods; Compose redraws whatever read a field that changed. In live
+mode `LiveSync` writes backend data into that same state, so most screens don't know or
+care where their data came from.
 
 ## Added from the Lezerv Board (early prototype)
 
@@ -115,10 +118,55 @@ cd verify-desktop && gradle renderScreens   # → build/screens/*.png
 It exists because the cloud environment this was built in could not reach Google's Maven.
 You can ignore it in Android Studio, or delete it.
 
-## Backend
+## Backend (live mode)
 
-`docs/BACKEND_MAP.md` maps every screen to the Supabase backend in `soma-connects/Lerzerv`
-(what's ready, what needs a small migration, what's missing) and suggests a build order.
+The app talks to the Supabase backend in `soma-connects/Lerzerv` when it knows where it is.
+Add two lines to `android/local.properties` (Android Studio creates the file; it is never
+committed):
+
+```
+supabase.url=https://<project-ref>.supabase.co
+supabase.anonKey=<anon public key from Supabase → Project Settings → API>
+```
+
+Rebuild, and the app runs live. Without them it runs on sample data, exactly as before.
+
+| Live now | Still demo (sample data) |
+|---|---|
+| Map pins and list (`map_artisans`, or `search_artisans` before 0022) | Paying into escrow, receipts, cancel with refund |
+| Artisan profile and real reviews (`get_artisan_public`) | Live tracking, start code, "needs your reply" |
+| Sign-in: phone + SMS code, or email for lezerv.com accounts | The whole artisan side (role switch in Account) |
+| Your details and edit profile (`profiles`) | Saved addresses and cards (kept on the phone only, until the app restarts) |
+| **Send request** instead of Pay (`create_service_job`, naming the artisan) | Photos on reports, safety contact, referrals |
+| Jobs tab with real statuses and quotes (`service_jobs`) | |
+| Chat with server-side redaction, live updates (`send_message`, Realtime) | |
+| Notifications inbox, live, mark read (`notifications`, Realtime) | |
+| Support chat and report a problem (`open_support_ticket`, `reply_support_ticket`) | |
+| Delete account (sends a deletion request to support) | |
+
+Before the first live run:
+
+1. **Apply migrations 0021 and 0022** from the `claude/mobile-backend` branch of
+   `soma-connects/Lerzerv`, on a staging project first. 0021 is a security fix and is
+   urgent on its own (see `docs/BACKEND_MAP.md` §3).
+2. **Phone sign-in needs an SMS provider** in Supabase → Authentication → Providers →
+   Phone (Twilio, MessageBird, Vonage or Textlocal built in; Termii through the Send SMS
+   hook). Until then use email sign-in with a lezerv.com account.
+
+`docs/BACKEND_MAP.md` maps every screen to the backend (what's ready, what needs a
+migration, what's missing) and suggests a build order.
+
+### Checks
+
+```
+cd verify-desktop
+gradle backendChecks   # SupabaseApi against simulated HTTP responses shaped like the real API
+gradle liveChecks      # the whole app in live mode against an in-memory fake backend
+gradle renderScreens   # every screen to PNG (80–92 are live mode) + demo behaviour checks
+```
+
+None of these touch a real database. The first run on a phone against the real project is
+still to do.
 
 ## Still to do (from the design's build notes)
 

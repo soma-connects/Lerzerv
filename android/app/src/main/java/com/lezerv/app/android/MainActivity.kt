@@ -22,8 +22,12 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.lezerv.app.BuildConfig
 import com.lezerv.app.R
+import com.lezerv.app.data.remote.BackendConfig
+import com.lezerv.app.data.remote.SupabaseApi
+import com.lezerv.app.data.remote.createLezervClient
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.ui.LezervApp
 import com.lezerv.app.ui.theme.LzFonts
@@ -33,9 +37,17 @@ import com.lezerv.app.ui.theme.LzFonts
  * which would otherwise recreate the Activity and lose an in-progress booking.
  */
 class MainViewModel : ViewModel() {
-    // The demo build starts signed in as the sample user (Settings → Log out shows sign-in);
-    // a real build starts as a guest who can look around first.
-    val state = LezervState(demo = BuildConfig.DEMO_MODE, signedIn = BuildConfig.DEMO_MODE)
+    private val backend = BackendConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY)
+
+    val state: LezervState = if (backend.isSet) {
+        // Live: real artisans, sign-in, jobs, chat and notifications. Starts as a guest,
+        // or as whoever signed in last time. viewModelScope stops its work when the app closes.
+        LezervState(demo = BuildConfig.DEMO_MODE).also { it.connect(SupabaseApi(createLezervClient(backend)), viewModelScope) }
+    } else {
+        // Sample data: the demo build starts signed in as the sample user (Settings → Log out
+        // shows sign-in); a non-demo build starts as a guest who can look around first.
+        LezervState(demo = BuildConfig.DEMO_MODE, signedIn = BuildConfig.DEMO_MODE)
+    }
 }
 
 private val fonts = LzFonts(

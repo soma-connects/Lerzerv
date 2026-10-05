@@ -1,8 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization) // turns the backend's JSON into Kotlin classes (data/remote/Dtos.kt)
 }
+
+// Backend settings come from local.properties, which is never committed:
+//   supabase.url=https://<project>.supabase.co
+//   supabase.anonKey=<the project's anon public key>
+// Without them the app runs on sample data only. (The anon key is public by design:
+// row-level security on the database decides what each user may read and write.)
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use(::load)
+}
+fun localProp(key: String): String = localProps.getProperty(key, "").trim()
 
 android {
     namespace = "com.lezerv.app"
@@ -19,6 +33,8 @@ android {
         // "Prototype · skip ahead", "Demo: fill 4827", Reset). Turn off once the backend
         // drives job stages and accounts.
         buildConfigField("boolean", "DEMO_MODE", "true")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.url")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProp("supabase.anonKey")}\"")
     }
 
     buildTypes {
@@ -48,4 +64,10 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Backend: Supabase (database, sign-in, realtime) over Ktor's OkHttp engine.
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.okhttp)
 }
