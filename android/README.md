@@ -134,21 +134,25 @@ Rebuild, and the app runs live. Without them it runs on sample data, exactly as 
 | Live now | Still demo (sample data) |
 |---|---|
 | Map pins and list (`map_artisans`, or `search_artisans` before 0022) | Paying into escrow, receipts, cancel with refund |
-| Artisan profile and real reviews (`get_artisan_public`) | Live tracking, start code, "needs your reply" |
-| Sign-in: phone + SMS code, or email for lezerv.com accounts | The whole artisan side (role switch in Account) |
-| Your details and edit profile (`profiles`) | Saved addresses and cards (kept on the phone only, until the app restarts) |
-| **Send request** instead of Pay (`create_service_job`, naming the artisan) | Photos on reports, safety contact, referrals |
-| Jobs tab with real statuses and quotes (`service_jobs`) | |
-| Chat with server-side redaction, live updates (`send_message`, Realtime) | |
+| Artisan profile and real reviews (`get_artisan_public`) | Live tracking on a map, "needs your reply" |
+| Sign-in: phone + SMS code, or email for lezerv.com accounts | Earnings and payouts (live shows agreed prices only) |
+| Your details, edit profile, **saved addresses** (`profiles`, `client_addresses`) | Saved cards |
+| **Book the artisan you picked** (`book_artisan`): they get the request and 30 seconds to accept; otherwise it goes to the pool | Becoming an artisan (apply on lezerv.com; approved artisans then switch sides in the app) |
+| Jobs tab: countdown, status, quotes, **start code**, cancel (`service_jobs`, `job_private`) | Artisan verification, services and payout screens (hidden when live) |
+| Chat with server-side redaction, live updates (`send_message`, Realtime) | Photos on reports, safety contact, referrals |
 | Notifications inbox, live, mark read (`notifications`, Realtime) | |
 | Support chat and report a problem (`open_support_ticket`, `reply_support_ticket`) | |
+| **Artisan side**: online switch, incoming requests with accept/decline, job screen with Google Maps directions, start with the client's code (`start_job`), mark complete, jobs list, coverage radius | |
 | Delete account (sends a deletion request to support) | |
 
 Before the first live run:
 
-1. **Apply migrations 0021 and 0022** from the `claude/mobile-backend` branch of
-   `soma-connects/Lerzerv`, on a staging project first. 0021 is a security fix and is
-   urgent on its own (see `docs/BACKEND_MAP.md` §3).
+1. **Apply the migrations in order, on a staging project first:** 0019
+   (`claude/job-site-visit-quotes`), 0020 (`claude/rebook-artisan`), then 0021, 0022 and
+   0023 from `claude/mobile-backend` in `soma-connects/Lerzerv`. 0021 is a security fix and
+   is urgent on its own (see `docs/BACKEND_MAP.md` §3). Deploy the website change from
+   `claude/mobile-backend` (`artisanService.ts`) with 0020 or later: from 0020 on, jobs link
+   to artisans more than once and the old queries stop working.
 2. **Phone sign-in needs an SMS provider** in Supabase → Authentication → Providers →
    Phone (Twilio, MessageBird, Vonage or Textlocal built in; Termii through the Send SMS
    hook). Until then use email sign-in with a lezerv.com account.
@@ -165,8 +169,10 @@ gradle liveChecks      # the whole app in live mode against an in-memory fake ba
 gradle renderScreens   # every screen to PNG (80–92 are live mode) + demo behaviour checks
 ```
 
-None of these touch a real database. The first run on a phone against the real project is
-still to do.
+None of these touch a real database. The migrations themselves are tested on a local
+PostgreSQL in `soma-connects/Lerzerv` (`supabase/tests/`, 42 checks acting as client,
+artisans, admin and a signed-out visitor). The first run on a phone against the real
+project is still to do.
 
 ## Still to do (from the design's build notes)
 

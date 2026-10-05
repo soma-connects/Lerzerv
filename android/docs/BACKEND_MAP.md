@@ -4,9 +4,10 @@ What every screen in the native app needs from the backend, what already exists 
 `soma-connects/Lerzerv` (`supabase/migrations/0001–0018` on `main`, plus `0019` and `0020` on
 unmerged branches), and what is missing.
 
-> **Update:** step 1 of §5 is done (the app is connected, see §6), and the
-> `claude/mobile-backend` branch adds **0021** (security fix) and **0022** (phone identities,
-> approximate map positions, app support tickets).
+> **Update:** steps 1–3 of §5 are done (the app is connected and books directly, see §6).
+> The `claude/mobile-backend` branch adds **0021** (security fix), **0022** (phone
+> identities, approximate map positions, app support tickets) and **0023** (direct booking:
+> offers, start codes, saved addresses). 0023 needs 0019 and 0020 merged first.
 
 **Status key**
 
@@ -142,6 +143,13 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
 6. **To review:** `bookings` inserts. The website syncs guest bookings with
    `payment_status` from the client; check that a client can't mark their own booking paid.
 7. Column protection on `artisans` updates and `notify()` blocking (0010) are correct.
+8. **0020 breaks the website's job lists as written.** It adds a second link from
+   `service_jobs` to `artisans`, and PostgREST refuses an embed written `artisans(...)`
+   when there are two (error PGRST201). The `claude/mobile-backend` branch names the link
+   (`artisans!assigned_artisan_id(...)`) in `artisanService.ts`; ship that with 0020.
+9. Tidy-up: `upsert_artisan_profile` exists twice (0008's version was never dropped when
+   0011 added the ID-document arguments). The website always sends the new arguments, so
+   it works, but a call without them is ambiguous. Drop the 13-argument version.
 
 ---
 
@@ -202,8 +210,11 @@ the direct-booking flow.
 | Map | `map_artisans(lat, lng, 10 km)` | Falls back to `search_artisans` if 0022 isn't applied: pins then sit at the right distance in an approximate direction |
 | Profile | `get_artisan_public` | Reviews; services and prices still use typical Lagos prices (`artisan_services` is missing) |
 | Sign-in | Auth: phone OTP, or email + password | Then `profiles` for name, email, phone |
-| Send request | `create_service_job` | Until `book_artisan` exists, the description names the chosen artisan (with their id) for the team to assign |
-| Jobs | `service_jobs` with category and artisan embedded | Status line reads `status`, `quoted_amount`, `agreed_amount` |
+| Saved addresses | `client_addresses` (0023) | Owner-only; the area picks the service area |
+| Book | `book_artisan` (0023) | Offer to the chosen artisan; 30 s by default (`settings.offer_window_seconds`); unanswered offers go to the pool (`expire_job_offers`, also run by pg_cron if enabled) |
+| Jobs | `service_jobs` with category, assigned and requested artisan embedded; `job_private` for start codes | Countdown while the offer is open; the start code once accepted; cancel before work starts |
+| Artisan: online, radius | `set_artisan_availability`, `artisans.service_radius_km` | |
+| Artisan: requests and jobs | `my_artisan_jobs`, `accept_job_offer`, `decline_assigned_job` (0020), `start_job`, `update_service_job_status` | The artisan sees the area until they accept, the street after; never the start code |
 | Messages, chat | `conversations`, `messages`, `send_message`, Realtime inserts | Server redaction is what's shown |
 | Notifications | `notifications`, update `read`, Realtime inserts | `type` routes: `message` → Messages, `support_reply` → support chat, others → Jobs |
 | Support, report | `support_tickets`, `open_support_ticket` (0022), `reply_support_ticket`, Realtime | Reports link the job |

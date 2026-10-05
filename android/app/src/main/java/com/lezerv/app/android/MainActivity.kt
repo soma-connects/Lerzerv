@@ -81,6 +81,11 @@ class MainActivity : ComponentActivity() {
         }
         // Opens the dialer with the number filled in; the user presses call (no permission needed).
         state.dial = { number -> startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
+        // Google Maps (or any maps app) at the client's address, for real directions.
+        state.openMaps = { address ->
+            val geo = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode("$address, Lagos")))
+            try { startActivity(geo) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a maps app for directions") }
+        }
         // Android's share sheet: WhatsApp, SMS, email…
         state.share = { text ->
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
@@ -120,6 +125,7 @@ class MainActivity : ComponentActivity() {
         appState.requestNotificationPermission = null
         appState.dial = null
         appState.share = null
+        appState.openMaps = null
         super.onDestroy()
     }
 }

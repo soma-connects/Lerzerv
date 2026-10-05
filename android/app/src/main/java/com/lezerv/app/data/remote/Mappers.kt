@@ -83,6 +83,8 @@ fun initialsOf(name: String): String =
 /** Backend row → the app's Artisan model. */
 fun MapArtisanDto.toArtisan(): Artisan {
     val svc = categories.firstNotNullOfOrNull(::appCategory) ?: "repair"
+    // The artisan's own category for that chip: booking must name one they offer.
+    val slug = categories.firstOrNull { appCategory(it) == svc }
     val (from, unit) = TYPICAL_FROM.getValue(svc)
     val (x, y) = mapPosition(this)
     return Artisan(
@@ -92,6 +94,7 @@ fun MapArtisanDto.toArtisan(): Artisan {
         from = from, unit = unit, online = isAvailable, verified = isVerified, laundry = svc == "laundry",
         bio = bio?.takeIf { it.isNotBlank() } ?: "${yearsExperience.takeIf { it > 0 }?.let { "$it years’ experience. " } ?: ""}Verified by Lezerv.",
         busyLabel = "Not taking jobs now",
+        slug = slug,
     )
 }
 
@@ -111,8 +114,7 @@ fun shortDate(iso: String): String {
  * Accepts both the REST form (…T09:12:00.123+00:00) and Postgres text (… 09:12:00+00).
  */
 fun timeLabel(iso: String, nowMs: Long, zone: ZoneId): String {
-    val normal = iso.trim().replace(' ', 'T').let { if (Regex("[+-]\\d{2}$").containsMatchIn(it)) "$it:00" else it }
-    val t = runCatching { OffsetDateTime.parse(normal).atZoneSameInstant(zone) }.getOrNull() ?: return ""
+    val t = parseIso(iso)?.atZoneSameInstant(zone) ?: return ""
     val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
     return when (t.toLocalDate()) {
         today -> "%02d:%02d".format(t.hour, t.minute)
@@ -121,15 +123,34 @@ fun timeLabel(iso: String, nowMs: Long, zone: ZoneId): String {
     }
 }
 
+private fun parseIso(iso: String): OffsetDateTime? {
+    val normal = iso.trim().replace(' ', 'T').let { if (Regex("[+-]\\d{2}$").containsMatchIn(it)) "$it:00" else it }
+    return runCatching { OffsetDateTime.parse(normal) }.getOrNull()
+}
+
+/** A database timestamp as epoch milliseconds, for countdowns. */
+fun isoMillis(iso: String?): Long? = iso?.let(::parseIso)?.toInstant()?.toEpochMilli()
+
+/** Whole seconds left until [iso], never negative. */
+fun secondsLeft(iso: String?, nowMs: Long): Int = isoMillis(iso)?.let { ((it - nowMs + 999) / 1000).toInt().coerceAtLeast(0) } ?: 0
+
+/** "J-1042", the reference people read out to support. */
+fun jobRef(number: Long?): String? = number?.let { "J-$it" }
+
 /** The app's areas → service_areas slugs (0008). Lekki Phase 1, Ikate and Osapa are all Lekki. */
 fun areaSlug(area: String): String = if (area.startsWith("Ikoyi")) "ikoyi" else "lekki"
 
-/** One line under a job in the Jobs tab, from its service_jobs status (0008) and quote (0018). */
-fun jobStatus(j: JobDto): String {
+/**
+ * One line under a job in the Jobs tab, from its status (0008), quote (0018) and offer (0023).
+ * [nowMs] drives the "waiting for Tunde · 23s" countdown.
+ */
+fun jobStatus(j: JobDto, nowMs: Long): String {
     val who = j.artisan?.displayName?.takeIf { it.isNotBlank() } ?: "Your artisan"
+    val asked = j.requested?.displayName?.substringBefore(' ')
     return when (j.status) {
-        "open" -> "Requested · Lezerv is confirming an artisan"
+        "open" -> if (asked != null) "$asked couldn’t take it · Lezerv is finding someone else" else "Requested · Lezerv is confirming an artisan"
         "assigned" -> when {
+            j.offerPending -> "Waiting for ${who.substringBefore(' ')} to accept · ${secondsLeft(j.offerExpiresAt, nowMs)}s"
             j.agreedAmount != null -> "$who · price agreed, ${com.lezerv.app.data.naira(j.agreedAmount)}"
             j.quotedAmount != null -> "$who proposed ${com.lezerv.app.data.naira(j.quotedAmount)}"
             else -> "$who is assigned · chat to agree a time"

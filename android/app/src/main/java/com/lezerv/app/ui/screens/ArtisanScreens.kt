@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
@@ -51,6 +52,12 @@ import com.lezerv.app.data.UY
 import com.lezerv.app.data.WEEK
 import com.lezerv.app.data.naira
 import com.lezerv.app.data.pad2
+import com.lezerv.app.data.AREAS
+import com.lezerv.app.data.remote.initialsOf
+import com.lezerv.app.data.remote.isoMillis
+import com.lezerv.app.data.remote.jobRef
+import com.lezerv.app.data.remote.shortDate
+import com.lezerv.app.state.Incoming
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.state.Pushed
 import com.lezerv.app.ui.components.KvLine
@@ -88,9 +95,10 @@ fun ArtisanMapScreen(s: LezervState) {
     val on = s.online
     Box(Modifier.fillMaxSize()) {
         PannableMap(s) {
-            DEMAND_ZONES.forEach { DemandZone(it.x, it.y, it.r, it.label) }
+            // Demand zones and the request's pin are sample data; live has neither yet.
+            if (!s.isLive) DEMAND_ZONES.forEach { DemandZone(it.x, it.y, it.r, it.label) }
             MapCircle(UX, UY, s.radiusKm * KM / 2, Lz.Ink, alpha = .55f)
-            if (s.requestOpen) HomePin(REQUEST_PIN.x, REQUEST_PIN.y)
+            if (s.requestOpen && !s.isLive) HomePin(REQUEST_PIN.x, REQUEST_PIN.y)
             UserDot()
         }
 
@@ -113,7 +121,7 @@ fun ArtisanMapScreen(s: LezervState) {
             ) { Box(Modifier.size(26.dp).background(if (on) Lz.Accent else Lz.Ink)) }
         }
         Row(Modifier.padding(start = 12.dp, top = 86.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MapChip("Today ${naira(s.earnedToday)}")
+            if (!s.isLive) MapChip("Today ${naira(s.earnedToday)}")
             MapChip("Radius ${s.radiusKm} km")
         }
         Column(Modifier.align(Alignment.TopEnd).padding(top = 86.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -123,10 +131,13 @@ fun ArtisanMapScreen(s: LezervState) {
         }
 
         val bottom = Modifier.align(Alignment.BottomStart).padding(12.dp).fillMaxWidth()
+        val incoming = s.incoming
+        val current = s.live?.activeJob
         when {
-            s.requestOpen -> RequestCard(s, bottom)
-            on && s.artisanJob == null -> Hint("timer", "Looking for jobs within ${s.radiusKm} km. Hatched areas have more requests right now.", bottom, Lz.Accent)
-            !on -> Hint("power", "You won’t get requests while offline. Clients can still see your profile.", bottom)
+            incoming != null -> RequestCard(s, incoming, bottom)
+            current != null -> Hint("navigation", "${current.title} for ${current.clientFirstName ?: "your client"} is in progress. Tap to open it.", bottom.tap { s.push(Pushed.Navigate) }, Lz.Accent)
+            on && s.artisanJob == null -> Hint("timer", if (s.isLive) "Looking for requests within ${s.radiusKm} km. They pop up here, and you have a few seconds to accept." else "Looking for jobs within ${s.radiusKm} km. Hatched areas have more requests right now.", bottom, Lz.Accent)
+            !on -> Hint("power", if (s.isLive) "You won’t get requests while offline. Clients can’t book you either." else "You won’t get requests while offline. Clients can still see your profile.", bottom)
         }
     }
 }
@@ -144,28 +155,28 @@ private fun Hint(icon: String, text: String, modifier: Modifier, tint: Color = L
     }
 }
 
-/** PROPOSAL: 30-second request timer. */
+/** The incoming request and its countdown (the backend's offer window when live, 30 s by default). */
 @Composable
-private fun RequestCard(s: LezervState, modifier: Modifier) {
-    val left = (s.requestEndsAt - s.now).coerceAtLeast(0)
+private fun RequestCard(s: LezervState, r: Incoming, modifier: Modifier) {
+    val left = (r.endsAt - s.now).coerceAtLeast(0)
     Column(modifier.blueprint().shadow(12.dp).background(Lz.Bg).border(2.dp, Lz.Ink).padding(2.dp)) {
         Box(Modifier.fillMaxWidth().height(6.dp).background(Lz.Neutral200)) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(left / 30_000f).background(Lz.Accent))
+            Box(Modifier.fillMaxHeight().fillMaxWidth((left / 30_000f).coerceIn(0f, 1f)).background(Lz.Accent))
         }
         Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)) {
             Row {
                 Txt("NEW REQUEST · ${ceil(left / 1000.0).toInt()}S", label(color = Lz.Accent700), Modifier.weight(1f))
-                Txt("0.9 KM · 4 MIN", label(11, .1f))
+                Txt(r.tag.uppercase(), label(11, .1f))
             }
-            Txt("LEAKING KITCHEN SINK", heading(28, 30, weight = 700), Modifier.padding(top = 6.dp))
-            Txt("Plumbing · Amaka O. · Lekki Phase 1 · Now", body(13, 19, color = Lz.Neutral800), Modifier.padding(top = 2.dp))
+            Txt(r.title.uppercase(), heading(28, 30, weight = 700), Modifier.padding(top = 6.dp))
+            Txt(r.sub, body(13, 19, color = Lz.Neutral800), Modifier.padding(top = 2.dp))
             Row(Modifier.padding(top = 12.dp, bottom = 14.dp).fillMaxWidth().borderTop(2.dp, Lz.Ink).borderBottom(1.dp, Lz.Divider).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Txt("Call-out, you receive", body(13), Modifier.weight(1f))
-                Txt("₦6,400", heading(28, weight = 700))
+                Txt(r.pay?.first ?: "Price agreed with the client in chat", body(13), Modifier.weight(1f))
+                r.pay?.let { Txt(it.second, heading(28, weight = 700)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlineButton("Decline", { s.declineRequest() }, Modifier.weight(1f))
-                PrimaryButton({ s.acceptRequest() }, Modifier.weight(1.6f)) {
+                PrimaryButton({ s.acceptIncoming() }, Modifier.weight(1.6f).alpha(if (s.live?.busy == true) .5f else 1f)) {
                     Txt("ACCEPT", heading(18, tracking = .05f, color = Color.White), Modifier.weight(1f))
                     LzIcon("check", 20, Color.White)
                 }
@@ -178,6 +189,7 @@ private fun RequestCard(s: LezervState, modifier: Modifier) {
 
 @Composable
 fun ArtisanNavigateScreen(s: LezervState) {
+    if (s.isLive) { LiveArtisanJob(s); return }
     val job = s.artisanJob ?: return
     val pts = routePoints(Pt(UX, UY), CLIENT_HOME)
     val pos = if (job.stage == 0) along(pts, job.t) else CLIENT_HOME
@@ -220,13 +232,7 @@ fun ArtisanNavigateScreen(s: LezervState) {
             if (job.stage == 1) {
                 Column(Modifier.padding(top = 18.dp)) {
                     Txt("ENTER THE CLIENT’S START CODE", label(), Modifier.padding(bottom = 8.dp))
-                    BasicTextField(
-                        s.code, { v -> s.code = v.filter(Char::isDigit).take(4) },
-                        Modifier.fillMaxWidth().height(64.dp).border(2.dp, Lz.Ink).padding(horizontal = 16.dp).semantics { contentDescription = "Start code" },
-                        singleLine = true, textStyle = heading(40, weight = 700, tracking = .5f), cursorBrush = SolidColor(Lz.Accent),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        decorationBox = { inner -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) { if (s.code.isEmpty()) Txt("••••", heading(40, weight = 700, tracking = .5f, color = Lz.Neutral500)); inner() } },
-                    )
+                    CodeField(s)
                     Row(Modifier.padding(top = 6.dp).fillMaxWidth()) {
                         Txt(if (s.code.length == 4) (if (s.codeOk) "Code accepted" else "That code doesn’t match") else "Ask Amaka for her code", body(12, color = Lz.Neutral700), Modifier.weight(1f))
                         if (s.demo) Txt("Demo: fill $DEMO_START_CODE", body(12, weight = 700, color = Lz.Accent700), Modifier.tap { s.code = DEMO_START_CODE })
@@ -244,10 +250,91 @@ fun ArtisanNavigateScreen(s: LezervState) {
     }
 }
 
+@Composable
+private fun CodeField(s: LezervState) {
+    BasicTextField(
+        s.code, { v -> s.code = v.filter(Char::isDigit).take(4) },
+        Modifier.fillMaxWidth().height(64.dp).border(2.dp, Lz.Ink).padding(horizontal = 16.dp).semantics { contentDescription = "Start code" },
+        singleLine = true, textStyle = heading(40, weight = 700, tracking = .5f), cursorBrush = SolidColor(Lz.Accent),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        decorationBox = { inner -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) { if (s.code.isEmpty()) Txt("••••", heading(40, weight = 700, tracking = .5f, color = Lz.Neutral500)); inner() } },
+    )
+}
+
+/**
+ * Live job screen for the artisan: head there (Google Maps has the real route), say you've
+ * arrived, type the client's start code, work, mark complete. The server checks the code.
+ */
+@Composable
+private fun LiveArtisanJob(s: LezervState) {
+    val live = s.live ?: return
+    val j = s.liveArtisanJob ?: return
+    val done = live.justCompleted?.id == j.id
+    val stage = when { done -> 3; j.status == "in_progress" -> 2; j.id in live.arrived -> 1; else -> 0 }
+    val client = j.clientFirstName ?: "Your client"
+    val address = j.addressText ?: j.areaName.orEmpty()
+    val spot = AREAS.firstOrNull { it.first == j.areaName }?.second ?: AREAS.first().second
+    val minutes = isoMillis(j.startedAt)?.let { ((s.now - it) / 60_000).toInt().coerceAtLeast(0) } ?: 0
+    data class Stage(val kicker: String, val status: String, val big: String, val bigLabel: String, val action: Pair<String, () -> Unit>)
+    val st = when (stage) {
+        0 -> Stage("Head to $client", "On the way", jobRef(j.jobNumber)?.removePrefix("J-") ?: "—", "job no.", "I’ve arrived" to s::markArrived)
+        1 -> Stage("You have arrived", "Start the job", "—", "code", "Start job" to s::startJob)
+        2 -> Stage("Work started", "In progress", pad2(minutes), "min on job", "Mark job complete" to s::completeJob)
+        else -> Stage("Job complete", "Nice work", "✓", "done", "Back to map" to s::finishArtisanJob)
+    }
+    Column(Modifier.fillMaxSize()) {
+        Box {
+            MapInset(220.dp, Pt(spot.first, spot.second), s.blueprintMap) { HomePin(spot.first, spot.second + 2) }
+            Row(Modifier.padding(12.dp).fillMaxWidth().background(Lz.Ink).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LzIcon("map-pin", 24, Color.White)
+                Column(Modifier.weight(1f)) {
+                    Txt("DESTINATION", heading(20, 20, weight = 700, color = Color.White))
+                    Txt(address, body(12, 16, color = Color.White.copy(alpha = .85f)))
+                }
+                Box(Modifier.heightIn(min = 40.dp).border(1.dp, Color.White).tap { s.navigateTo(address) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                    Txt("NAVIGATE", heading(16, tracking = .05f, color = Color.White))
+                }
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(2.dp).background(Lz.Ink))
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 22.dp)) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Txt(st.kicker.uppercase(), label(color = Lz.Accent700))
+                    Txt(st.status.uppercase(), heading(34, 34, weight = 700), Modifier.padding(top = 2.dp))
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Txt(st.big, heading(56, 50, weight = 700, color = Lz.Accent))
+                    Txt(st.bigLabel.uppercase(), label())
+                }
+            }
+            PersonRow(initialsOf(client), client, address, { s.toast("Calls through a Lezerv number are coming. Use chat for now.") },
+                { j.conversationId?.let(s::openChat) ?: s.toast("Chat opens in a moment") }, Modifier.padding(top = 14.dp))
+            Column(Modifier.padding(top = 14.dp)) {
+                KvLine("Job", j.title)
+                j.detail("when")?.let { KvLine("When", it) }
+                j.detail("items")?.let { KvLine("Items", it) }
+                j.detail("estimate")?.let { KvLine("Client’s estimate", it) }
+                j.agreedAmount?.let { KvLine("Agreed price", naira(it)) }
+            }
+            j.description?.let { Txt("“$it”", body(14, 20, color = Lz.Neutral800), Modifier.padding(top = 10.dp)) }
+            if (stage == 1) Column(Modifier.padding(top = 18.dp)) {
+                Txt("ENTER ${client.uppercase()}’S START CODE", label(), Modifier.padding(bottom = 8.dp))
+                CodeField(s)
+                Txt("$client reads it from their app. It proves you’re really at the door.", body(12, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
+            }
+            if (stage == 3) Txt("$client confirms and reviews the job in their app.", body(13, 19, color = Lz.Neutral700), Modifier.padding(top = 12.dp))
+            PrimaryWide(st.action.first, onClick = st.action.second, modifier = Modifier.padding(top = 18.dp),
+                alpha = if ((stage == 1 && s.code.length != 4) || live.busy) .5f else 1f)
+        }
+    }
+}
+
 // ───────────────────────────── jobs ─────────────────────────────
 
 @Composable
 fun ArtisanJobsScreen(s: LezervState) {
+    if (s.isLive) { LiveArtisanJobs(s); return }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
         SectionRule("01", "Scheduled", Modifier.padding(top = 20.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
@@ -261,6 +348,41 @@ fun ArtisanJobsScreen(s: LezervState) {
         }
         SectionRule("02", "Completed", Modifier.padding(top = 28.dp, bottom = 4.dp))
         CompletedList(s, plus = false)
+    }
+}
+
+@Composable
+private fun LiveArtisanJobs(s: LezervState) {
+    val jobs = s.live?.artisanJobs.orEmpty()
+    val current = jobs.filter { (it.status == "assigned" && !it.offerPending) || it.status == "in_progress" }
+    val done = jobs.filter { it.status == "completed" }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
+        SectionRule("01", "Current", Modifier.padding(top = 20.dp, bottom = 4.dp))
+        Column(Modifier.padding(horizontal = 20.dp)) {
+            if (current.isEmpty()) Txt("Accepted requests show here until they’re done.", body(13, color = Lz.Neutral700), Modifier.padding(vertical = 14.dp))
+            current.forEach { j ->
+                Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.openArtisanJob(j.id) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Txt(j.title.uppercase(), heading(19, 21))
+                        Txt(listOfNotNull(jobRef(j.jobNumber), j.clientFirstName, j.areaName, if (j.status == "in_progress") "In progress" else j.detail("when")).joinToString(" · "), body(12, color = Lz.Neutral800))
+                    }
+                    LzIcon("chevron-right", 20)
+                }
+            }
+        }
+        SectionRule("02", "Completed", Modifier.padding(top = 28.dp, bottom = 4.dp))
+        Column(Modifier.padding(horizontal = 20.dp)) {
+            if (done.isEmpty()) Txt("Finished jobs from the last 60 days.", body(13, color = Lz.Neutral700), Modifier.padding(vertical = 14.dp))
+            done.forEach { j ->
+                Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Txt(j.title, body(15, weight = 600))
+                        Txt(listOfNotNull(jobRef(j.jobNumber), j.clientFirstName, j.completedAt?.let(::shortDate)).joinToString(" · "), body(12, color = Lz.Neutral700))
+                    }
+                    j.agreedAmount?.let { Txt(naira(it), heading(19)) }
+                }
+            }
+        }
     }
 }
 
@@ -281,6 +403,16 @@ private fun CompletedList(s: LezervState, plus: Boolean) {
 /** PROPOSAL: earnings and payouts need backend work. */
 @Composable
 fun EarningsScreen(s: LezervState) {
+    if (s.isLive) {
+        val done = s.live?.artisanJobs.orEmpty().filter { it.status == "completed" }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Txt("LAST 60 DAYS · AGREED WITH CLIENTS", label(color = Lz.Neutral700))
+            Txt(naira(done.sumOf { it.agreedAmount ?: 0.0 }), heading(64, 62, weight = 700))
+            Txt("${done.size} completed job${if (done.size == 1) "" else "s"}. Payouts through Lezerv arrive with in-app payments; until then this is a record of agreed prices, not money held for you.",
+                body(14, 21, color = Lz.Neutral800))
+        }
+        return
+    }
     val week = WEEK + ("S" to s.earnedToday)
     val max = week.maxOf { it.second }.coerceAtLeast(1)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
@@ -338,9 +470,12 @@ private fun MoneyCell(k: String, v: String, sub: String, modifier: Modifier) {
 @Composable
 fun ArtisanAccountScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
-        AccountHeader("TB", "Tunde Bakare") {
+        val me = s.live?.me
+        AccountHeader(me?.let { initialsOf(it.displayName) } ?: "TB", me?.displayName ?: "Tunde Bakare") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                LzIcon("badge-check", 15, Lz.Accent700); Txt("ID verified · Plumbing · ★ 4.8", body(13, weight = 600, color = Lz.Accent700))
+                LzIcon("badge-check", 15, Lz.Accent700)
+                Txt(if (me != null) listOfNotNull(if (me.isVerified) "ID verified" else "Approved", "★ ${com.lezerv.app.data.fixed1(me.avgRating)}").joinToString(" · ") else "ID verified · Plumbing · ★ 4.8",
+                    body(13, weight = 600, color = Lz.Accent700))
             }
         }
         SectionRule("01", "Coverage radius", Modifier.padding(top = 4.dp, bottom = 12.dp))
@@ -349,15 +484,17 @@ fun ArtisanAccountScreen(s: LezervState) {
                 Txt("You get requests from clients inside this distance.", body(14, 20, color = Lz.Neutral800), Modifier.weight(1f))
                 Txt("${s.radiusKm} KM", heading(40, 40, weight = 700), Modifier.padding(start = 12.dp))
             }
-            StepSlider(s.radiusKm, 1, 10, { s.radiusKm = it }, Modifier.padding(top = 12.dp).semantics { contentDescription = "Coverage radius" })
+            StepSlider(s.radiusKm, 1, 10, { s.changeRadius(it) }, Modifier.padding(top = 12.dp).semantics { contentDescription = "Coverage radius" })
             Row { Txt("1 km", label(11, 0f, Lz.Neutral700), Modifier.weight(1f)); Txt("10 km", label(11, 0f, Lz.Neutral700)) }
         }
         SectionRule("02", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
         AccountRows(
-            listOf(
+            // Verification, services and payouts are still sample screens; live hides them.
+            (if (s.isLive) emptyList() else listOf(
                 AccountRow("badge-check", "Verification", "ID and address verified") { s.push(Pushed.Verify(onboarding = false)) },
                 AccountRow("wrench", "Services and prices", "Plumbing · ${s.account.services.count { it.on }} services") { s.push(Pushed.Services) },
                 AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
+            )) + listOf(
                 AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),

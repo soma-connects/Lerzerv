@@ -1,5 +1,6 @@
 package com.lezerv.verify
 
+import com.lezerv.app.data.DECLINE_REASONS
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.remote.MessageDto
 import com.lezerv.app.data.remote.NotificationDto
@@ -10,6 +11,7 @@ import com.lezerv.app.data.remote.timeLabel
 import com.lezerv.app.state.AuthStep
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.state.Pushed
+import com.lezerv.app.state.Role
 import com.lezerv.app.state.Route
 import com.lezerv.app.state.Tab
 import kotlinx.coroutines.CoroutineScope
@@ -66,7 +68,7 @@ fun main() {
     check("phone from the profile, shown masked", s.account.phone == "8035554417" && s.account.phoneMasked == "+234 803 ••• 4417")
     check("jobs, chats, tickets and notifications loaded", listOf("jobs", "conversations", "tickets", "notifications").all { it in api.calls })
     check("active and past jobs split by status", s.liveActive.map { it.id } == listOf("j1") && s.livePast.map { it.id } == listOf("j0"))
-    check("status line shows the artisan's quote", jobStatus(s.liveActive.single()) == "Tunde Bakare proposed ₦15,000")
+    check("status line shows the artisan's quote", jobStatus(s.liveActive.single(), LIVE_NOW) == "Tunde Bakare proposed ₦15,000")
     val notice = s.notices.single()
     check("notification in the inbox, routed to Jobs, time in Lagos", notice.remoteId == "n1" && notice.route == Route.Jobs && !notice.read && notice.ago == "10:10")
 
@@ -75,19 +77,23 @@ fun main() {
     check("profile loads the artisan's real reviews", s.reviewsFor("7f3e")?.map { it.name } == listOf("Amaka", "Femi") && s.reviewsFor("7f3e")?.get(1)?.text == "No comment.")
     s.back()
 
-    // ── book: send a request ──
+    // ── book the artisan you picked ──
     s.startBooking("7f3e"); s.option = 1; s.whenIdx = 1; s.slot = 2; s.note = "Kitchen sink drips."
     s.sendRequest()
-    check("no address yet: asked to add one, nothing posted", s.top == Pushed.AddressEdit && api.calls.none { it.startsWith("postJob") })
-    s.account.formStreet = "4 Bishop Aboyade Cole St"; s.account.formArea = "Ikate"; s.account.saveAddress()
+    check("no address yet: asked to add one, nothing booked", s.top == Pushed.AddressEdit && api.calls.none { it.startsWith("book ") })
+    s.account.formStreet = "4 Bishop Aboyade Cole St"; s.account.formArea = "Ikate"; s.account.formNote = "Blue gate"; s.account.saveAddress()
+    check("the address is saved to the account, with its service area",
+        api.calls.last() == "saveAddress new Home | 4 Bishop Aboyade Cole St | Ikate | lekki | Blue gate" && s.top == Pushed.Book && s.account.currentAddress?.id?.startsWith("addr-") == true)
     s.sendRequest()
-    val post = api.calls.last { it.startsWith("postJob") }
-    check("job posted with category, area and the chosen artisan", post.startsWith("postJob Unblock a drain | plumbing | lekki | Requested artisan: Tunde Bakare (7f3e)"))
-    check("note, address and time passed on", "Kitchen sink drips." in post && "4 Bishop Aboyade Cole St, Ikate" in post && "2026-10-05T16:00+01:00" in post)
-    check("then shown under Jobs as requested", s.tab == Tab.ClientJobs && s.top == null && s.liveActive.first().status == "open" && jobStatus(s.liveActive.first()).startsWith("Requested"))
+    val booked = api.calls.last { it.startsWith("book ") }
+    check("booked with the artisan, their category, the saved address and the time",
+        booked.startsWith("book 7f3e | plumbing | Unblock a drain | addr-") && "2026-10-05T16:00+01:00" in booked && "Kitchen sink drips." in booked)
+    check("the estimate and the time travel with it, for the artisan's request card", "estimate=₦" in booked && "when=Today 16:00" in booked)
+    val pending = s.liveActive.first()
+    check("Jobs shows the countdown while Tunde decides", s.tab == Tab.ClientJobs && pending.offerPending && jobStatus(pending, LIVE_NOW) == "Waiting for Tunde to accept · 30s")
     check("first request asks about notifications", s.showPrime)
     s.answerPrime(false)
-    check("…and then confirms the request", s.snack == "Request sent. We’ll confirm Tunde and the price with you.")
+    check("…and then confirms the request", s.snack == "Request sent. Waiting for Tunde to accept.")
 
     // ── chat ──
     val t = s.threads.single()
@@ -163,6 +169,86 @@ fun main() {
     // ── delete account ──
     s.account.deleteAccount()
     check("delete sends a request to support and signs out", api.calls.any { it.startsWith("openTicket Please delete my Lezerv account") } && !s.account.signedIn && s.snack!!.startsWith("Deletion requested"))
+
+    // ══ two phones, one backend: Amaka books, Tunde takes the job ══
+    run {
+        var now = LIVE_NOW
+        val world = FakeWorld { now }
+        val amakaApi = FakeBackend(sessionUser = "user-1", world = world)
+        val tundeApi = FakeBackend(world = world)
+        val amaka = liveApp(amakaApi) { now }
+        val tunde = liveApp(tundeApi) { now }
+
+        tunde.account.startEmail(); tunde.account.emailDraft = "tunde@example.com"; tunde.account.password = "secret12"; tunde.account.signInWithEmail()
+        check("an approved artisan signs in and the app knows they're one", tunde.live!!.isArtisan && tunde.online && tunde.radiusKm == 5)
+        check("…with a real switch to the artisan side in Account", tunde.live!!.me!!.displayName == "Tunde Bakare")
+        tunde.switchRole(Role.Artisan)
+        check("online and waiting, nothing incoming", tunde.tab == Tab.ArtisanMap && tunde.incoming == null)
+
+        amaka.account.editAddress(null); amaka.account.formStreet = "4 Bishop Aboyade Cole St"; amaka.account.formArea = "Ikate"; amaka.account.saveAddress()
+        amaka.startBooking("7f3e"); amaka.option = 0; amaka.sendRequest(); amaka.answerPrime(false)
+        val req = tunde.incoming
+        check("Tunde's map shows the request at once, from the realtime notification", req != null && req.title == "Leak repair" && req.tag == "Ikate")
+        check("…with Amaka's first name, the area, when, and her estimate", req!!.sub == "Plumbing · Amaka · Ikate · Now" && req.pay?.second?.startsWith("₦") == true && req.endsAt == now + 30_000)
+        check("…but not her street yet", tunde.live!!.artisanJobs.first().addressText == "Ikate")
+
+        tunde.acceptIncoming()
+        val tj = tunde.liveArtisanJob!!
+        check("accepting opens the job screen with her street address", tunde.top == Pushed.Navigate && tj.addressText == "4 Bishop Aboyade Cole St, Ikate")
+        check("Amaka hears about it straight away and sees her start code",
+            amaka.snack == "Tunde accepted your request" && amaka.live!!.startCodes[amaka.liveActive.first().id] == "5309" && !amaka.liveActive.first().offerPending)
+        check("…and her chat with Tunde opens", amaka.threads.any { it.name == "Tunde Bakare" && it.key != "conv1" })
+        check("Tunde's chat title is the client's first name", tunde.threadName(tj.conversationId) == "Amaka")
+
+        tunde.navigateTo(tj.addressText!!)
+        check("Navigate hands the address to a maps app", tunde.snack == "Opens Google Maps at 4 Bishop Aboyade Cole St, Ikate")
+        tunde.markArrived()
+        tunde.code = "1111"; tunde.startJob()
+        check("a wrong start code is refused with tries left", tunde.snack == "That code doesn’t match. 4 tries left." && tunde.liveArtisanJob!!.status == "assigned" && tunde.code.isEmpty())
+        tunde.code = "5309"; tunde.startJob()
+        check("the right code starts the job, and Amaka is told", tunde.liveArtisanJob!!.status == "in_progress" && amaka.snack == "Work has started")
+        tunde.completeJob()
+        check("mark complete keeps that job on screen as done, even with other jobs open", tunde.liveArtisanJob?.id == tj.id && tunde.live!!.justCompleted?.id == tj.id)
+        tunde.finishArtisanJob()
+        check("back to the map afterwards", tunde.top == null && tunde.tab == Tab.ArtisanMap && tunde.live!!.justCompleted == null)
+        check("the finished job is in Tunde's completed list", tunde.live!!.artisanJobs.any { it.id == tj.id && it.status == "completed" })
+        tunde.openArtisanJob("j1")
+        check("opening another job from the list shows that job", tunde.top == Pushed.Navigate && tunde.liveArtisanJob?.id == "j1")
+        tunde.back()
+
+        // An offer nobody answers
+        amaka.startBooking("7f3e"); amaka.option = 2; amaka.sendRequest()
+        check("a second request reaches Tunde", tunde.incoming?.title == "Water heater fix")
+        now += 31_000
+        amaka.tick()
+        val expired = amaka.live!!.jobs.first()
+        check("when the countdown ends the server is asked to expire it", amakaApi.calls.contains("expireOffers") && expired.status == "open")
+        check("…and Amaka's job says Tunde couldn't take it", jobStatus(expired, now) == "Tunde couldn’t take it · Lezerv is finding someone else")
+        check("Tunde's card is gone", tunde.incoming == null)
+
+        // Tunde says no
+        amaka.startBooking("7f3e"); amaka.option = 0; amaka.sendRequest()
+        tunde.declineRequest(); tunde.declineReason = 1; tunde.confirmDecline()
+        check("declining sends the reason and clears the card",
+            tundeApi.calls.any { it.startsWith("decline ") && it.endsWith(DECLINE_REASONS[1]) } && tunde.incoming == null && !tunde.declining)
+
+        // Amaka changes her mind
+        amaka.startBooking("7f3e"); amaka.option = 0; amaka.sendRequest()
+        val waiting = amaka.liveActive.first { it.offerPending }
+        amaka.live!!.cancel(waiting.id)
+        check("cancelling a request withdraws it from Tunde", amaka.liveActive.none { it.id == waiting.id } && tunde.incoming == null)
+
+        // Going offline
+        tunde.toggleOnline()
+        check("the online switch goes to the server", tundeApi.calls.last() == "available false" && !tunde.online)
+        amaka.live!!.reload()
+        amaka.startBooking("7f3e"); amaka.sendRequest()
+        check("an offline artisan can't be booked, and the client is told why", amaka.snack == "Tunde isn't taking jobs right now — pick someone available")
+
+        tunde.changeRadius(7)
+        Thread.sleep(900) // the slider save waits for the drag to settle
+        check("the coverage radius is saved once it settles", tundeApi.calls.count { it.startsWith("radius") } == 1 && tundeApi.calls.contains("radius 7"))
+    }
 
     // ── time labels ──
     val z = ZoneId.of("Africa/Lagos")

@@ -7,11 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.lezerv.app.data.AREAS
 import com.lezerv.app.data.DEMO_OTP
+import com.lezerv.app.data.remote.AddressDto
+import com.lezerv.app.data.remote.areaSlug
 
 /** Steps of the sign-in flow, shown full screen over the app. [Email] is for existing lezerv.com accounts (live only). */
 enum class AuthStep { Welcome, Phone, Code, Details, Email }
 
-data class Address(val id: Int, val label: String, val street: String, val area: String, val note: String, val x: Float, val y: Float) {
+/** A saved place. [id] is the client_addresses row when live, "1", "2"… in the demo. */
+data class Address(val id: String, val label: String, val street: String, val area: String, val note: String, val x: Float, val y: Float) {
     val title get() = "$label · $street"
     val sub get() = "$area, Lagos" + if (note.isNotBlank()) " · $note" else ""
 }
@@ -58,13 +61,13 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     // ───────────── addresses ─────────────
     // Sample data belongs to the signed-in demo user only; a guest starts with nothing saved.
-    var addresses by mutableStateOf(if (signedIn) listOf(Address(1, "Home", "12 Admiralty Way", "Lekki Phase 1", "Gate code at security", 360f, 530f)) else emptyList()); private set
-    var addressId by mutableIntStateOf(1); private set
+    var addresses by mutableStateOf(if (signedIn) listOf(Address("1", "Home", "12 Admiralty Way", "Lekki Phase 1", "Gate code at security", 360f, 530f)) else emptyList()); private set
+    var addressId by mutableStateOf<String?>("1"); private set
     val currentAddress: Address? get() = addresses.firstOrNull { it.id == addressId } ?: addresses.firstOrNull()
     var pickingAddress by mutableStateOf(false)
     private var nextAddressId = 2
     // edit form
-    var editingAddressId by mutableStateOf<Int?>(null); private set
+    var editingAddressId by mutableStateOf<String?>(null); private set
     var formLabel by mutableStateOf("Home")
     var formStreet by mutableStateOf("")
     var formArea by mutableStateOf(AREAS.first().first)
@@ -244,10 +247,10 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     // ═════════════════════════════ addresses ═════════════════════════════
 
-    fun chooseAddress(id: Int) { addressId = id; pickingAddress = false }
+    fun chooseAddress(id: String) { addressId = id; pickingAddress = false }
 
     /** Opens the address form for a new address ([id] null) or an existing one. */
-    fun editAddress(id: Int?) {
+    fun editAddress(id: String?) {
         val a = addresses.firstOrNull { it.id == id }
         editingAddressId = a?.id
         formLabel = a?.label ?: if (addresses.none { it.label == "Home" }) "Home" else "Work"
@@ -258,18 +261,39 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     fun saveAddress() {
         if (formStreet.trim().length < 4) { app.toast("Add the street and house number"); return }
+        val live = app.live
+        if (live != null) {
+            // Live, addresses are stored in Supabase, which needs an account.
+            requireSignIn { live.saveAddress(AddressDto(editingAddressId.orEmpty(), formLabel, formStreet.trim(), formArea, areaSlug(formArea), formNote.trim().ifEmpty { null })) }
+            return
+        }
         val (ax, ay) = AREAS.first { it.first == formArea }.second
-        val id = editingAddressId ?: nextAddressId++
-        val a = Address(id, formLabel, formStreet.trim(), formArea, formNote.trim(), ax, ay)
-        addresses = if (editingAddressId == null) addresses + a else addresses.map { if (it.id == id) a else it }
-        addressId = id
-        app.back(); app.toast("${a.label} address saved")
+        onAddressSaved(Address(editingAddressId ?: "${nextAddressId++}", formLabel, formStreet.trim(), formArea, formNote.trim(), ax, ay))
     }
 
-    fun deleteAddress(id: Int) {
+    internal fun onAddressSaved(a: Address) {
+        addresses = if (addresses.any { it.id == a.id }) addresses.map { if (it.id == a.id) a else it } else addresses + a
+        addressId = a.id
+        if (app.top == Pushed.AddressEdit) app.back()
+        app.toast("${a.label} address saved")
+    }
+
+    fun deleteAddress(id: String) {
+        val live = app.live
+        if (live != null) live.deleteAddress(id) else onAddressDeleted(id)
+    }
+
+    internal fun onAddressDeleted(id: String) {
         addresses = addresses.filterNot { it.id == id }
-        if (addressId == id) addressId = addresses.firstOrNull()?.id ?: 0
-        app.back(); app.toast("Address removed")
+        if (addressId == id) addressId = addresses.firstOrNull()?.id
+        if (app.top == Pushed.AddressEdit) app.back()
+        app.toast("Address removed")
+    }
+
+    /** Live: the saved addresses as Supabase has them (after sign-in). */
+    internal fun setAddresses(list: List<Address>) {
+        addresses = list
+        if (addresses.none { it.id == addressId }) addressId = list.firstOrNull()?.id
     }
 
     // ═════════════════════════════ cards ═════════════════════════════

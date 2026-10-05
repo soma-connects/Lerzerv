@@ -2,6 +2,9 @@ package com.lezerv.app.data.remote
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Where the backend lives. Comes from local.properties on Android (never committed);
@@ -100,7 +103,17 @@ data class JobDto(
     @SerialName("assigned_artisan_id") val assignedArtisanId: String? = null,
     val category: SlugName? = null,
     val artisan: NameRef? = null,
-)
+    // 0023: booking a chosen artisan
+    @SerialName("job_number") val jobNumber: Long? = null,
+    @SerialName("requested_artisan_id") val requestedArtisanId: String? = null,
+    val requested: NameRef? = null,
+    @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
+    @SerialName("offer_accepted_at") val offerAcceptedAt: String? = null,
+    @SerialName("started_at") val startedAt: String? = null,
+) {
+    /** Sent to the chosen artisan, who hasn't answered yet. */
+    val offerPending get() = status == "assigned" && offerExpiresAt != null && offerAcceptedAt == null
+}
 
 @Serializable
 data class ConversationDto(
@@ -152,13 +165,72 @@ data class TicketMessageDto(
     @SerialName("created_at") val createdAt: String = "",
 )
 
-/** What the app sends to create_service_job(). */
-data class NewJob(
-    val title: String,
+/** A saved place (client_addresses, 0023). A blank [id] means "not saved yet". */
+@Serializable
+data class AddressDto(
+    val id: String = "",
+    val label: String,
+    val street: String,
+    val area: String,
+    @SerialName("area_slug") val areaSlug: String,
+    val note: String? = null,
+)
+
+/** What the app sends to book_artisan() (0023). [details] lands in service_jobs.details. */
+data class Booking(
+    val artisanId: String,
     val categorySlug: String,
-    val areaSlug: String,
+    val title: String,
+    val addressId: String,
     val description: String?,
-    val addressText: String?,
     val scheduledFor: String?,
     val budgetNote: String?,
+    val details: Map<String, String>,
 )
+
+@Serializable
+data class StartCodeDto(@SerialName("job_id") val jobId: String, @SerialName("start_code") val startCode: String)
+
+/** start_job(): started, or how many tries are left after a wrong code. */
+@Serializable
+data class StartResult(val started: Boolean, @SerialName("attempts_left") val attemptsLeft: Int? = null)
+
+/** The signed-in person's own artisans row, if they are an artisan. */
+@Serializable
+data class MyArtisanDto(
+    val id: String,
+    @SerialName("display_name") val displayName: String,
+    val status: String,
+    @SerialName("is_available") val isAvailable: Boolean = false,
+    @SerialName("service_radius_km") val serviceRadiusKm: Int = 5,
+    @SerialName("avg_rating") val avgRating: Double = 0.0,
+    @SerialName("is_verified") val isVerified: Boolean = false,
+)
+
+/** A row of my_artisan_jobs() (0023): what an artisan may see of a job. */
+@Serializable
+data class ArtisanJobDto(
+    val id: String,
+    @SerialName("job_number") val jobNumber: Long? = null,
+    val title: String,
+    val description: String? = null,
+    val status: String,
+    @SerialName("category_slug") val categorySlug: String? = null,
+    @SerialName("category_name") val categoryName: String? = null,
+    @SerialName("area_name") val areaName: String? = null,
+    @SerialName("address_text") val addressText: String? = null,
+    @SerialName("scheduled_for") val scheduledFor: String? = null,
+    @SerialName("budget_note") val budgetNote: String? = null,
+    val details: JsonObject? = null,
+    @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
+    @SerialName("offer_accepted_at") val offerAcceptedAt: String? = null,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("completed_at") val completedAt: String? = null,
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("agreed_amount") val agreedAmount: Double? = null,
+    @SerialName("client_first_name") val clientFirstName: String? = null,
+    @SerialName("conversation_id") val conversationId: String? = null,
+) {
+    val offerPending get() = status == "assigned" && offerExpiresAt != null && offerAcceptedAt == null
+    fun detail(key: String): String? = details?.get(key)?.jsonPrimitive?.contentOrNull
+}

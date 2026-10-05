@@ -37,6 +37,8 @@ data class Artisan(
     val bio: String,
     /** Shown instead of "Available now". The sample data invents a time; the backend only knows on/off. */
     val busyLabel: String = "Busy until 3 pm",
+    /** Live only: the backend category to book them for (see toArtisan). */
+    val slug: String? = null,
 ) {
     val km: Double get() = hypot((x - UX).toDouble(), (y - UY).toDouble()) / KM
     val eta: Int get() = (km * 5 + 4).roundToInt()

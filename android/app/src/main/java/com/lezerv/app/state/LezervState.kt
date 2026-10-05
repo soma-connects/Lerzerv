@@ -36,11 +36,11 @@ import com.lezerv.app.data.SEED_PAST
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.REVIEWS
 import com.lezerv.app.data.Review
+import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.LezervApi
-import com.lezerv.app.data.remote.NewJob
 import com.lezerv.app.data.remote.active
-import com.lezerv.app.data.remote.areaSlug
 import com.lezerv.app.data.remote.backendSlug
+import com.lezerv.app.data.remote.isoMillis
 import com.lezerv.app.data.remote.initialsOf
 import com.lezerv.app.data.remote.timeLabel
 import kotlinx.coroutines.CoroutineScope
@@ -138,6 +138,12 @@ data class ClientJob(
     val moving get() = if (laundry) stage == 1 || stage == 4 else stage == 1
 }
 
+/** A request on the artisan's map, with [endsAt] the end of its window. [pay] = label to amount. */
+data class Incoming(val id: String, val title: String, val sub: String, val tag: String, val endsAt: Long, val pay: Pair<String, String>?)
+
+/** The prototype's sample request. */
+val DEMO_INCOMING = Incoming("demo", "Leaking kitchen sink", "Plumbing · Amaka O. · Lekki Phase 1 · Now", "0.9 km · 4 min", 0L, "Call-out, you receive" to "₦6,400")
+
 /** The artisan's accepted request. Stage 0 driving, 1 arrived (enter code), 2 working, 3 done. */
 data class ArtisanJob(val stage: Int, val t: Float, val startedAt: Long = 0L)
 
@@ -184,6 +190,8 @@ class LezervState(
     /** Platform hooks set by MainActivity (dial a number, open the share sheet). Null in previews. */
     var dial: ((String) -> Unit)? = null
     var share: ((String) -> Unit)? = null
+    /** Opens a maps app (Google Maps) at an address. */
+    var openMaps: ((String) -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -270,7 +278,8 @@ class LezervState(
     // ── notifications inbox ──
     var notices by mutableStateOf(if (signedIn) SEED_NOTICES else emptyList()); private set
     private var nextNoticeId = 100
-    val myNotices get() = notices.filter { it.role == role }
+    /** Live, every notification is the signed-in person's own, whichever side of the app is showing. */
+    val myNotices get() = notices.filter { it.role == role || it.remoteId != null }
     val unread get() = myNotices.count { !it.read }
 
     // ── artisan verification (onboarding step 2) ──
@@ -338,6 +347,7 @@ class LezervState(
             toast("Request expired. Next one will come shortly.")
         }
         if (snack != null && t >= snackUntil) snack = null
+        live?.tick(t)
     }
 
     fun toast(m: String) { snack = m; snackUntil = clock() + 3200 }
@@ -375,6 +385,7 @@ class LezervState(
     fun openTab(t: Tab) { tab = t; stack = emptyList(); selected = null }
 
     fun switchRole(r: Role) {
+        if (r == Role.Artisan) live?.refreshArtisan()
         nextRequestAt = 0L
         role = r; tab = if (r == Role.Client) Tab.Explore else Tab.ArtisanMap
         stack = emptyList(); selected = null; panX = null; panY = null; requestOpen = false
@@ -438,18 +449,26 @@ class LezervState(
         val ad = account.currentAddress
         if (ad == null) { toast("Add where the artisan should come"); account.editAddress(null); return@requireSignIn }
         val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
-        val details = if (a.laundry) LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" } +
-            " · pickup ${PICKUP_WINDOWS[pickupWindow]}" + (if (express) " · express return" else "") else null
-        live.requestJob(
-            NewJob(
-                title = title, categorySlug = backendSlug(a.svc), areaSlug = areaSlug(ad.area),
-                description = listOfNotNull("Requested artisan: ${a.name} (${a.id})", details, note.trim().takeIf { it.isNotEmpty() }).joinToString("\n"),
-                addressText = "${ad.street}, ${ad.area}" + if (ad.note.isNotBlank()) " · ${ad.note}" else "",
-                scheduledFor = scheduledFor(a), budgetNote = "App estimate ${naira(bookTotal().total)}",
+        val estimate = naira(bookTotal().total)
+        val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
+        val details = buildMap {
+            put("estimate", estimate)
+            put("when", if (a.laundry) PICKUP_WINDOWS[pickupWindow] else whenLabel())
+            if (a.laundry) { put("items", items); put("return", if (express) "Express, 24 hours" else "Standard, 48 hours") }
+        }
+        live.book(
+            Booking(
+                artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = ad.id,
+                description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
+                    .joinToString("\n").ifBlank { null },
+                scheduledFor = scheduledFor(a), budgetNote = "App estimate $estimate", details = details,
             ),
             a.first,
         )
     }
+
+    /** "Now", "Today 16:00" or "Tomorrow 16:00", as the artisan's request card shows it. */
+    private fun whenLabel() = when (whenIdx) { 0 -> "Now"; 1 -> "Today ${SLOTS[slot]}"; else -> "Tomorrow ${SLOTS[slot]}" }
 
     /** "Later today" / "Schedule" + a time slot → an ISO timestamp; "Now" and laundry → none. */
     private fun scheduledFor(a: Artisan, zone: ZoneId = ZoneId.systemDefault()): String? {
@@ -461,7 +480,7 @@ class LezervState(
     /** The request is in: show it under Jobs, and (first time) ask about notifications. */
     internal fun onRequestSent(artisanFirst: String) {
         stack = emptyList(); tab = Tab.ClientJobs; selected = null
-        val msg = "Request sent. We’ll confirm $artisanFirst and the price with you."
+        val msg = "Request sent. Waiting for $artisanFirst to accept."
         if (!primed) { showPrime = true; afterPrimeToast = msg } else toast(msg)
     }
 
@@ -519,8 +538,9 @@ class LezervState(
     }
 
     /** Who a thread is with, for the chat's title bar. */
-    fun threadName(key: String?): String = when (key) {
-        SUPPORT -> "Lezerv Support"
+    fun threadName(key: String?): String = when {
+        key == SUPPORT -> "Lezerv Support"
+        role == Role.Artisan -> live?.artisanJobs?.firstOrNull { it.conversationId == key }?.clientFirstName ?: "Client"
         else -> live?.conversation(key)?.artisan?.displayName ?: artisan(key)?.name.orEmpty()
     }
 
@@ -544,7 +564,7 @@ class LezervState(
     /** Which thread the chat screen shows: support, the artisan's one client, or the chosen artisan. */
     private val chatKey get() = when {
         chatWith == SUPPORT -> SUPPORT
-        role == Role.Artisan -> "client"
+        role == Role.Artisan && !isLive -> "client"
         else -> chatWith.orEmpty()
     }
     val chatMessages: List<Message> get() = messages[chatKey].orEmpty()
@@ -564,15 +584,46 @@ class LezervState(
     // ───────────────────────────── artisan ─────────────────────────────
 
     fun toggleOnline() {
+        live?.let { it.setOnline(!online); return }
         online = !online
         nextRequestAt = if (online) clock() + 2500 else 0L
         requestOpen = false
     }
 
+    /** The request card on the artisan's map: the demo's, or a real offer when live. */
+    val incoming: Incoming? get() {
+        val live = live ?: return if (requestOpen) DEMO_INCOMING.copy(endsAt = requestEndsAt) else null
+        val o = live.currentOffer(now) ?: return null
+        return Incoming(
+            o.id, o.title,
+            listOfNotNull(o.categoryName, o.clientFirstName, o.areaName, o.detail("when")).joinToString(" · "),
+            o.areaName.orEmpty(), isoMillis(o.offerExpiresAt) ?: now,
+            o.detail("estimate")?.let { "Client’s estimate · price agreed in chat" to it },
+        )
+    }
+
+    fun acceptIncoming() {
+        val live = live ?: return acceptRequest()
+        incoming?.let { live.accept(it.id) }
+    }
+
+    /** Live: they accepted; the job screen takes over (and the street address is now theirs to see). */
+    internal fun onOfferAccepted() { declining = false; code = ""; stack = listOf(Pushed.Navigate) }
+
+    /** Online status and radius as the backend has them. */
+    internal fun onArtisanProfile(isOnline: Boolean, radius: Int) { online = isOnline; radiusKm = radius }
+
+    fun changeRadius(km: Int) { radiusKm = km; live?.setRadius(km) }
+
     /** Decline opens the reason sheet (Board "Can't take this job?"); [confirmDecline] sends it. */
     fun declineRequest() { declineReason = 0; declining = true }
 
     fun confirmDecline() {
+        live?.let { l ->
+            declining = false
+            incoming?.let { l.decline(it.id, DECLINE_REASONS[declineReason]) }
+            return
+        }
         declining = false
         nextRequestAt = clock() + 6000; requestOpen = false
         toast("Declined · ${DECLINE_REASONS[declineReason].lowercase()}. Your acceptance rate is 94%.")
@@ -582,12 +633,24 @@ class LezervState(
 
     val codeOk get() = code == DEMO_START_CODE
 
+    /** Live: the job the artisan just finished (until "Back to map"), else their current one. */
+    val liveArtisanJob get() = live?.let { it.justCompleted ?: it.activeJob }
+
+    /** Live: open one of the artisan's jobs from their list. */
+    fun openArtisanJob(jobId: String) { live?.focus(jobId); push(Pushed.Navigate) }
+
+    fun markArrived() { liveArtisanJob?.let { live?.markArrived(it.id) } }
+
+    internal fun onLiveJobStarted() { code = ""; toast("Job started. The client has been told.") }
+
     fun startJob() {
+        live?.let { l -> liveArtisanJob?.let { if (code.length == 4) l.start(it.id, code) else toast("Enter the 4-digit code from the client") }; return }
         val a = artisanJob ?: return
         if (codeOk) artisanJob = a.copy(stage = 2, startedAt = clock()) else toast("Enter the 4-digit code from the client")
     }
 
     fun completeJob() {
+        live?.let { l -> l.activeJob?.let { l.complete(it.id) }; return }
         val a = artisanJob ?: return
         artisanJob = a.copy(stage = 3)
         earnedToday += 6400
@@ -596,6 +659,7 @@ class LezervState(
     }
 
     fun finishArtisanJob() {
+        live?.clearCompleted()
         nextRequestAt = 0L
         artisanJob = null; stack = emptyList(); tab = Tab.ArtisanMap; code = ""
         toast("₦6,400 added to escrow. Released when Amaka confirms.")
@@ -662,7 +726,7 @@ class LezervState(
     /** The job "Report a problem" in Help points at: the live booking or the latest finished one. */
     val reportable: Pair<String, String?>? get() {
         val live = live ?: return (job?.number ?: past.firstOrNull { !it.cancelled }?.number)?.let { it to null }
-        return live.jobs.firstOrNull { it.status != "open" && it.status != "cancelled" }?.let { "“${it.title}”" to it.id }
+        return live.jobs.firstOrNull { it.status != "open" && it.status != "cancelled" && !it.offerPending }?.let { "“${it.title}”" to it.id }
     }
 
     /** PROPOSAL: creates a support ticket and pauses the artisan's payout until it's resolved. */
@@ -687,6 +751,8 @@ class LezervState(
     fun callEmergency() = dial?.invoke("112") ?: toast("Calling 112")
 
     fun shareText(text: String) = share?.invoke(text) ?: toast("Share sheet opens here")
+
+    fun navigateTo(address: String) = openMaps?.invoke(address) ?: toast("Opens Google Maps at $address")
 
     // ───────────────────────────── notifications ─────────────────────────────
 
@@ -753,7 +819,7 @@ class LezervState(
             Route.Track -> if (job != null) stack = listOf(Pushed.Track).also { tab = Tab.ClientJobs } else openTab(Tab.ClientJobs)
             Route.Review -> if (job != null) { stack = listOf(Pushed.Track); tab = Tab.ClientJobs; openReview() } else openTab(Tab.ClientJobs)
             is Route.Chat -> { stack = emptyList(); tab = if (role == Role.Client) Tab.Messages else Tab.ArtisanAccount; openChat(r.artisanId) }
-            Route.ArtisanMap -> openTab(Tab.ArtisanMap)
+            Route.ArtisanMap -> if (role == Role.Artisan) openTab(Tab.ArtisanMap) else if (live?.isArtisan == true) switchRole(Role.Artisan) else openTab(Tab.ClientJobs)
             Route.Earnings -> openTab(Tab.Earnings)
             Route.Payout -> { stack = emptyList(); tab = Tab.ArtisanAccount; push(Pushed.Payout) }
             is Route.Receipt -> { stack = emptyList(); tab = Tab.ClientJobs; push(Pushed.Receipt(r.number)) }
@@ -764,7 +830,7 @@ class LezervState(
 
     fun markAllRead() {
         if (notices.any { it.remoteId != null && !it.read }) live?.markAllRead()
-        notices = notices.map { if (it.role == role) it.copy(read = true) else it }
+        notices = notices.map { if (it.role == role || it.remoteId != null) it.copy(read = true) else it }
     }
 
     /** Priming answer. "Allow" hands over to Android's own permission dialog (API 33+). */

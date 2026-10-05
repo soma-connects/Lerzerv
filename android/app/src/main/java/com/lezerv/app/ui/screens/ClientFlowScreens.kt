@@ -281,7 +281,7 @@ private fun RequestNote(first: String, modifier: Modifier) {
         LzIcon("send", 20, Lz.Accent700)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Txt("Nothing to pay now.", body(13, 19, weight = 700, color = Lz.Accent800))
-            Txt("Lezerv confirms $first and the final price with you in chat before work starts.", body(13, 19, color = Lz.Accent800))
+            Txt("$first gets your request and has 30 seconds to accept. You agree the final price in chat before work starts.", body(13, 19, color = Lz.Accent800))
         }
     }
 }

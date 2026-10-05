@@ -104,7 +104,7 @@ fun LezervApp(state: LezervState, fonts: LzFonts, modifier: Modifier = Modifier,
                 if (state.top == null) NavBar(state)
             }
             if (state.reviewing) ReviewSheet(state)
-            if (state.declining && state.requestOpen) DeclineSheet(state)
+            if (state.declining && state.incoming != null) DeclineSheet(state)
             if (state.paying) PaySheet(state)
             if (state.cancelling) CancelSheet(state)
             if (state.account.pickingAddress) AddressPickerSheet(state)
@@ -215,7 +215,8 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
         s.role == Role.Client -> s.threadName(s.chatWith) to (s.live?.conversation(s.chatWith)?.job?.title?.let { "$it · contact details are hidden" } ?: "Contact details are hidden")
         else -> "Amaka O." to "Contact details are hidden"
     }
-    Pushed.Navigate -> "Job · Leaking sink" to "Amaka O. · Lekki Phase 1"
+    Pushed.Navigate -> s.liveArtisanJob?.let { j -> "Job · ${j.title}" to listOfNotNull(j.clientFirstName, j.areaName).joinToString(" · ") }
+        ?: ("Job · Leaking sink" to "Amaka O. · Lekki Phase 1")
     Pushed.Notifications -> "Notifications" to if (s.unread > 0) "${s.unread} unread" else "All caught up"
     is Pushed.Verify -> (if (p.onboarding) "Become an artisan" else "Verification") to (if (p.onboarding) "Step 2 of 4 · Verification" else "ID and documents")
     Pushed.Payout -> "Payout account" to "Where your earnings are paid"

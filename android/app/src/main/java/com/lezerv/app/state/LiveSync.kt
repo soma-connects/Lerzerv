@@ -3,19 +3,24 @@ package com.lezerv.app.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.lezerv.app.data.AREAS
 import com.lezerv.app.data.Review
 import com.lezerv.app.data.SUPPORT
+import com.lezerv.app.data.remote.AddressDto
+import com.lezerv.app.data.remote.ArtisanJobDto
+import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.ConversationDto
 import com.lezerv.app.data.remote.JobDto
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.MessageDto
-import com.lezerv.app.data.remote.NewJob
+import com.lezerv.app.data.remote.MyArtisanDto
 import com.lezerv.app.data.remote.NotificationDto
 import com.lezerv.app.data.remote.REF_LAT
 import com.lezerv.app.data.remote.REF_LNG
 import com.lezerv.app.data.remote.ServerMessage
 import com.lezerv.app.data.remote.TicketDto
 import com.lezerv.app.data.remote.TicketMessageDto
+import com.lezerv.app.data.remote.isoMillis
 import com.lezerv.app.data.remote.timeLabel
 import com.lezerv.app.data.remote.toArtisan
 import com.lezerv.app.data.remote.toReview
@@ -23,6 +28,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -42,8 +48,9 @@ const val NEARBY_KM = 10
  * call *suspends*: the function pauses without blocking the thread, so the UI keeps
  * drawing while it waits, and state is only ever written from that one thread.
  *
- * Still demo-only when live: paying into escrow, live tracking and the artisan side. The
- * backend has no payments yet, so "Book" sends a job request that Lezerv confirms.
+ * Booking (0023): "Book" offers the job to the chosen artisan, who has a short window to
+ * accept; their app shows it as an incoming request. Still demo-only when live: paying into
+ * escrow, live tracking, earnings and payouts.
  */
 class LiveSync(
     private val app: LezervState,
@@ -64,6 +71,34 @@ class LiveSync(
     var ticket by mutableStateOf<TicketDto?>(null); private set
     /** Recent reviews per artisan id, loaded when their profile opens. */
     var reviews by mutableStateOf(mapOf<String, List<Review>>()); private set
+    /** Start codes of the client's jobs, by job id. Only the client can read them (0023). */
+    var startCodes by mutableStateOf(mapOf<String, String>()); private set
+
+    // ── the artisan side ──
+    /** The person's own artisan profile, if they have one. */
+    var me by mutableStateOf<MyArtisanDto?>(null); private set
+    /** Offers waiting for them, and work they accepted. */
+    var artisanJobs by mutableStateOf(emptyList<ArtisanJobDto>()); private set
+    /** Jobs they tapped "I've arrived" on. Kept on the phone until live tracking exists. */
+    var arrived by mutableStateOf(setOf<String>()); private set
+    /** The job they just finished, for the "Job complete" screen. */
+    var justCompleted by mutableStateOf<ArtisanJobDto?>(null); private set
+
+    val isArtisan get() = me?.status == "approved"
+    /** The offer to show on the artisan's map: the newest one still inside its window. */
+    fun currentOffer(nowMs: Long) = artisanJobs.firstOrNull { it.offerPending && (isoMillis(it.offerExpiresAt) ?: 0L) > nowMs }
+    /** The job the artisan opened (from their list, or by accepting it). */
+    var focusedJob by mutableStateOf<String?>(null); private set
+    /** Accepted work that isn't finished yet: the one they opened, else the newest. */
+    val activeJob get() = artisanJobs.filter { (it.status == "assigned" && !it.offerPending) || it.status == "in_progress" }
+        .let { open -> open.firstOrNull { it.id == focusedJob } ?: open.firstOrNull() }
+
+    fun focus(jobId: String) { focusedJob = jobId }
+
+    /** When each ended countdown last asked the server to expire it (at most every few seconds). */
+    private val expiring = mutableMapOf<String, Long>()
+    private var lastPoll = 0L
+    private var radiusSave: Job? = null
 
     // Realtime subscriptions. Cancelling the coroutine leaves the channel (see SupabaseApi.inserts).
     private var chatWatch: Job? = null
@@ -132,8 +167,9 @@ class LiveSync(
     fun cancelSignIn() = signOut()
 
     fun signOut() {
-        chatWatch?.cancel(); noticeWatch?.cancel()
-        userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null
+        chatWatch?.cancel(); noticeWatch?.cancel(); radiusSave?.cancel()
+        userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null; startCodes = emptyMap()
+        me = null; artisanJobs = emptyList(); arrived = emptySet(); justCompleted = null; expiring.clear()
         scope.launch { attempt("sign out", quiet = true) { api.signOut() } }
     }
 
@@ -151,9 +187,16 @@ class LiveSync(
         refresh()
     }
 
-    /** Re-reads the person's jobs, chats, support ticket and notifications, side by side. */
+    /** Re-reads everything of the person's, side by side. */
     suspend fun refresh() = coroutineScope {
         launch { attempt("load your jobs") { api.myJobs() }?.let { jobs = it } }
+        launch { attempt("load your start codes", quiet = true) { api.startCodes() }?.let { startCodes = it } }
+        launch { attempt("load your addresses") { api.addresses() }?.let { list -> app.account.setAddresses(list.map(::toAddress)) } }
+        launch {
+            me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
+            me?.let { app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm) }
+            refreshArtisanJobs()
+        }
         launch { attempt("load your messages") { api.conversations() }?.let { conversations = it } }
         launch { attempt("load support", quiet = true) { api.tickets() }?.let { ticket = it.firstOrNull { t -> t.status in OPEN_TICKET } } }
         launch { attempt("load notifications") { api.notifications() }?.let { list -> app.replaceNotices(list.map(::toNotice)) } }
@@ -169,11 +212,120 @@ class LiveSync(
         }
     }
 
-    /** "Send request": posts the job. Until booking a named artisan exists (migration B), the team assigns them. */
-    fun requestJob(job: NewJob, artisanName: String) = act("send your request") {
-        val created = api.postJob(job)
-        jobs = attempt("load your jobs", quiet = true) { api.myJobs() } ?: (listOf(created) + jobs)
-        app.onRequestSent(artisanName)
+    // ═════════════════════════════ saved addresses ═════════════════════════════
+
+    fun saveAddress(a: AddressDto) = act("save the address") {
+        app.account.onAddressSaved(toAddress(api.saveAddress(a)))
+    }
+
+    fun deleteAddress(id: String) = act("remove the address") {
+        api.deleteAddress(id)
+        app.account.onAddressDeleted(id)
+    }
+
+    // ═════════════════════════════ booking (client) ═════════════════════════════
+
+    /** "Book": the chosen artisan gets the request and a short time to accept it. */
+    fun book(b: Booking, artisanFirst: String) = act("send your request") {
+        api.bookArtisan(b)
+        refreshJobs()
+        app.onRequestSent(artisanFirst)
+    }
+
+    fun cancel(jobId: String) = act("cancel the request") {
+        api.cancelJob(jobId, "Cancelled in the app")
+        refreshJobs()
+        app.toast("Request cancelled")
+    }
+
+    private suspend fun refreshJobs() = coroutineScope {
+        launch { attempt("load your jobs", quiet = true) { api.myJobs() }?.let { jobs = it } }
+        launch { attempt("load your start codes", quiet = true) { api.startCodes() }?.let { startCodes = it } }
+    }
+
+    // ═════════════════════════════ the artisan side ═════════════════════════════
+
+    /** Online = clients can book you (set_artisan_availability). */
+    fun setOnline(on: Boolean) = act(if (on) "go online" else "go offline") {
+        api.setAvailability(on)
+        me = me?.copy(isAvailable = on)
+        app.onArtisanProfile(on, me?.serviceRadiusKm ?: app.radiusKm)
+        if (on) refreshArtisanJobs()
+    }
+
+    /** The radius slider sends many values while dragged; only the one it settles on is saved. */
+    fun setRadius(km: Int) {
+        radiusSave?.cancel()
+        radiusSave = scope.launch {
+            delay(600)
+            attempt("save your radius") { api.setRadius(km) }?.let { me = me?.copy(serviceRadiusKm = km) }
+        }
+    }
+
+    fun accept(jobId: String) = act("accept the request") {
+        api.acceptOffer(jobId)
+        focusedJob = jobId
+        refreshArtisanJobs()
+        app.onOfferAccepted()
+    }
+
+    fun decline(jobId: String, reason: String) = act("decline the request") {
+        api.declineJob(jobId, reason)
+        refreshArtisanJobs()
+        app.toast("Declined · ${reason.lowercase()}. The job goes to other artisans.")
+    }
+
+    fun markArrived(jobId: String) { arrived = arrived + jobId }
+
+    fun start(jobId: String, code: String) = act("start the job") {
+        val r = api.startJob(jobId, code)
+        if (r.started) {
+            refreshArtisanJobs()
+            app.onLiveJobStarted()
+        } else {
+            app.code = ""
+            app.toast(if (r.attemptsLeft == 0) "Too many wrong codes. Contact Lezerv support to start this job." else "That code doesn’t match. ${r.attemptsLeft} tries left.")
+        }
+    }
+
+    fun complete(jobId: String) = act("mark the job complete") {
+        val job = artisanJobs.firstOrNull { it.id == jobId }
+        api.completeJob(jobId)
+        refreshArtisanJobs()
+        justCompleted = job
+    }
+
+    fun clearCompleted() { justCompleted = null; focusedJob = null }
+
+    fun refreshArtisan() { scope.launch { refreshArtisanJobs() } }
+
+    private suspend fun refreshArtisanJobs() {
+        if (me == null) return
+        attempt("load your requests", quiet = true) { api.artisanJobs() }?.let { artisanJobs = it }
+    }
+
+    /**
+     * Called every 100 ms (LezervState.tick). Ends countdowns that ran out, by asking the
+     * server to expire them (it checks the real time), and while an artisan is online looks
+     * for new offers every [POLL_MS] in case a realtime message was missed.
+     */
+    fun tick(nowMs: Long) {
+        if (userId == null) return
+        val ended = (jobs.filter { it.offerPending }.map { it.id to it.offerExpiresAt } +
+            artisanJobs.filter { it.offerPending }.map { it.id to it.offerExpiresAt })
+            .filter { (id, at) -> (isoMillis(at) ?: Long.MAX_VALUE) <= nowMs && nowMs - (expiring[id] ?: 0L) > RETRY_MS }
+        if (ended.isNotEmpty()) {
+            ended.forEach { (id, _) -> expiring[id] = nowMs }
+            scope.launch {
+                attempt("update your requests", quiet = true) { api.expireOffers() }
+                refreshJobs()
+                refreshArtisanJobs()
+            }
+        }
+        if (isArtisan && me?.isAvailable == true && nowMs - lastPoll > POLL_MS) {
+            lastPoll = nowMs
+            scope.launch { refreshArtisanJobs() }
+        }
     }
 
     fun conversationFor(jobId: String) = conversations.firstOrNull { it.jobId == jobId }
@@ -234,10 +386,12 @@ class LiveSync(
             listen {
                 api.notificationInserts(uid).collect { n ->
                     app.addNotice(toNotice(n))
-                    app.toast(n.title)
+                    // A new request shows as the request card; a toast would sit on its buttons.
+                    if (n.type != "job_offer") app.toast(n.title)
                     // Whatever the notification is about has changed; fetch it fresh.
-                    launch { attempt("load your jobs", quiet = true) { api.myJobs() }?.let { jobs = it } }
+                    launch { refreshJobs() }
                     launch { attempt("load your messages", quiet = true) { api.conversations() }?.let { conversations = it } }
+                    launch { refreshArtisanJobs() }
                 }
             }
         }
@@ -247,12 +401,18 @@ class LiveSync(
         val (route, action) = when (n.type) {
             "message" -> Route.Messages to "Open messages"
             "support_reply" -> Route.Chat(SUPPORT) to "Open support chat"
+            "job_offer", "job_offer_missed", "job_posted" -> Route.ArtisanMap to "Open requests"
             else -> Route.Jobs to "View your jobs"
         }
         return Notice(app.newNoticeId(), Role.Client, n.title, n.body.orEmpty(), timeLabel(n.createdAt, app.now, zone), route, action, n.read, remoteId = n.id)
     }
 
     // ═════════════════════════════ helpers ═════════════════════════════
+
+    private fun toAddress(a: AddressDto): Address {
+        val (x, y) = (AREAS.firstOrNull { it.first == a.area } ?: AREAS.first()).second
+        return Address(a.id, a.label, a.street, a.area, a.note.orEmpty(), x, y)
+    }
 
     private fun toMessage(m: MessageDto) = Message(m.senderId != null && m.senderId == userId, m.body, timeLabel(m.createdAt, app.now, zone), system = m.isSystem, id = m.id)
 
@@ -301,6 +461,10 @@ class LiveSync(
 
     companion object {
         val OPEN_TICKET = setOf("open", "pending")
+        /** How often an online artisan's app checks for offers, besides realtime. */
+        const val POLL_MS = 15_000L
+        /** How soon to ask again when the server says an offer hasn't expired yet (clock skew). */
+        const val RETRY_MS = 5_000L
 
         /** "2348035554417" or "+234 803…" → "8035554417", the form the app keeps. */
         fun localPhone(p: String): String? = p.filter(Char::isDigit).removePrefix("234").takeLast(10).takeIf { it.length == 10 }

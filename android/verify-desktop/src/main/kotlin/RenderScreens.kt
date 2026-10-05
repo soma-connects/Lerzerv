@@ -130,6 +130,22 @@ fun main(args: Array<String>) {
     live().apply { openTab(Tab.ClientAccount); push(Pushed.Help) }.let { shot("91-live-help", it) }
     live().apply { openTab(Tab.ClientAccount); push(Pushed.Help); reportable?.let { startReport(it.first, 1, it.second) }; reportText = "Still dripping after the visit." }.let { shot("92-live-report", it) }
 
+    // Live booking across two phones on one fake backend: Amaka books, Tunde answers.
+    fun twoPhones(): Pair<LezervState, LezervState> {
+        val world = FakeWorld()
+        val amaka = liveApp(FakeBackend("user-1", world)).withAddress()
+        val tunde = liveApp(FakeBackend("art-user", world)).apply { switchRole(Role.Artisan) }
+        amaka.startBooking("7f3e"); amaka.option = 1; amaka.whenIdx = 1; amaka.slot = 2; amaka.note = "Kitchen sink drips under the cabinet."
+        amaka.sendRequest(); amaka.answerPrime(false)
+        return amaka to tunde
+    }
+    twoPhones().second.let { shot("93-live-artisan-offer", it) }
+    twoPhones().let { (a, t) -> t.acceptIncoming(); a.openTab(Tab.ClientJobs); shot("94-live-jobs-accepted", a); shot("95-live-artisan-job", t) }
+    twoPhones().second.apply { acceptIncoming(); markArrived(); code = "53" }.let { shot("96-live-artisan-code", it) }
+    twoPhones().second.apply { acceptIncoming(); openTab(Tab.ArtisanJobs) }.let { shot("97-live-artisan-jobs", it) }
+    twoPhones().second.apply { openTab(Tab.ArtisanAccount) }.let { shot("98-live-artisan-account", it) }
+    twoPhones().first.apply { openTab(Tab.ClientAccount) }.let { shot("99-live-client-account", it) }
+
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
     guest().apply {

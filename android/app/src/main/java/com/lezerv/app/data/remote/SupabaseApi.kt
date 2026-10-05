@@ -119,6 +119,27 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         return if (result.data.isBlank() || result.data.trim() == "null") null else result.decodeAs<ArtisanPublicDto>()
     }
 
+    // ───────────────────────────── saved addresses ─────────────────────────────
+
+    override suspend fun addresses(): List<AddressDto> =
+        db.from("client_addresses").select(Columns.list(ADDRESS_COLUMNS)) { order("created_at", Order.ASCENDING) }.decodeList()
+
+    override suspend fun saveAddress(a: AddressDto): AddressDto = saying {
+        if (a.id.isBlank()) {
+            db.from("client_addresses").insert(buildJsonObject {
+                put("label", a.label); put("street", a.street); put("area", a.area); put("area_slug", a.areaSlug); put("note", a.note)
+            }) { select(Columns.list(ADDRESS_COLUMNS)) }.decodeSingle()
+        } else {
+            db.from("client_addresses").update({
+                set("label", a.label); set("street", a.street); set("area", a.area); set("area_slug", a.areaSlug); set("note", a.note)
+            }) { select(Columns.list(ADDRESS_COLUMNS)); filter { eq("id", a.id) } }.decodeSingle()
+        }
+    }
+
+    override suspend fun deleteAddress(id: String) {
+        db.from("client_addresses").delete { filter { eq("id", id) } }
+    }
+
     // ───────────────────────────── jobs ─────────────────────────────
 
     override suspend fun myJobs(): List<JobDto> =
@@ -127,17 +148,61 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
             order("created_at", Order.DESCENDING)
         }.decodeList()
 
-    override suspend fun postJob(job: NewJob): JobDto {
-        val created = saying { db.rpc("create_service_job", buildJsonObject {
-            put("p_title", job.title)
-            put("p_category_slug", job.categorySlug)
-            put("p_area_slug", job.areaSlug)
-            put("p_description", job.description)
-            put("p_address_text", job.addressText)
-            put("p_scheduled_for", job.scheduledFor)
-            put("p_budget_note", job.budgetNote)
-        }) }.decodeAs<JobDto>()
-        return created
+    override suspend fun bookArtisan(b: Booking): JobDto = saying {
+        db.rpc("book_artisan", buildJsonObject {
+            put("p_artisan_id", b.artisanId)
+            put("p_category_slug", b.categorySlug)
+            put("p_title", b.title)
+            put("p_address_id", b.addressId)
+            put("p_description", b.description)
+            put("p_scheduled_for", b.scheduledFor)
+            put("p_budget_note", b.budgetNote)
+            put("p_details", buildJsonObject { b.details.forEach { (k, v) -> put(k, v) } })
+        })
+    }.decodeAs()
+
+    override suspend fun startCodes(): Map<String, String> =
+        db.from("job_private").select(Columns.list("job_id", "start_code")).decodeList<StartCodeDto>().associate { it.jobId to it.startCode }
+
+    override suspend fun cancelJob(jobId: String, reason: String) {
+        saying { db.rpc("update_service_job_status", buildJsonObject { put("p_job_id", jobId); put("p_status", "cancelled"); put("p_reason", reason) }) }
+    }
+
+    override suspend fun expireOffers() {
+        db.rpc("expire_job_offers")
+    }
+
+    // ───────────────────────────── the artisan side ─────────────────────────────
+
+    override suspend fun myArtisan(): MyArtisanDto? =
+        db.from("artisans").select(Columns.list("id", "display_name", "status", "is_available", "service_radius_km", "avg_rating", "is_verified")) {
+            filter { eq("user_id", uid()) }
+        }.decodeSingleOrNull()
+
+    override suspend fun setAvailability(online: Boolean) {
+        db.rpc("set_artisan_availability", buildJsonObject { put("p_available", online) })
+    }
+
+    override suspend fun setRadius(km: Int) {
+        // Owners may update this column (0005 column grants).
+        db.from("artisans").update({ set("service_radius_km", km) }) { filter { eq("user_id", uid()) } }
+    }
+
+    override suspend fun artisanJobs(): List<ArtisanJobDto> = db.rpc("my_artisan_jobs").decodeList()
+
+    override suspend fun acceptOffer(jobId: String) {
+        saying { db.rpc("accept_job_offer", buildJsonObject { put("p_job_id", jobId) }) }
+    }
+
+    override suspend fun declineJob(jobId: String, reason: String) {
+        saying { db.rpc("decline_assigned_job", buildJsonObject { put("p_job_id", jobId); put("p_reason", reason) }) }
+    }
+
+    override suspend fun startJob(jobId: String, code: String): StartResult =
+        saying { db.rpc("start_job", buildJsonObject { put("p_job_id", jobId); put("p_code", code) }) }.decodeAs()
+
+    override suspend fun completeJob(jobId: String) {
+        saying { db.rpc("update_service_job_status", buildJsonObject { put("p_job_id", jobId); put("p_status", "completed") }) }
     }
 
     // ───────────────────────────── chat ─────────────────────────────
@@ -227,6 +292,10 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         /** service_jobs columns the app shows, with the category and assigned artisan embedded. */
         const val JOB_COLUMNS = "id,title,description,status,scheduled_for,created_at,address_text,budget_note," +
             "quoted_amount,agreed_amount,assigned_artisan_id," +
-            "category:service_categories(slug,name),artisan:artisans!assigned_artisan_id(display_name)"
+            "job_number,requested_artisan_id,offer_expires_at,offer_accepted_at,started_at," +
+            // service_jobs links to artisans three ways now (0020, 0023), so each embed names its link.
+            "category:service_categories(slug,name),artisan:artisans!assigned_artisan_id(display_name)," +
+            "requested:artisans!requested_artisan_id(display_name)"
+        val ADDRESS_COLUMNS = listOf("id", "label", "street", "area", "area_slug", "note")
     }
 }

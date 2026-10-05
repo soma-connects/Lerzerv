@@ -1,7 +1,8 @@
 package com.lezerv.verify
 
 import com.lezerv.app.data.remote.BackendConfig
-import com.lezerv.app.data.remote.NewJob
+import com.lezerv.app.data.remote.AddressDto
+import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.ServerMessage
 import com.lezerv.app.data.remote.SupabaseApi
 import com.lezerv.app.data.remote.createLezervClient
@@ -50,8 +51,25 @@ fun main() = runBlocking {
                 """{"id":"7f3e","display_name":"Tunde Bakare","bio":"Leaks.","city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":2,"completed_jobs":228,"categories":[{"slug":"plumbing","name":"Plumbing"}],"reviews":[{"rating":5,"comment":"On time.","created_at":"2026-09-12T10:22:00+00:00","reviewer":"Amaka"}]}""", HttpStatusCode.OK, json)
             path == "/rest/v1/service_jobs" -> respond(
                 """[{"id":"j1","title":"Leak repair","description":null,"status":"assigned","scheduled_for":null,"created_at":"2026-10-05T09:00:00+00:00","address_text":"12 Admiralty Way","budget_note":null,"quoted_amount":null,"agreed_amount":null,"assigned_artisan_id":"7f3e","category":{"slug":"plumbing","name":"Plumbing"},"artisan":{"display_name":"Tunde Bakare"}}]""", HttpStatusCode.OK, json)
-            path == "/rest/v1/rpc/create_service_job" -> respond(
-                """{"id":"j2","client_id":"user-1","category_id":"c2","area_id":"a1","title":"Leak repair","description":"Asked for Tunde","address_text":"12 Admiralty Way","scheduled_for":null,"budget_note":"From ₦15,000","client_contact":null,"status":"open","assigned_artisan_id":null,"created_at":"2026-10-05T09:05:00+00:00","updated_at":"2026-10-05T09:05:00+00:00"}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/book_artisan" -> respond(
+                """{"id":"j2","client_id":"user-1","category_id":"c2","area_id":"a1","title":"Leak repair","description":null,"address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","status":"assigned","assigned_artisan_id":"7f3e","requested_artisan_id":"7f3e","offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"job_number":1042,"details":{"estimate":"₦15,750"},"created_at":"2026-10-05T09:05:00+00:00","updated_at":"2026-10-05T09:05:00+00:00"}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/client_addresses" && r.method.value == "GET" -> respond(
+                """[{"id":"addr1","label":"Home","street":"4 Bishop Aboyade Cole St","area":"Ikate","area_slug":"lekki","note":null}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/client_addresses" && r.method.value == "POST" -> respond(
+                """[{"id":"addr2","label":"Work","street":"1 Ozumba Mbadiwe","area":"Ikoyi","area_slug":"ikoyi","note":"Reception"}]""", HttpStatusCode.Created, json)
+            path == "/rest/v1/client_addresses" && r.method.value == "PATCH" -> respond(
+                """[{"id":"addr1","label":"Home","street":"5 Bishop Aboyade Cole St","area":"Ikate","area_slug":"lekki","note":null}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/job_private" -> respond("""[{"job_id":"j2","start_code":"0427"}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/expire_job_offers" -> respond("1", HttpStatusCode.OK, json)
+            path == "/rest/v1/artisans" && r.method.value == "GET" -> respond(
+                """[{"id":"7f3e","display_name":"Tunde Bakare","status":"approved","is_available":true,"service_radius_km":7,"avg_rating":4.83,"is_verified":true}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/artisans" && r.method.value == "PATCH" -> respond("", HttpStatusCode.NoContent, json)
+            path == "/rest/v1/rpc/set_artisan_availability" -> respond("", HttpStatusCode.NoContent, json)
+            path == "/rest/v1/rpc/my_artisan_jobs" -> respond(
+                """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/accept_job_offer" -> respond(
+                """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
+            path == "/rest/v1/rpc/start_job" -> respond("""{"started": false, "attempts_left": 3}""", HttpStatusCode.OK, json)
             path == "/rest/v1/conversations" -> respond(
                 """[{"id":"conv1","job_id":"j1","artisan_id":"7f3e","last_message_at":"2026-10-05T09:12:00+00:00","artisan":{"display_name":"Tunde Bakare"},"job":{"title":"Leak repair"}}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/messages" -> respond(
@@ -105,8 +123,37 @@ fun main() = runBlocking {
     val jobs = api.myJobs()
     check("jobs filtered to me with category + artisan embedded", jobs.single().artisan?.displayName == "Tunde Bakare" &&
         sent.last().contains("client_id=eq.user-1") && (sent.last().contains("artisans%21assigned_artisan_id") || sent.last().contains("artisans!assigned_artisan_id")))
-    val posted = api.postJob(NewJob("Leak repair", "plumbing", "lekki", "Asked for Tunde", "12 Admiralty Way", null, "From ₦15,000"))
-    check("create_service_job called with slugs", posted.status == "open" && sent.last().contains("\"p_category_slug\":\"plumbing\"") && sent.last().contains("\"p_area_slug\":\"lekki\""))
+    check("jobs ask for the offer columns and name each artisan link",
+        sent.last().contains("offer_expires_at") && (sent.last().contains("artisans%21requested_artisan_id") || sent.last().contains("artisans!requested_artisan_id")))
+
+    // saved addresses
+    check("addresses load", api.addresses().single().areaSlug == "lekki")
+    val added = api.saveAddress(AddressDto(label = "Work", street = "1 Ozumba Mbadiwe", area = "Ikoyi", areaSlug = "ikoyi", note = "Reception"))
+    check("a new address is inserted and the saved row returned", added.id == "addr2" && sent.last().startsWith("POST /rest/v1/client_addresses") && sent.last().contains("\"area_slug\":\"ikoyi\""))
+    val edited = api.saveAddress(AddressDto("addr1", "Home", "5 Bishop Aboyade Cole St", "Ikate", "lekki"))
+    check("an existing one is updated by id", edited.street.startsWith("5 ") && sent.last().startsWith("PATCH /rest/v1/client_addresses?") && sent.last().contains("id=eq.addr1"))
+
+    // booking
+    val booked = api.bookArtisan(Booking("7f3e", "plumbing", "Leak repair", "addr1", null, null, "App estimate ₦15,750", mapOf("estimate" to "₦15,750")))
+    check("book_artisan gets the artisan, address and details; the offer comes back", booked.offerPending && booked.jobNumber == 1042L &&
+        sent.last().contains("\"p_artisan_id\":\"7f3e\"") && sent.last().contains("\"p_address_id\":\"addr1\"") && sent.last().contains("\"p_details\":{\"estimate\":\"₦15,750\"}"))
+    check("start codes are read from job_private", api.startCodes() == mapOf("j2" to "0427") && (sent.last().contains("select=job_id%2Cstart_code") || sent.last().contains("select=job_id,start_code")))
+    api.expireOffers()
+    check("expire_job_offers is a plain RPC call", sent.last().startsWith("POST /rest/v1/rpc/expire_job_offers"))
+
+    // the artisan side
+    val meA = api.myArtisan()
+    check("an artisan's own profile is found by user id", meA?.isAvailable == true && meA.serviceRadiusKm == 7 && sent.last().contains("user_id=eq.user-1"))
+    api.setAvailability(false)
+    check("going offline calls set_artisan_availability", sent.last().startsWith("POST /rest/v1/rpc/set_artisan_availability") && sent.last().contains("\"p_available\":false"))
+    api.setRadius(7)
+    check("the radius is a PATCH on the artisan's own row", sent.last().startsWith("PATCH /rest/v1/artisans?") && sent.last().contains("\"service_radius_km\":7"))
+    val offer = api.artisanJobs().single()
+    check("my_artisan_jobs parsed, details readable", offer.offerPending && offer.clientFirstName == "Amaka" && offer.detail("when") == "Now" && offer.detail("estimate") == "₦15,750")
+    val late = runCatching { api.acceptOffer("j2") }.exceptionOrNull()
+    check("a late accept comes back in the server's words", late is ServerMessage && late.message == "too late — this request has expired")
+    val start = api.startJob("j2", "1111")
+    check("a wrong start code is a result, not an error", !start.started && start.attemptsLeft == 3 && sent.last().contains("\"p_code\":\"1111\""))
 
     // chat
     val conv = api.conversations().single()

@@ -38,10 +38,36 @@ interface LezervApi {
     /** get_artisan_public(): bio, stats and recent reviews. */
     suspend fun artisanProfile(id: String): ArtisanPublicDto?
 
+    // ── saved addresses (client_addresses, 0023) ──
+    suspend fun addresses(): List<AddressDto>
+    /** Inserts when the id is blank, otherwise updates; returns the saved row. */
+    suspend fun saveAddress(a: AddressDto): AddressDto
+    suspend fun deleteAddress(id: String)
+
     // ── jobs (service_jobs) ──
     suspend fun myJobs(): List<JobDto>
-    /** create_service_job(): posts the job; Lezerv matches an artisan. */
-    suspend fun postJob(job: NewJob): JobDto
+    /** book_artisan() (0023): offers the job to the chosen artisan, who has a short time to accept. */
+    suspend fun bookArtisan(b: Booking): JobDto
+    /** job_private (0023): start codes of the person's jobs, by job id. Only clients can read them. */
+    suspend fun startCodes(): Map<String, String>
+    suspend fun cancelJob(jobId: String, reason: String)
+    /** expire_job_offers(): unanswered offers go back to the pool. Anyone may call it. */
+    suspend fun expireOffers()
+
+    // ── the artisan side ──
+    /** The person's artisans row, or null if they aren't an artisan. */
+    suspend fun myArtisan(): MyArtisanDto?
+    /** set_artisan_availability(): online = clients can book you. */
+    suspend fun setAvailability(online: Boolean)
+    suspend fun setRadius(km: Int)
+    /** my_artisan_jobs(): offers and accepted work, without the client's start code. */
+    suspend fun artisanJobs(): List<ArtisanJobDto>
+    suspend fun acceptOffer(jobId: String)
+    /** decline_assigned_job() (0020): the job goes back to the pool. */
+    suspend fun declineJob(jobId: String, reason: String)
+    /** start_job() (0023): checks the code the client reads out. */
+    suspend fun startJob(jobId: String, code: String): StartResult
+    suspend fun completeJob(jobId: String)
 
     // ── chat (conversations, messages, send_message) ──
     suspend fun conversations(): List<ConversationDto>

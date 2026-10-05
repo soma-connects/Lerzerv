@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.REVIEW_TAGS
 import com.lezerv.app.data.SERVICE
 import com.lezerv.app.data.remote.appCategory
+import com.lezerv.app.data.remote.jobRef
 import com.lezerv.app.data.remote.jobStatus
 import com.lezerv.app.data.remote.shortDate
 import com.lezerv.app.data.naira
@@ -115,19 +116,35 @@ private fun LiveJobsScreen(s: LezervState) {
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             active.forEach { j ->
                 val chat = s.live?.conversationFor(j.id)
-                Row(
-                    Modifier.fillMaxWidth().blueprint().background(Lz.Accent100).border(1.dp, Lz.Accent)
-                        .tap { if (chat != null) s.openChat(chat.id) else s.toast("Chat opens once Lezerv assigns an artisan.") }.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    LzIcon(SERVICE[j.category?.slug?.let(::appCategory) ?: "repair"]?.icon ?: "wrench", 26, Lz.Accent700)
-                    Column(Modifier.weight(1f)) {
-                        Txt((j.category?.name ?: "Request").uppercase(), label(color = Lz.Accent800))
-                        Txt(j.title.uppercase(), heading(22, 24, weight = 700))
-                        Txt(jobStatus(j), body(13, color = Lz.Accent800))
+                val code = s.live?.startCodes?.get(j.id)
+                Column(Modifier.fillMaxWidth().blueprint().background(Lz.Accent100).border(1.dp, Lz.Accent)) {
+                    Row(
+                        Modifier.fillMaxWidth().tap { if (chat != null) s.openChat(chat.id) else s.toast("Chat opens once an artisan accepts.") }.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        LzIcon(SERVICE[j.category?.slug?.let(::appCategory) ?: "repair"]?.icon ?: "wrench", 26, Lz.Accent700)
+                        Column(Modifier.weight(1f)) {
+                            Txt(listOfNotNull(j.category?.name ?: "Request", jobRef(j.jobNumber)).joinToString(" · ").uppercase(), label(color = Lz.Accent800))
+                            Txt(j.title.uppercase(), heading(22, 24, weight = 700))
+                            Txt(jobStatus(j, s.now), body(13, color = Lz.Accent800))
+                        }
+                        LzIcon(if (chat != null) "message-square" else "clock", 20)
                     }
-                    LzIcon(if (chat != null) "message-square" else "clock", 20)
+                    // Once the artisan has accepted: the code they must type at the door to start.
+                    if (code != null && j.status == "assigned" && !j.offerPending) Row(
+                        Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Txt("START CODE", label(color = Lz.Accent800))
+                            Txt("Read it to ${j.artisan?.displayName?.substringBefore(' ') ?: "your artisan"} at the door. Never before.", body(12, 17, color = Lz.Accent800))
+                        }
+                        Txt(code, heading(36, 36, weight = 700, tracking = .2f), Modifier.semantics { contentDescription = "Start code ${code.toList().joinToString(" ")}" })
+                    }
+                    if (j.status == "open" || j.status == "assigned") Box(
+                        Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.live?.cancel(j.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) { Txt("CANCEL REQUEST", label(12, .08f, Lz.Accent700)) }
                 }
             }
         }
@@ -138,7 +155,7 @@ private fun LiveJobsScreen(s: LezervState) {
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(j.title.uppercase(), heading(20, 22))
-                        Txt(listOfNotNull(j.artisan?.displayName, shortDate(j.createdAt), jobStatus(j)).joinToString(" · "), body(12, color = Lz.Neutral800))
+                        Txt(listOfNotNull(jobRef(j.jobNumber), j.artisan?.displayName, shortDate(j.createdAt), jobStatus(j, s.now)).joinToString(" · "), body(12, color = Lz.Neutral800))
                     }
                     if (again != null) OutlineButton("Book again", { s.startBooking(again.id) }, icon = "refresh-cw", height = 40.dp, fontSize = 15)
                 }
@@ -277,12 +294,19 @@ internal fun AccountHeader(ini: String, name: String, sub: @Composable () -> Uni
 }
 
 /** Demo-only rows: switch role and reset, replacing the prototype's side panel. */
-internal fun demoRows(s: LezervState): List<AccountRow> = if (!s.demo) emptyList() else listOf(
-    AccountRow("refresh-cw", "Demo · switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
+internal fun demoRows(s: LezervState): List<AccountRow> = liveSwitchRow(s) + if (!s.demo) emptyList() else listOfNotNull(
+    // Live, the artisan side is real, so only real artisans get to it (see liveSwitchRow).
+    if (s.isLive) null else AccountRow("refresh-cw", "Demo · switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
     AccountRow("wifi-off", "Demo · ${if (s.offline) "go back online" else "simulate offline"}", "Shows the offline banner and queued messages") { s.toggleOfflineDemo() },
 ) + if (s.isLive) emptyList() else listOf( // live, a reset would wipe real data and sign in a sample user
     AccountRow("refresh-cw", "Demo · reset", "Start the demo from the beginning") { s.reset(); s.account.loadDemoUser() },
 )
+
+/** Live: approved artisans switch between booking help and doing jobs. */
+private fun liveSwitchRow(s: LezervState): List<AccountRow> =
+    if (s.live?.isArtisan != true) emptyList()
+    else if (s.role == Role.Client) listOf(AccountRow("wrench", "Switch to artisan", "Go online and take requests") { s.switchRole(Role.Artisan) })
+    else listOf(AccountRow("user", "Switch to client", "Book help for yourself") { s.switchRole(Role.Client) })
 
 @Composable
 fun ClientAccountScreen(s: LezervState) {
@@ -297,12 +321,14 @@ fun ClientAccountScreen(s: LezervState) {
             PrimaryWide("Sign in or sign up", "phone", { acc.requireSignIn { } })
         }
         AccountRows(
-            listOf(
+            listOfNotNull(
                 AccountRow("map-pin", "Saved addresses", acc.currentAddress?.title ?: "Add home or work") { acc.requireSignIn { s.push(Pushed.Addresses) } },
                 AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
                 AccountRow("shield-check", "Safety", "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
                 AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
-                AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.requireSignIn { s.push(Pushed.Verify(onboarding = true)) } },
+                if (s.live?.me != null) null
+                else if (s.isLive) AccountRow("wrench", "Become an artisan", "Apply on lezerv.com: ID check and services") { s.toast("Apply on lezerv.com for now. Once approved, you switch to artisan here.") }
+                else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.requireSignIn { s.push(Pushed.Verify(onboarding = true)) } },
                 AccountRow("bell", "Notifications", if (s.primed) "On · jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
                 AccountRow("life-buoy", "Help", "Questions, support chat, report a problem") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, privacy, log out") { s.push(Pushed.Settings) },
