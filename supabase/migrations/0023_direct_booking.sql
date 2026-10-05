@@ -1,0 +1,533 @@
+-- ═══════════════════════════════════════════════════════════════════
+-- 0023_direct_booking.sql
+--
+-- Book the artisan you picked on the map, the way the mobile app works.
+--
+-- Until now a job either went into the open pool (create_service_job) or
+-- straight to a previous artisan (rebook_artisan, 0020). The app lets a
+-- client choose anyone available nearby, so this adds an OFFER: the job is
+-- created assigned to the chosen artisan, who has a short window to accept.
+-- If they decline (decline_assigned_job, 0020) or let it run out
+-- (expire_job_offers, below) the job falls back into the pool exactly like
+-- a declined rebook, so the client's request is never lost to a "no".
+--
+-- Also here:
+--   • client_addresses: saved places, owner-only.
+--   • job_private: the street address and the 4-digit START CODE, readable
+--     by the client only. The job row itself is readable by the assigned
+--     artisan (0008 jobs_select), so a code stored there would be no code.
+--     The artisan sees the street once they accept; until then, the area.
+--   • start_job(job, code): the artisan starts work by typing the code the
+--     client reads out at the door, which proves they are really there.
+--   • job_number: a short reference (J-1042) for support calls.
+--
+-- Status values are unchanged (open | assigned | in_progress | completed |
+-- cancelled), so the website keeps working: a pending offer is a job that
+-- is 'assigned' with offer_expires_at set and offer_accepted_at null.
+--
+-- REQUIRES 0020_rebook_artisan.sql (branch claude/rebook-artisan): it
+-- provides decline_assigned_job and the admin_assign_job that repoints
+-- chat. Apply 0019 → 0020 → 0021 → 0022 → 0023, on staging first.
+-- ═══════════════════════════════════════════════════════════════════
+
+do $$
+begin
+  if to_regprocedure('public.decline_assigned_job(uuid, text)') is null then
+    raise exception '0023 needs 0020_rebook_artisan.sql applied first (branch claude/rebook-artisan)';
+  end if;
+end $$;
+
+-- ── 1. Saved addresses ──────────────────────────────────────────────
+create table if not exists public.client_addresses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  label text not null default 'Home' check (length(trim(label)) between 1 and 30),
+  street text not null check (length(trim(street)) between 4 and 200),
+  -- What people call the place ("Ikate"), and the service area it belongs to ("lekki").
+  area text not null check (length(trim(area)) between 2 and 60),
+  area_slug text not null references public.service_areas(slug) on update cascade,
+  note text check (note is null or length(note) <= 200),
+  -- Filled in once the app reads GPS / geocodes; nothing depends on them yet.
+  lat double precision,
+  lng double precision,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_client_addresses_user on public.client_addresses(user_id);
+drop trigger if exists trg_client_addresses_updated on public.client_addresses;
+create trigger trg_client_addresses_updated before update on public.client_addresses
+  for each row execute function public.set_updated_at();
+
+alter table public.client_addresses enable row level security;
+drop policy if exists "client_addresses_own" on public.client_addresses;
+create policy "client_addresses_own" on public.client_addresses
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Nobody needs more than a handful; this keeps one account from filling the table.
+create or replace function public.tg_client_addresses_limit()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if (select count(*) from public.client_addresses where user_id = new.user_id) >= 10 then
+    raise exception 'you can save up to 10 addresses — remove one first';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_client_addresses_limit on public.client_addresses;
+create trigger trg_client_addresses_limit before insert on public.client_addresses
+  for each row execute function public.tg_client_addresses_limit();
+
+-- ── 2. Job columns ──────────────────────────────────────────────────
+alter table public.service_jobs
+  -- Who the client picked. Stays after a decline, so the client can be told
+  -- "Tunde couldn't take it" and the team can see what was asked for.
+  add column if not exists requested_artisan_id uuid references public.artisans(id) on delete set null,
+  add column if not exists offer_expires_at timestamptz,
+  add column if not exists offer_accepted_at timestamptz,
+  add column if not exists started_at timestamptz,
+  -- Form details the columns don't cover: laundry items, pickup window, option.
+  add column if not exists details jsonb;
+
+-- A short number for "my job J-1042". Existing rows are numbered too.
+alter table public.service_jobs
+  add column if not exists job_number bigint generated by default as identity (start with 1001);
+create unique index if not exists uq_service_jobs_job_number on public.service_jobs(job_number);
+create index if not exists idx_service_jobs_offers
+  on public.service_jobs(offer_expires_at) where offer_expires_at is not null and offer_accepted_at is null;
+
+-- NOTE for the website: service_jobs now has three links to artisans
+-- (assigned_artisan_id, rebooked_artisan_id from 0020, requested_artisan_id).
+-- An embed written `artisans(...)` is ambiguous to PostgREST (PGRST201) and
+-- must name the link: `artisans!assigned_artisan_id(...)`. The website's
+-- queries are updated in the same change as this migration.
+
+-- ── 3. Private job details: street address and start code ───────────
+create table if not exists public.job_private (
+  job_id uuid primary key references public.service_jobs(id) on delete cascade,
+  full_address text not null,
+  -- What the pool and a not-yet-accepted artisan see instead ("Ikate").
+  area_label text not null,
+  start_code text not null check (start_code ~ '^[0-9]{4}$'),
+  -- Wrong codes typed by the artisan. Four digits are only 10,000 tries,
+  -- so after 5 misses the code locks and the team steps in.
+  wrong_code_attempts int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.job_private enable row level security;
+drop policy if exists "job_private_client" on public.job_private;
+create policy "job_private_client" on public.job_private
+  for select using (
+    public.is_admin()
+    or exists (select 1 from public.service_jobs j where j.id = job_private.job_id and j.client_id = auth.uid())
+  );
+-- Written only by the functions below (security definer). No direct writes.
+revoke insert, update, delete on public.job_private from anon, authenticated;
+
+-- A 4-digit code from gen_random_uuid(), which uses the strong random source
+-- (random() is predictable enough to guess from earlier values).
+create or replace function public.new_start_code()
+returns text
+language sql volatile
+as $$
+  select lpad((('x' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))::bit(32)::bigint % 10000)::text, 4, '0');
+$$;
+
+-- ── 4. One pairing, one offer ───────────────────────────────────────
+-- Whenever the assigned artisan changes (a decline, an expiry, the team
+-- reassigning), the old offer no longer applies, and the street address
+-- follows the job: assigned → the artisan on it may see the street;
+-- unassigned → back to the area only, for the pool.
+create or replace function public.tg_service_job_pairing()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare v_private public.job_private;
+begin
+  if new.assigned_artisan_id is distinct from old.assigned_artisan_id then
+    new.offer_expires_at := null;
+    new.offer_accepted_at := null;
+    select * into v_private from public.job_private where job_id = new.id;
+    if found then
+      new.address_text := case when new.assigned_artisan_id is null then v_private.area_label else v_private.full_address end;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_service_job_pairing on public.service_jobs;
+create trigger trg_service_job_pairing before update of assigned_artisan_id on public.service_jobs
+  for each row execute function public.tg_service_job_pairing();
+
+-- ── 5. Book ─────────────────────────────────────────────────────────
+-- How long an artisan has to answer. The app's design shows 30 seconds;
+-- the team can change it without a release:
+--   insert into settings (key, value) values ('offer_window_seconds', '60')
+--   on conflict (key) do update set value = excluded.value;
+create or replace function public.offer_window()
+returns interval
+language sql stable security definer set search_path = public
+as $$
+  select make_interval(secs => greatest(15, least(600, coalesce(
+    (select nullif(value #>> '{}', '')::int from public.settings where key = 'offer_window_seconds'), 30))));
+$$;
+
+create or replace function public.book_artisan(
+  p_artisan_id uuid,
+  p_category_slug text,
+  p_title text,
+  p_address_id uuid,
+  p_description text default null,
+  p_scheduled_for timestamptz default null,
+  p_budget_note text default null,
+  p_details jsonb default null
+)
+returns public.service_jobs
+language plpgsql volatile security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_artisan public.artisans;
+  v_address public.client_addresses;
+  v_cat uuid;
+  v_area uuid;
+  v_job public.service_jobs;
+  v_recent int;
+begin
+  if v_uid is null then
+    raise exception 'sign in to book';
+  end if;
+  if length(coalesce(trim(p_title), '')) < 3 then
+    raise exception 'tell us what you need done';
+  end if;
+
+  select * into v_artisan from public.artisans where id = p_artisan_id;
+  if v_artisan.id is null or v_artisan.status <> 'approved' then
+    raise exception 'that artisan is not taking jobs on Lezerv';
+  end if;
+  if v_artisan.user_id = v_uid then
+    raise exception 'you can''t book yourself';
+  end if;
+  if not coalesce(v_artisan.is_available, false) then
+    raise exception '% isn''t taking jobs right now — pick someone available', split_part(v_artisan.display_name, ' ', 1);
+  end if;
+
+  select id into v_cat from public.service_categories where slug = p_category_slug;
+  if v_cat is null then
+    raise exception 'unknown service';
+  end if;
+  if not exists (select 1 from public.artisan_categories where artisan_id = p_artisan_id and category_id = v_cat) then
+    raise exception '% doesn''t offer that service', split_part(v_artisan.display_name, ' ', 1);
+  end if;
+
+  select * into v_address from public.client_addresses where id = p_address_id and user_id = v_uid;
+  if v_address.id is null then
+    raise exception 'choose one of your saved addresses';
+  end if;
+  select id into v_area from public.service_areas where slug = v_address.area_slug;
+
+  -- One person can't page an artisan every few seconds.
+  select count(*) into v_recent from public.service_jobs
+  where client_id = v_uid and created_at > now() - interval '10 minutes';
+  if v_recent >= 5 then
+    raise exception 'too many requests — please wait a few minutes';
+  end if;
+
+  insert into public.service_jobs
+    (client_id, category_id, area_id, title, description, address_text, scheduled_for,
+     budget_note, status, assigned_artisan_id, assigned_at, requested_artisan_id,
+     offer_expires_at, details)
+  values
+    (v_uid, v_cat, v_area, trim(p_title), nullif(trim(coalesce(p_description, '')), ''),
+     v_address.area, p_scheduled_for, nullif(trim(coalesce(p_budget_note, '')), ''),
+     'assigned', p_artisan_id, now(), p_artisan_id, now() + public.offer_window(), p_details)
+  returning * into v_job;
+
+  insert into public.job_private (job_id, full_address, area_label, start_code)
+  values (v_job.id,
+          trim(v_address.street) || ', ' || trim(v_address.area) || coalesce(' · ' || nullif(trim(coalesce(v_address.note, '')), ''), ''),
+          trim(v_address.area),
+          public.new_start_code());
+
+  perform public.notify(
+    v_artisan.user_id, 'job_offer', 'New request: ' || v_job.title,
+    v_address.area || ' · answer within ' || extract(epoch from public.offer_window())::int || ' seconds',
+    '/my-jobs'
+  );
+
+  return v_job;
+end;
+$$;
+
+revoke execute on function public.book_artisan(uuid, text, text, uuid, text, timestamptz, text, jsonb) from public, anon;
+grant execute on function public.book_artisan(uuid, text, text, uuid, text, timestamptz, text, jsonb) to authenticated;
+
+-- ── 6. Accept ───────────────────────────────────────────────────────
+create or replace function public.accept_job_offer(p_job_id uuid)
+returns public.service_jobs
+language plpgsql volatile security definer set search_path = public
+as $$
+declare
+  v_job public.service_jobs;
+  v_private public.job_private;
+  v_name text;
+  v_conv uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'sign in to accept';
+  end if;
+  select * into v_job from public.service_jobs where id = p_job_id;
+  if v_job.id is null then raise exception 'job not found'; end if;
+
+  select display_name into v_name from public.artisans
+  where id = v_job.assigned_artisan_id and user_id = auth.uid();
+  if v_name is null then
+    raise exception 'this request isn''t yours';
+  end if;
+  if v_job.status <> 'assigned' or v_job.offer_expires_at is null or v_job.offer_accepted_at is not null then
+    raise exception 'this request is no longer waiting for you';
+  end if;
+  if v_job.offer_expires_at < now() then
+    raise exception 'too late — this request has expired';
+  end if;
+
+  select * into v_private from public.job_private where job_id = p_job_id;
+
+  -- Guards restated in the UPDATE: the client may have cancelled meanwhile.
+  update public.service_jobs
+  set offer_accepted_at = now(),
+      address_text = coalesce(v_private.full_address, address_text),
+      updated_at = now()
+  where id = p_job_id and status = 'assigned' and offer_accepted_at is null
+    and assigned_artisan_id = v_job.assigned_artisan_id and offer_expires_at >= now()
+  returning * into v_job;
+  if not found then
+    raise exception 'this request is no longer waiting for you';
+  end if;
+
+  -- Chat opens now, not at booking: an artisan who says no never had the thread.
+  select id into v_conv from public.conversations where job_id = p_job_id;
+  if v_conv is null then
+    insert into public.conversations (job_id, client_id, artisan_id)
+    values (p_job_id, v_job.client_id, v_job.assigned_artisan_id)
+    returning id into v_conv;
+  else
+    update public.conversations set artisan_id = v_job.assigned_artisan_id where id = v_conv;
+  end if;
+  insert into public.messages (conversation_id, sender_id, body, is_system)
+  values (v_conv, null,
+          split_part(v_name, ' ', 1) || ' accepted your request. Chat here to agree the time and price. '
+          || 'Keep all chat and payment on Lezerv.', true);
+
+  perform public.notify(
+    v_job.client_id, 'job_accepted', split_part(v_name, ' ', 1) || ' accepted your request',
+    v_job.title || ' · your start code is in the app', '/my-jobs'
+  );
+
+  return v_job;
+end;
+$$;
+
+revoke execute on function public.accept_job_offer(uuid) from public, anon;
+grant execute on function public.accept_job_offer(uuid) to authenticated;
+
+-- ── 7. Expire ───────────────────────────────────────────────────────
+-- Unanswered offers go back to the pool, as a decline would (0020). Safe
+-- for anyone to call (it only touches offers already past their time), so
+-- the apps call it when a countdown ends, and pg_cron runs it every minute
+-- where the extension is enabled.
+create or replace function public.expire_job_offers()
+returns int
+language plpgsql volatile security definer set search_path = public
+as $$
+declare
+  v_job record;
+  v_count int := 0;
+begin
+  for v_job in
+    select j.id, j.title, j.client_id, j.area_id, j.category_id, j.assigned_artisan_id,
+           a.display_name, a.user_id as artisan_user
+    from public.service_jobs j
+    left join public.artisans a on a.id = j.assigned_artisan_id
+    where j.status = 'assigned' and j.offer_accepted_at is null
+      and j.offer_expires_at is not null and j.offer_expires_at < now()
+    for update of j skip locked
+  loop
+    update public.service_jobs
+    set assigned_artisan_id = null, assigned_at = null, status = 'open',
+        quoted_amount = null, quote_note = null, quoted_at = null, quote_declined_at = null,
+        updated_at = now()
+    where id = v_job.id;   -- the pairing trigger clears the offer and hides the street again
+
+    perform public.notify(
+      v_job.client_id, 'job_offer_expired',
+      coalesce(split_part(v_job.display_name, ' ', 1), 'The artisan') || ' didn''t answer in time',
+      v_job.title || ' — we are finding someone else for you', '/my-jobs'
+    );
+    if v_job.artisan_user is not null then
+      perform public.notify(v_job.artisan_user, 'job_offer_missed', 'You missed a request',
+                            v_job.title || ' went to other artisans. Stay online to catch the next one.', '/my-jobs');
+    end if;
+
+    -- Same audience as a fresh post or a declined rebook (0009, 0020).
+    insert into public.notifications (user_id, type, title, body, link)
+    select a.user_id, 'job_posted', 'New job in your area', v_job.title, '/my-jobs'
+    from public.artisans a
+    where a.status = 'approved'
+      and a.id is distinct from v_job.assigned_artisan_id
+      and a.user_id is distinct from v_job.client_id
+      and exists (select 1 from public.artisan_areas aa where aa.artisan_id = a.id and aa.area_id = v_job.area_id)
+      and exists (select 1 from public.artisan_categories ac where ac.artisan_id = a.id and ac.category_id = v_job.category_id);
+
+    v_count := v_count + 1;
+  end loop;
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.expire_job_offers() from public, anon;
+grant execute on function public.expire_job_offers() to authenticated;
+
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.schedule('lezerv-expire-job-offers', '* * * * *', 'select public.expire_job_offers()');
+  end if;
+end $$;
+
+-- ── 8. Start with the client's code ─────────────────────────────────
+-- Returns {"started": true}, or {"started": false, "attempts_left": n} for a
+-- wrong code. A wrong code is a normal answer rather than an error because
+-- an error would roll back the attempt counter along with everything else.
+create or replace function public.start_job(p_job_id uuid, p_code text)
+returns jsonb
+language plpgsql volatile security definer set search_path = public
+as $$
+declare
+  v_job public.service_jobs;
+  v_private public.job_private;
+begin
+  if auth.uid() is null then
+    raise exception 'sign in to start the job';
+  end if;
+  select * into v_job from public.service_jobs where id = p_job_id;
+  if v_job.id is null then raise exception 'job not found'; end if;
+  if not exists (select 1 from public.artisans a where a.id = v_job.assigned_artisan_id and a.user_id = auth.uid()) then
+    raise exception 'only the artisan on this job can start it';
+  end if;
+  if v_job.status <> 'assigned' then
+    raise exception 'this job can''t be started now';
+  end if;
+  if v_job.offer_expires_at is not null and v_job.offer_accepted_at is null then
+    raise exception 'accept the request first';
+  end if;
+
+  select * into v_private from public.job_private where job_id = p_job_id for update;
+  if found then
+    if v_private.wrong_code_attempts >= 5 then
+      raise exception 'too many wrong codes — contact Lezerv support to start this job';
+    end if;
+    if coalesce(trim(p_code), '') <> v_private.start_code then
+      update public.job_private set wrong_code_attempts = wrong_code_attempts + 1 where job_id = p_job_id;
+      if v_private.wrong_code_attempts + 1 >= 5 then
+        perform public.notify(v_job.client_id, 'start_code_locked', 'Too many wrong start codes',
+                              v_job.title || ' — someone typed the wrong code 5 times. Contact support if this wasn''t your artisan.', '/my-jobs');
+      end if;
+      return jsonb_build_object('started', false, 'attempts_left', greatest(0, 4 - v_private.wrong_code_attempts));
+    end if;
+  end if;
+
+  update public.service_jobs
+  set status = 'in_progress', started_at = now(), updated_at = now()
+  where id = p_job_id and status = 'assigned';
+  if not found then
+    raise exception 'this job can''t be started now';
+  end if;
+
+  perform public.notify(v_job.client_id, 'job_started', 'Work has started', v_job.title, '/my-jobs');
+  return jsonb_build_object('started', true);
+end;
+$$;
+
+revoke execute on function public.start_job(uuid, text) from public, anon;
+grant execute on function public.start_job(uuid, text) to authenticated;
+
+-- The website's "Start job" button calls update_service_job_status. Jobs
+-- booked in the app carry a start code, so for those the artisan must use
+-- start_job; everything else behaves exactly as in 0008.
+create or replace function public.update_service_job_status(
+  p_job_id uuid, p_status text, p_reason text default null
+)
+returns void
+language plpgsql volatile security definer set search_path = public
+as $$
+declare v_job public.service_jobs; v_is_artisan boolean; v_is_client boolean;
+begin
+  select * into v_job from public.service_jobs where id = p_job_id;
+  if v_job.id is null then return; end if;
+  v_is_client := (v_job.client_id = auth.uid());
+  select exists (select 1 from public.artisans a where a.id = v_job.assigned_artisan_id and a.user_id = auth.uid())
+    into v_is_artisan;
+  if not (v_is_client or v_is_artisan or public.is_admin()) then raise exception 'not your job'; end if;
+
+  if p_status = 'in_progress' and v_is_artisan and not public.is_admin()
+     and exists (select 1 from public.job_private where job_id = p_job_id) then
+    raise exception 'enter the client''s start code in the Lezerv app to begin';
+  end if;
+
+  if p_status = 'in_progress' and (v_is_artisan or public.is_admin()) and v_job.status = 'assigned' then
+    update public.service_jobs set status = 'in_progress', started_at = coalesce(started_at, now()) where id = p_job_id;
+  elsif p_status = 'completed' and (v_is_artisan or public.is_admin()) and v_job.status = 'in_progress' then
+    update public.service_jobs set status = 'completed', completed_at = now() where id = p_job_id;
+    update public.artisans set completed_jobs = completed_jobs + 1 where id = v_job.assigned_artisan_id;
+  elsif p_status = 'cancelled' and (v_is_client or public.is_admin()) and v_job.status in ('open','assigned') then
+    update public.service_jobs set status = 'cancelled', cancelled_at = now(), cancel_reason = p_reason where id = p_job_id;
+    -- New in 0023: the artisan it was offered or assigned to hears about it, so the request
+    -- card disappears from their screen instead of failing when they tap Accept.
+    if v_job.assigned_artisan_id is not null then
+      perform public.notify((select user_id from public.artisans where id = v_job.assigned_artisan_id),
+                            'job_cancelled', 'Request withdrawn', v_job.title || ' was cancelled by the client', '/my-jobs');
+    end if;
+  else
+    raise exception 'invalid transition % from %', p_status, v_job.status;
+  end if;
+end;
+$$;
+
+-- ── 9. The artisan's own jobs, for the app ──────────────────────────
+-- Offers and accepted work with what the artisan may see: the client's
+-- first name only, the street only once accepted, never the start code.
+create or replace function public.my_artisan_jobs()
+returns table (
+  id uuid, job_number bigint, title text, description text, status text,
+  category_slug text, category_name text, area_name text, address_text text,
+  scheduled_for timestamptz, budget_note text, details jsonb,
+  offer_expires_at timestamptz, offer_accepted_at timestamptz, started_at timestamptz,
+  completed_at timestamptz, created_at timestamptz, quoted_amount numeric, agreed_amount numeric,
+  client_first_name text, conversation_id uuid
+)
+language sql stable security definer set search_path = public
+as $$
+  select j.id, j.job_number, j.title, j.description, j.status,
+         c.slug, c.name, ar.name, j.address_text,
+         j.scheduled_for, j.budget_note, j.details,
+         j.offer_expires_at, j.offer_accepted_at, j.started_at,
+         j.completed_at, j.created_at, j.quoted_amount, j.agreed_amount,
+         nullif(split_part(trim(coalesce(p.full_name, '')), ' ', 1), ''),
+         cv.id
+  from public.service_jobs j
+  join public.artisans a on a.id = j.assigned_artisan_id and a.user_id = auth.uid()
+  left join public.service_categories c on c.id = j.category_id
+  left join public.service_areas ar on ar.id = j.area_id
+  left join public.profiles p on p.id = j.client_id
+  left join public.conversations cv on cv.job_id = j.id
+  where j.status in ('assigned', 'in_progress')
+     or (j.status = 'completed' and j.completed_at > now() - interval '60 days')
+  order by j.created_at desc
+  limit 100;
+$$;
+
+revoke execute on function public.my_artisan_jobs() from public, anon;
+grant execute on function public.my_artisan_jobs() to authenticated;
