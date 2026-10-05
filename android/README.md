@@ -115,6 +115,11 @@ cd verify-desktop && gradle renderScreens   # → build/screens/*.png
 It exists because the cloud environment this was built in could not reach Google's Maven.
 You can ignore it in Android Studio, or delete it.
 
+## Backend
+
+`docs/BACKEND_MAP.md` maps every screen to the Supabase backend in `soma-connects/Lerzerv`
+(what's ready, what needs a small migration, what's missing) and suggests a build order.
+
 ## Still to do (from the design's build notes)
 
 - **Brand colour / logo** — `Lz.Accent` (#1F6040) is an estimate; match it to the logo file
