@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
     )
 
     var clock = 1_000_000L
-    fun state() = LezervState(demo = true, clock = { clock })
+    fun state() = LezervState(demo = true, clock = { clock }, splash = false)
     fun shot(name: String, s: LezervState) {
         val scene = ImageComposeScene(392 * 2, 774 * 2, Density(2f)) { LezervApp(s, fonts, runTicker = false) }
         repeat(3) { scene.render(it * 500_000_000L) } // let LaunchedEffects and layout settle
@@ -66,4 +66,16 @@ fun main(args: Array<String>) {
     state().apply { switchRole(Role.Artisan); openTab(Tab.Earnings) }.let { shot("26-earnings", it) }
     state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); radiusKm = 7 }.let { shot("27-artisan-account", it) }
     state().apply { switchRole(Role.Artisan); radiusKm = 7; toggleOnline(); ticks(this, 5) }.let { shot("28-artisan-online", it) }
+
+    // Board additions
+    LezervState(demo = true, clock = { clock }).apply { clock += 600; tick() }.let { shot("30-splash", it) }
+    state().apply { startBooking("a2"); pay() }.let { shot("31-prime", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30 + 112); openTab(Tab.ClientJobs); push(Pushed.Notifications) }.let { shot("32-notifications", it) }
+    state().apply { openTab(Tab.ClientJobs) }.let { shot("33-jobs-empty", it) }
+    state().apply { query = "zzz" ; sheet = Sheet.List }.let { shot("34-explore-empty", it) }
+    state().apply { openChat("a2"); toggleOfflineDemo(); draft = "Are you still coming at 4?"; send(); ticks(this, 40) }.let { shot("35-chat-offline", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Verify(onboarding = true)); idNumber = "1234567" }.let { shot("36-verify", it) }
+    state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); push(Pushed.Payout); bvn = "12345" }.let { shot("37-payout", it) }
+    state().apply { switchRole(Role.Artisan); toggleOnline(); ticks(this, 30); declineRequest(); declineReason = 0 }.let { shot("38-decline", it) }
+    state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount) }.let { shot("39-artisan-account", it) }
 }

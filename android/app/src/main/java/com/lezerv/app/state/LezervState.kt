@@ -23,6 +23,11 @@ import com.lezerv.app.data.artisan
 import com.lezerv.app.data.maskContacts
 import com.lezerv.app.data.naira
 import com.lezerv.app.data.optionPrice
+import com.lezerv.app.data.BANKS
+import com.lezerv.app.data.DECLINE_REASONS
+import com.lezerv.app.data.ID_TYPES
+import com.lezerv.app.data.SEED_NOTICES
+import com.lezerv.app.data.SPLASH_MS
 import kotlin.math.roundToInt
 
 enum class Role { Client, Artisan }
@@ -45,11 +50,35 @@ sealed interface Pushed {
     data object Track : Pushed
     data object Chat : Pushed
     data object Navigate : Pushed
+    data object Notifications : Pushed
+    /** Artisan onboarding step 2 (ID + documents). [onboarding] = coming from "Become an artisan". */
+    data class Verify(val onboarding: Boolean) : Pushed
+    data object Payout : Pushed
 }
+
+/**
+ * Where a notification takes you when tapped: the mobile version of the Board's deep-link
+ * map (1b). With push (FCM) these become lezerv.com links carried in the notification.
+ */
+sealed interface Route {
+    data object Track : Route
+    data object Review : Route
+    data class Chat(val artisanId: String?) : Route
+    data object ArtisanMap : Route
+    data object Earnings : Route
+    data object Payout : Route
+}
+
+/** An entry in the notifications inbox (bell, top right). */
+data class Notice(
+    val id: Int, val role: Role, val title: String, val body: String, val ago: String,
+    val route: Route, val action: String, val read: Boolean = false,
+)
 
 enum class Sheet { Peek, List }
 
-data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false)
+/** [pending] = written while offline; it is sent automatically on reconnect. */
+data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false, val pending: Boolean = false)
 
 /** The client's live booking. [stage] indexes SERVICE_STEPS or LAUNDRY_STEPS; [t] is 0..1 progress along the route. */
 data class ClientJob(
@@ -80,7 +109,24 @@ data class BookTotal(val sub: Int, val extra: Int, val fee: Int) {
  *
  * @param clock injectable for tests/previews.
  */
-class LezervState(val demo: Boolean = true, private val clock: () -> Long = { System.currentTimeMillis() }) {
+class LezervState(
+    val demo: Boolean = true,
+    private val clock: () -> Long = { System.currentTimeMillis() },
+    splash: Boolean = true,
+) {
+
+    // ── launch ──
+    /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
+    var showSplash by mutableStateOf(splash); private set
+    private val splashEndsAt = clock() + SPLASH_MS
+    val splashProgress get() = (1f - (splashEndsAt - now).toFloat() / SPLASH_MS).coerceIn(0f, 1f)
+
+    /** Notification priming (Board 1i): asked once, after the first booking gives a reason. */
+    var showPrime by mutableStateOf(false); private set
+    var primed by mutableStateOf(false); private set
+    /** Set by MainActivity to show Android's own permission dialog; null on desktop previews. */
+    var requestNotificationPermission: (() -> Unit)? = null
+    private var afterPrimeToast: String? = null
 
     // ── navigation ──
     var role by mutableStateOf(Role.Client); private set
@@ -128,6 +174,32 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
     var chatWith by mutableStateOf<String?>(null); private set
     var draft by mutableStateOf("")
 
+    // ── connectivity ──
+    /** True while the phone has no network (MainActivity watches this), or the demo toggle is on. */
+    var offline by mutableStateOf(false); private set
+
+    // ── notifications inbox ──
+    var notices by mutableStateOf(SEED_NOTICES); private set
+    private var nextNoticeId = 100
+    val myNotices get() = notices.filter { it.role == role }
+    val unread get() = myNotices.count { !it.read }
+
+    // ── artisan verification (onboarding step 2) ──
+    var idType by mutableIntStateOf(0)
+    var idNumber by mutableStateOf("")
+    /** Photo ID, proof of address, passport photo. Real build: camera/picker → private bucket. */
+    var docsUploaded by mutableStateOf(listOf(true, false, false)); private set
+
+    // ── payout account ──
+    var payoutBank by mutableStateOf("Guaranty Trust Bank")
+    var payoutAccount by mutableStateOf("0123454821")
+    var bvn by mutableStateOf("")
+    var bankListOpen by mutableStateOf(false)
+
+    // ── decline sheet ──
+    var declining by mutableStateOf(false); private set
+    var declineReason by mutableIntStateOf(0)
+
     // ── snackbar ──
     var snack by mutableStateOf<String?>(null); private set
     private var snackUntil = 0L
@@ -152,6 +224,7 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
     fun tick() {
         val t = clock()
         now = t
+        if (showSplash && t >= splashEndsAt) showSplash = false
         job?.let { j ->
             val advancing = if (j.laundry) j.stage == 0 || j.stage == 1 || j.stage == 4 else j.stage == 0 || j.stage == 1
             if (advancing) {
@@ -159,6 +232,7 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
                 var s = j.stage
                 if (p >= 1f) { p = 0f; s++ }
                 job = j.copy(t = p, stage = s)
+                if (s != j.stage) onStage(j.copy(stage = s))
             }
         }
         artisanJob?.let { a -> if (a.stage == 0) artisanJob = if (a.t + 0.01f >= 1f) a.copy(stage = 1, t = 1f) else a.copy(t = a.t + 0.01f) }
@@ -169,7 +243,7 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         }
         if (requestOpen && t >= requestEndsAt) {
             nextRequestAt = t + 6000
-            requestOpen = false
+            requestOpen = false; declining = false
             toast("Request expired. Next one will come shortly.")
         }
         if (snack != null && t >= snackUntil) snack = null
@@ -182,10 +256,13 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
     fun push(p: Pushed) { stack = stack + p }
 
     /** True while system back should stay inside the app; false lets Android close it. */
-    val canGoBack: Boolean get() = reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
+    val canGoBack: Boolean get() = showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
 
     /** Android system back. Returns false when there is nothing left to go back from (exit). */
     fun back(): Boolean = when {
+        showPrime -> { answerPrime(false); true }
+        declining -> { declining = false; true }
+        bankListOpen -> { bankListOpen = false; true }
         reviewing -> { reviewing = false; true }
         stack.isNotEmpty() -> { stack = stack.dropLast(1); true }
         selected != null -> { selected = null; true }
@@ -255,14 +332,17 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         val whenLabel = if (a.laundry) PICKUP_WINDOWS[pickupWindow] else if (whenIdx == 0) "Now" else SLOTS[slot]
         job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express)
         stack = listOf(Pushed.Track); tab = Tab.ClientJobs; selected = null
-        toast("${naira(b.total)} paid into Lezerv escrow")
+        notify(Role.Client, "Booked · ${a.first} has your job", "$title · ${naira(b.total)} held in escrow", Route.Track, "Track job")
+        val paid = "${naira(b.total)} paid into Lezerv escrow"
+        // First booking: ask about notifications, and keep the receipt toast until that's answered.
+        if (!primed) { showPrime = true; afterPrimeToast = paid } else toast(paid)
     }
 
     /** Moves the job to its next stage (client "Confirm the job is done", or demo skip). */
     fun advance() {
         val j = job ?: return
         if (j.stage >= j.lastStage) return
-        job = j.copy(stage = j.stage + 1, t = 0f)
+        job = j.copy(stage = j.stage + 1, t = 0f).also(::onStage)
     }
 
     fun openReview() { reviewing = true; stars = 5; reviewTags = listOf("On time") }
@@ -289,9 +369,10 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         val t = draft.trim()
         if (t.isEmpty()) return
         val m = maskContacts(t)
-        messages = messages + (chatKey to (messages[chatKey].orEmpty() + Message(true, m, "Now", m != t)))
+        messages = messages + (chatKey to (messages[chatKey].orEmpty() + Message(true, m, "Now", m != t, pending = offline)))
         draft = ""
         if (m != t) toast("Contact details are hidden to keep payment on Lezerv")
+        else if (offline) toast("You’re offline. It sends when you reconnect.")
     }
 
     // ───────────────────────────── artisan ─────────────────────────────
@@ -302,12 +383,16 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         requestOpen = false
     }
 
-    fun declineRequest() {
+    /** Decline opens the reason sheet (Board "Can't take this job?"); [confirmDecline] sends it. */
+    fun declineRequest() { declineReason = 0; declining = true }
+
+    fun confirmDecline() {
+        declining = false
         nextRequestAt = clock() + 6000; requestOpen = false
-        toast("Declined. Your acceptance rate is 94%.")
+        toast("Declined · ${DECLINE_REASONS[declineReason].lowercase()}. Your acceptance rate is 94%.")
     }
 
-    fun acceptRequest() { requestOpen = false; artisanJob = ArtisanJob(0, 0f); code = ""; stack = listOf(Pushed.Navigate) }
+    fun acceptRequest() { requestOpen = false; declining = false; artisanJob = ArtisanJob(0, 0f); code = ""; stack = listOf(Pushed.Navigate) }
 
     val codeOk get() = code == DEMO_START_CODE
 
@@ -321,6 +406,7 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         artisanJob = a.copy(stage = 3)
         earnedToday += 6400
         artisanPast = listOf(ArtisanPast("Leaking kitchen sink", "Amaka O. · Lekki Phase 1 · Today", 6400)) + artisanPast
+        notify(Role.Artisan, "₦6,400 held in escrow", "Leaking kitchen sink · released when Amaka confirms", Route.Earnings, "View earnings")
     }
 
     fun finishArtisanJob() {
@@ -329,7 +415,9 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         toast("₦6,400 added to escrow. Released when Amaka confirms.")
     }
 
-    fun withdraw() = toast("₦48,200 on its way to GTBank ••4821")
+    fun withdraw() = toast("₦48,200 on its way to $payoutLabel")
+
+    val payoutLabel get() = "${BANKS.firstOrNull { it.first == payoutBank }?.second ?: payoutBank} ••${payoutAccount.takeLast(4)}"
 
     /** Demo-only: put everything back to the start. */
     fun reset() {
@@ -338,7 +426,97 @@ class LezervState(val demo: Boolean = true, private val clock: () -> Long = { Sy
         panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; messages = fresh.messages
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
+        showPrime = false; primed = false; notices = SEED_NOTICES; declining = false; offline = false
+        idType = 0; idNumber = ""; docsUploaded = fresh.docsUploaded; payoutBank = fresh.payoutBank; payoutAccount = fresh.payoutAccount; bvn = ""
     }
+
+    // ───────────────────────────── notifications ─────────────────────────────
+
+    private fun notify(r: Role, title: String, body: String, route: Route, action: String) {
+        notices = listOf(Notice(nextNoticeId++, r, title, body, "now", route, action)) + notices
+    }
+
+    /** Client job milestones that would arrive as push notifications. */
+    private fun onStage(j: ClientJob) {
+        val a = artisan(j.artisanId) ?: return
+        when {
+            !j.laundry && j.stage == 2 -> notify(Role.Client, "${a.first} is at your gate", "Share your start code to begin the job.", Route.Track, "Show code")
+            j.laundry && j.stage == 2 -> notify(Role.Client, "Laundry picked up", "${j.title} counted and tagged.", Route.Track, "Track order")
+            j.stage == j.lastStage -> notify(Role.Client, "Job done · rate ${a.first}", "${j.title} · release ${naira(j.total)} from escrow", Route.Review, "Rate and release")
+        }
+    }
+
+    /** Tap on a notice: mark it read and go where it points (deep link). */
+    fun openNotice(n: Notice) {
+        notices = notices.map { if (it.id == n.id) it.copy(read = true) else it }
+        when (val r = n.route) {
+            Route.Track -> if (job != null) stack = listOf(Pushed.Track).also { tab = Tab.ClientJobs } else openTab(Tab.ClientJobs)
+            Route.Review -> if (job != null) { stack = listOf(Pushed.Track); tab = Tab.ClientJobs; openReview() } else openTab(Tab.ClientJobs)
+            is Route.Chat -> { stack = emptyList(); tab = if (role == Role.Client) Tab.Messages else homeTab; openChat(r.artisanId) }
+            Route.ArtisanMap -> openTab(Tab.ArtisanMap)
+            Route.Earnings -> openTab(Tab.Earnings)
+            Route.Payout -> { stack = emptyList(); tab = Tab.ArtisanAccount; push(Pushed.Payout) }
+        }
+    }
+
+    fun markAllRead() { notices = notices.map { if (it.role == role) it.copy(read = true) else it } }
+
+    /** Priming answer. "Allow" hands over to Android's own permission dialog (API 33+). */
+    fun answerPrime(allow: Boolean) {
+        showPrime = false; primed = true
+        afterPrimeToast?.let(::toast); afterPrimeToast = null
+        if (allow) requestNotificationPermission?.invoke()
+    }
+
+    // ───────────────────────────── connectivity ─────────────────────────────
+
+    /** Going back online sends anything written while offline (Board 1l). */
+    fun updateOffline(off: Boolean) {
+        if (off == offline) return
+        offline = off
+        if (!off) {
+            val waiting = messages.values.sumOf { l -> l.count { it.pending } }
+            if (waiting > 0) {
+                messages = messages.mapValues { (_, l) -> l.map { it.copy(pending = false) } }
+                toast("Back online · $waiting message${if (waiting > 1) "s" else ""} sent")
+            }
+        }
+    }
+
+    // ───────────────────────────── verification + payout ─────────────────────────────
+
+    fun toggleDoc(i: Int) { docsUploaded = docsUploaded.toMutableList().also { it[i] = !it[i] } }
+
+    val idDigits get() = ID_TYPES[idType].second
+    val verifyReady get() = idNumber.length == idDigits && docsUploaded.all { it }
+
+    /** PROPOSAL: documents go to a private bucket and the team reviews them. */
+    fun submitVerification(onboarding: Boolean) {
+        if (!verifyReady) { toast(if (idNumber.length != idDigits) "Enter your ${idDigits}-character ${ID_TYPES[idType].first}" else "Add all three documents"); return }
+        if (onboarding && demo) {
+            switchRole(Role.Artisan)
+            notify(Role.Artisan, "Documents received", "We’ll review them within 24 hours. Set up payouts meanwhile.", Route.Payout, "Add payout account")
+            toast("Sent for review. Welcome to Lezerv.")
+        } else {
+            stack = stack.dropLast(1)
+            toast(if (onboarding) "Sent for review" else "Verification details updated")
+        }
+    }
+
+    /** PROPOSAL: name match via a bank lookup (e.g. Paystack resolve) and BVN check, backend side. */
+    val accountName: String? get() = if (payoutAccount.length == 10) "TUNDE BAKARE" else null
+    val payoutReady get() = accountName != null && bvn.length == 11
+
+    fun savePayout() {
+        if (!payoutReady) { toast(if (accountName == null) "Account number is 10 digits" else "BVN is 11 digits"); return }
+        bvn = ""; stack = stack.dropLast(1)
+        toast("Payouts go to $payoutLabel")
+    }
+
+    /** Demo toggle for the offline state. */
+    fun toggleOfflineDemo() = updateOffline(!offline)
+
+    fun dismissDecline() { declining = false }
 
     // ── helpers for screens ──
     val jobArtisan: Artisan? get() = artisan(job?.artisanId)

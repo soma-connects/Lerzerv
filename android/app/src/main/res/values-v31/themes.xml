@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ draws its own launch splash before the app; match the in-app splash
+         (dark green, Board 1h) so there is no flash between them. -->
+    <style name="Theme.Lezerv" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/lz_bg</item>
+        <item name="android:colorAccent">@color/lz_accent</item>
+        <item name="android:windowSplashScreenBackground">@color/lz_accent_900</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/lz_accent</item>
+    </style>
+</resources>

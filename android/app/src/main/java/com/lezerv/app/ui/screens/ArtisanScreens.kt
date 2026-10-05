@@ -114,8 +114,11 @@ fun ArtisanMapScreen(s: LezervState) {
             MapChip("Today ${naira(s.earnedToday)}")
             MapChip("Radius ${s.radiusKm} km")
         }
-        com.lezerv.app.ui.components.IconBox("locate-fixed", { s.recenter() }, iconSize = 22, bg = Lz.Bg, fg = Lz.Accent,
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 86.dp, end = 12.dp).shadow(1.dp).semantics { contentDescription = "My location" })
+        Column(Modifier.align(Alignment.TopEnd).padding(top = 86.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            BellButton(s, Modifier.shadow(1.dp), size = 48, bg = Lz.Bg, border = Lz.Ink)
+            com.lezerv.app.ui.components.IconBox("locate-fixed", { s.recenter() }, iconSize = 22, bg = Lz.Bg, fg = Lz.Accent,
+                modifier = Modifier.shadow(1.dp).semantics { contentDescription = "My location" })
+        }
 
         val bottom = Modifier.align(Alignment.BottomStart).padding(12.dp).fillMaxWidth()
         when {
@@ -298,7 +301,7 @@ fun EarningsScreen(s: LezervState) {
             Column(Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp)) { Txt("AVAILABLE", label(10, color = Lz.Neutral700)); Txt(naira(48200), heading(30, weight = 700)) }
             Column(Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp)) { Txt("HELD IN ESCROW", label(10, color = Lz.Neutral700)); Txt(naira(s.earnedToday), heading(30, weight = 700)) }
         }
-        PrimaryWide("Withdraw to GTBank ••4821", "landmark", { s.withdraw() }, Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp))
+        PrimaryWide("Withdraw to ${s.payoutLabel}", "landmark", { s.withdraw() }, Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp))
         SectionRule("01", "Activity", Modifier.padding(top = 28.dp, bottom = 4.dp))
         CompletedList(s, plus = true)
     }
@@ -326,9 +329,9 @@ fun ArtisanAccountScreen(s: LezervState) {
         SectionRule("02", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
         AccountRows(
             listOf(
-                AccountRow("badge-check", "Verification", "ID and address verified"),
+                AccountRow("badge-check", "Verification", "ID and address verified") { s.push(Pushed.Verify(onboarding = false)) },
                 AccountRow("wrench", "Services and prices", "Plumbing · 3 services"),
-                AccountRow("landmark", "Payout account", "GTBank ••4821"),
+                AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
                 AccountRow("settings", "Settings", "Notifications, language"),
             ) + demoRows(s),
             Modifier.padding(horizontal = 20.dp),

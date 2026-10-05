@@ -80,7 +80,7 @@ fun ClientJobsScreen(s: LezervState) {
                 LzIcon("chevron-right", 20)
             }
         } else {
-            Txt("Nothing in progress. Find someone on the map to get started.", body(14, 20, color = Lz.Neutral800), Modifier.padding(horizontal = 20.dp))
+            EmptyState("briefcase", "No active jobs", "Bookings show here with live tracking and their status.", "Find someone nearby", Modifier.padding(horizontal = 20.dp)) { s.openTab(com.lezerv.app.state.Tab.Explore) }
         }
         SectionRule("02", "Past", Modifier.padding(top = 28.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
@@ -103,7 +103,9 @@ fun ClientJobsScreen(s: LezervState) {
 @Composable
 fun MessagesScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        s.messages.keys.filter { it != "client" }.forEach { k ->
+        val threads = s.messages.keys.filter { it != "client" }
+        if (threads.isEmpty()) EmptyState("message-square", "No messages yet", "Chat opens once you book someone.", "Go to Jobs", Modifier.padding(20.dp)) { s.openTab(com.lezerv.app.state.Tab.ClientJobs) }
+        threads.forEach { k ->
             val a = artisan(k) ?: return@forEach
             val last = s.messages.getValue(k).last()
             Row(
@@ -140,11 +142,19 @@ fun ChatScreen(s: LezervState) {
                 msgs.forEach { m ->
                     Column(
                         Modifier.align(if (m.me) Alignment.End else Alignment.Start).widthIn(max = maxBubble)
-                            .background(if (m.me) Lz.Accent else Color.Transparent).border(1.dp, if (m.me) Lz.Accent else Lz.Ink).padding(horizontal = 12.dp, vertical = 10.dp),
+                            .then(
+                                when {
+                                    m.pending -> Modifier.dashedBorder(Lz.Neutral600) // waiting for the network (Board 1l)
+                                    m.me -> Modifier.background(Lz.Accent).border(1.dp, Lz.Accent)
+                                    else -> Modifier.border(1.dp, Lz.Ink)
+                                },
+                            ).padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
-                        val fg = if (m.me) Color.White else Lz.Ink
+                        val fg = if (m.me && !m.pending) Color.White else Lz.Ink
                         Txt(m.text, body(14, 20, color = fg))
-                        Txt(m.at + if (m.masked) " · details hidden" else "", body(10, color = fg.copy(alpha = .7f)), Modifier.padding(top = 3.dp))
+                        if (m.pending) Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            LzIcon("clock", 12, Lz.Neutral700); Txt("Not sent · sends when you’re back online", body(10, color = Lz.Neutral700))
+                        } else Txt(m.at + if (m.masked) " · details hidden" else "", body(10, color = fg.copy(alpha = .7f)), Modifier.padding(top = 3.dp))
                     }
                 }
             }
@@ -197,6 +207,7 @@ internal fun AccountHeader(ini: String, name: String, sub: @Composable () -> Uni
 /** Demo-only rows: switch role and reset, replacing the prototype's side panel. */
 internal fun demoRows(s: LezervState): List<AccountRow> = if (!s.demo) emptyList() else listOf(
     AccountRow("refresh-cw", "Demo · switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
+    AccountRow("wifi-off", "Demo · ${if (s.offline) "go back online" else "simulate offline"}", "Shows the offline banner and queued messages") { s.toggleOfflineDemo() },
     AccountRow("refresh-cw", "Demo · reset", "Start the demo from the beginning") { s.reset() },
 )
 
@@ -209,7 +220,8 @@ fun ClientAccountScreen(s: LezervState) {
                 AccountRow("map-pin", "Saved addresses", "Home · 12 Admiralty Way") { s.toast("Saved addresses") },
                 AccountRow("credit-card", "Payment methods", "Card ••2291 · Bank transfer") { s.toast("Payment methods") },
                 AccountRow("shield-check", "Safety", "Start codes, masked calls, trusted contacts") { s.toast("Safety centre") },
-                AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { if (s.demo) s.switchRole(Role.Artisan) else s.toast("Artisan sign-up") },
+                AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { s.push(Pushed.Verify(onboarding = true)) },
+                AccountRow("bell", "Notifications", if (s.primed) "On · jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
                 AccountRow("life-buoy", "Help", "Chat with Lezerv support") { s.toast("Support") },
             ) + demoRows(s),
             Modifier.padding(horizontal = 20.dp).borderTop(2.dp, Lz.Ink),

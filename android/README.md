@@ -32,12 +32,30 @@ state) and call its methods; Compose redraws whatever read a field that changed.
 backend exists, `LezervState`'s actions become calls to a repository, and nothing in
 `ui/` needs to know.
 
+## Added from the Lezerv Board (early prototype)
+
+`ui/screens/BoardScreens.kt` brings over the Board pages that fit the map-first app:
+
+| Board | In the app |
+|---|---|
+| 1h Splash | Dark-green launch screen (also the Android 12+ system splash colour) |
+| 1i Notification priming | Shown once after the first booking; "Allow" opens Android's permission dialog |
+| 1a/1b/1n Bell + notifications | Bell with unread count on every main screen; inbox cards deep-link to the job, chat, earnings or payout screen |
+| 1j Verification | Account → Become an artisan (step 2 of 4) and artisan Account → Verification |
+| 1k Payout account | Artisan Account → Payout account: bank, account number, name check, BVN |
+| 1l Offline | Banner when the phone loses network; chat messages wait and send on reconnect |
+| 1m Empty states | No jobs, no messages, nobody nearby, no notifications |
+| Bottom sheet | "Can't take this job?" reasons when an artisan declines a request |
+
+Left out on purpose: the post-a-job board, estimate/firm quotes and the Capacitor
+architecture plan (v2 books directly and is native Kotlin), and the escrow timeline.
+
 ## Demo mode
 
 `DEMO_MODE` (in `app/build.gradle.kts`) keeps the prototype's helpers so every flow can be
 clicked through on sample data:
 
-- **Account → "Demo · switch to artisan/client"** and **"Demo · reset"** (the prototype's side panel)
+- **Account → "Demo · switch to artisan/client"**, **"Demo · simulate offline"** and **"Demo · reset"**
 - **"Prototype · skip ahead"** on live tracking, **"Demo: fill 4827"** on the start-code step
 
 Try: Explore → tap Tunde's pin → Book now → Pay → watch him drive → skip ahead → Confirm →
@@ -71,4 +89,7 @@ You can ignore it in Android Studio, or delete it.
 - **Location** — FusedLocationProviderClient; artisans report position every 5–10 s while
   online. Show approximate areas until booking.
 - **PROPOSAL items needing backend** — escrow, start codes, masked calls, the request timer,
-  earnings and payouts.
+  earnings and payouts, push delivery (FCM), document upload to a private bucket, bank
+  account-name lookup and the BVN check.
+- **Onboarding steps 1, 3 and 4** (profile, services, review) aren't designed yet; only step 2
+  (verification) is on the Board.

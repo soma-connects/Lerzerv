@@ -43,7 +43,15 @@ import com.lezerv.app.ui.screens.ArtisanAccountScreen
 import com.lezerv.app.ui.screens.ArtisanJobsScreen
 import com.lezerv.app.ui.screens.ArtisanMapScreen
 import com.lezerv.app.ui.screens.ArtisanNavigateScreen
+import com.lezerv.app.ui.screens.BellButton
 import com.lezerv.app.ui.screens.BookScreen
+import com.lezerv.app.ui.screens.DeclineSheet
+import com.lezerv.app.ui.screens.NotificationsScreen
+import com.lezerv.app.ui.screens.OfflineBanner
+import com.lezerv.app.ui.screens.PayoutScreen
+import com.lezerv.app.ui.screens.PrimeScreen
+import com.lezerv.app.ui.screens.SplashScreen
+import com.lezerv.app.ui.screens.VerifyScreen
 import com.lezerv.app.ui.screens.ChatScreen
 import com.lezerv.app.ui.screens.ClientAccountScreen
 import com.lezerv.app.ui.screens.ClientJobsScreen
@@ -74,11 +82,15 @@ fun LezervApp(state: LezervState, fonts: LzFonts, modifier: Modifier = Modifier,
         Box(modifier.fillMaxSize().background(Lz.Bg).blueprintGrid()) {
             Column(Modifier.fillMaxSize()) {
                 TopBar(state)
+                if (state.offline) OfflineBanner()
                 Box(Modifier.weight(1f).fillMaxWidth()) { CurrentScreen(state) }
                 if (state.top == null) NavBar(state)
             }
             if (state.reviewing) ReviewSheet(state)
+            if (state.declining && state.requestOpen) DeclineSheet(state)
+            if (state.showPrime) PrimeScreen(state)
             state.snack?.let { Snackbar(it, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, end = 12.dp, bottom = if (state.top == null) 88.dp else 84.dp)) }
+            if (state.showSplash) SplashScreen(state.splashProgress)
         }
     }
 }
@@ -91,6 +103,9 @@ private fun CurrentScreen(s: LezervState) {
         Pushed.Track -> TrackScreen(s)
         Pushed.Chat -> ChatScreen(s)
         Pushed.Navigate -> ArtisanNavigateScreen(s)
+        Pushed.Notifications -> NotificationsScreen(s)
+        is Pushed.Verify -> VerifyScreen(s, top.onboarding)
+        Pushed.Payout -> PayoutScreen(s)
         null -> when (s.tab) {
             Tab.Explore -> ExploreScreen(s)
             Tab.ClientJobs -> ClientJobsScreen(s)
@@ -152,7 +167,7 @@ private fun TopBar(s: LezervState) {
             Txt(t.first.uppercase(), label(color = Lz.Accent700))
             Txt(t.second.uppercase(), heading(40, 38, weight = 700))
         }
-        LzIcon(t.third, 26)
+        BellButton(s, Modifier.offset(x = 10.dp, y = 6.dp))
     }
 }
 
@@ -162,6 +177,9 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
     Pushed.Track -> s.job?.let { j -> (if (j.laundry) "Laundry order" else "Live job") to "${j.title} · ${s.jobArtisan?.name}" } ?: ("Job" to "")
     Pushed.Chat -> (if (s.role == Role.Client) artisan(s.chatWith)?.name.orEmpty() else "Amaka O.") to "Contact details are hidden"
     Pushed.Navigate -> "Job · Leaking sink" to "Amaka O. · Lekki Phase 1"
+    Pushed.Notifications -> "Notifications" to if (s.unread > 0) "${s.unread} unread" else "All caught up"
+    is Pushed.Verify -> (if (p.onboarding) "Become an artisan" else "Verification") to (if (p.onboarding) "Step 2 of 4 · Verification" else "ID and documents")
+    Pushed.Payout -> "Payout account" to "Where your earnings are paid"
 }
 
 // ───────────────────────────── bottom navigation ─────────────────────────────

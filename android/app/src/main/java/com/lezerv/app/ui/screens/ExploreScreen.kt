@@ -187,6 +187,7 @@ private fun SearchBar(s: LezervState) {
             singleLine = true, textStyle = body(15), cursorBrush = SolidColor(Lz.Accent),
             decorationBox = { inner -> Box { if (s.query.isEmpty()) Txt("Search cleaning, laundry, plumbing", body(15, color = Lz.Neutral600), ellipsis = true); inner() } },
         )
+        BellButton(s, size = 40)
         Box(
             Modifier.padding(end = 2.dp).size(44.dp).background(Lz.Accent100).border(1.dp, Lz.Accent).tap { s.openTab(com.lezerv.app.state.Tab.ClientAccount) }.semantics { contentDescription = "Account" },
             contentAlignment = Alignment.Center,
@@ -283,9 +284,8 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                     }
                 }
             }
-            if (list.isEmpty()) Column(Modifier.padding(20.dp)) {
-                Txt("NOBODY MATCHES HERE", heading(24))
-                Txt("Clear the search or pick another category.", body(14, 20, color = Lz.Neutral800), Modifier.padding(top = 4.dp))
+            if (list.isEmpty()) EmptyState("search", "No artisans here yet", "Nobody nearby matches this search and service.", "Clear search", Modifier.padding(20.dp)) {
+                s.query = ""; s.pickCategory("all")
             }
         }
     }

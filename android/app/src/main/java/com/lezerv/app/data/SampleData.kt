@@ -121,3 +121,34 @@ fun fixed1(d: Double): String {
     val r = Math.round(d * 10)
     return "${r / 10}.${kotlin.math.abs(r % 10)}"
 }
+
+// ───────────── from the Board (early prototype): launch, notifications, onboarding, payouts ─────────────
+
+const val SPLASH_MS = 1400L
+
+/** Inbox the demo starts with. New ones are added as bookings and jobs progress. */
+val SEED_NOTICES = listOf(
+    com.lezerv.app.state.Notice(1, com.lezerv.app.state.Role.Client, "Tunde: Is the leak under the sink?", "New message about your plumbing request", "09:12", com.lezerv.app.state.Route.Chat("a2"), "Reply"),
+    com.lezerv.app.state.Notice(2, com.lezerv.app.state.Role.Client, "Payment released to Chinwe", "Deep clean · ₦28,000 · thanks for the review", "12 Sep", com.lezerv.app.state.Route.Chat("a1"), "Open chat", read = true),
+    com.lezerv.app.state.Notice(3, com.lezerv.app.state.Role.Artisan, "You are approved", "Go online to start getting requests nearby.", "1h", com.lezerv.app.state.Route.ArtisanMap, "Go online"),
+    com.lezerv.app.state.Notice(4, com.lezerv.app.state.Role.Artisan, "₦8,000 released", "Blocked shower drain · Femi A. confirmed", "Yesterday", com.lezerv.app.state.Route.Earnings, "View earnings", read = true),
+)
+
+/** ID type → required length (NIN 11 digits, voter's card VIN 19 chars, passport 9 chars). */
+val ID_TYPES = listOf("NIN" to 11, "Voter’s card" to 19, "Passport" to 9)
+
+data class KycDoc(val title: String, val hint: String, val icon: String)
+val KYC_DOCS = listOf(
+    KycDoc("Photo ID", "Front of the ID above", "file-text"),
+    KycDoc("Proof of address", "Utility bill, last 3 months", "camera"),
+    KycDoc("Passport photograph", "Face clearly visible", "user"),
+)
+val ONBOARDING_STEPS = listOf("Profile", "Verify", "Services", "Review")
+
+/** Full name → short name used in labels like "GTBank ••4821". */
+val BANKS = listOf(
+    "Guaranty Trust Bank" to "GTBank", "Access Bank" to "Access", "Zenith Bank" to "Zenith", "First Bank" to "First Bank",
+    "United Bank for Africa" to "UBA", "Opay" to "Opay", "Moniepoint" to "Moniepoint",
+)
+
+val DECLINE_REASONS = listOf("Too far from me", "Busy right now", "Not my kind of job", "Price too low")
