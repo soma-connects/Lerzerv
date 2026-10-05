@@ -43,7 +43,24 @@ import com.lezerv.app.ui.screens.ArtisanAccountScreen
 import com.lezerv.app.ui.screens.ArtisanJobsScreen
 import com.lezerv.app.ui.screens.ArtisanMapScreen
 import com.lezerv.app.ui.screens.ArtisanNavigateScreen
+import com.lezerv.app.ui.screens.AddCardScreen
+import com.lezerv.app.ui.screens.AddressEditScreen
+import com.lezerv.app.ui.screens.AddressPickerSheet
+import com.lezerv.app.ui.screens.AddressesScreen
+import com.lezerv.app.ui.screens.AuthFlow
 import com.lezerv.app.ui.screens.BellButton
+import com.lezerv.app.ui.screens.CancelSheet
+import com.lezerv.app.ui.screens.DeleteAccountSheet
+import com.lezerv.app.ui.screens.EditProfileScreen
+import com.lezerv.app.ui.screens.HelpScreen
+import com.lezerv.app.ui.screens.InviteScreen
+import com.lezerv.app.ui.screens.LegalScreen
+import com.lezerv.app.ui.screens.PaymentsScreen
+import com.lezerv.app.ui.screens.ReceiptScreen
+import com.lezerv.app.ui.screens.ReportScreen
+import com.lezerv.app.ui.screens.SafetyScreen
+import com.lezerv.app.ui.screens.ServicesScreen
+import com.lezerv.app.ui.screens.SettingsScreen
 import com.lezerv.app.ui.screens.BookScreen
 import com.lezerv.app.ui.screens.DeclineSheet
 import com.lezerv.app.ui.screens.NotificationsScreen
@@ -90,7 +107,11 @@ fun LezervApp(state: LezervState, fonts: LzFonts, modifier: Modifier = Modifier,
             if (state.reviewing) ReviewSheet(state)
             if (state.declining && state.requestOpen) DeclineSheet(state)
             if (state.paying) PaySheet(state)
+            if (state.cancelling) CancelSheet(state)
+            if (state.account.pickingAddress) AddressPickerSheet(state)
+            if (state.account.deleting) DeleteAccountSheet(state)
             if (state.showPrime) PrimeScreen(state)
+            if (state.account.authStep != null) AuthFlow(state) // above sheets, below toasts so errors show
             state.snack?.let { Snackbar(it, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, end = 12.dp, bottom = if (state.top == null) 88.dp else 84.dp)) }
             if (state.showSplash) SplashScreen(state.splashProgress)
         }
@@ -108,6 +129,19 @@ private fun CurrentScreen(s: LezervState) {
         Pushed.Notifications -> NotificationsScreen(s)
         is Pushed.Verify -> VerifyScreen(s, top.onboarding)
         Pushed.Payout -> PayoutScreen(s)
+        Pushed.Addresses -> AddressesScreen(s)
+        Pushed.AddressEdit -> AddressEditScreen(s)
+        Pushed.Payments -> PaymentsScreen(s)
+        Pushed.AddCard -> AddCardScreen(s)
+        is Pushed.Receipt -> ReceiptScreen(s, top.number)
+        Pushed.Report -> ReportScreen(s)
+        Pushed.Help -> HelpScreen(s)
+        Pushed.Safety -> SafetyScreen(s)
+        Pushed.Settings -> SettingsScreen(s)
+        Pushed.EditProfile -> EditProfileScreen(s)
+        is Pushed.Legal -> LegalScreen(top.privacy)
+        Pushed.Invite -> InviteScreen(s)
+        Pushed.Services -> ServicesScreen(s)
         null -> when (s.tab) {
             Tab.Explore -> ExploreScreen(s)
             Tab.ClientJobs -> ClientJobsScreen(s)
@@ -177,11 +211,28 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
     is Pushed.Profile -> artisan(p.artisanId)?.let { it.name to "${SERVICE.getValue(it.svc).label} · ${fixed1(it.km)} km away" } ?: ("" to "")
     Pushed.Book -> artisan(s.bookArtisan)?.let { (if (it.laundry) "Laundry pickup" else "Book ${it.first}") to "${it.name} · ${SERVICE.getValue(it.svc).label}" } ?: ("" to "")
     Pushed.Track -> s.job?.let { j -> (if (j.laundry) "Laundry order" else "Live job") to "${j.title} · ${s.jobArtisan?.name}" } ?: ("Job" to "")
-    Pushed.Chat -> (if (s.role == Role.Client) artisan(s.chatWith)?.name.orEmpty() else "Amaka O.") to "Contact details are hidden"
+    Pushed.Chat -> when {
+        s.chatWith == com.lezerv.app.data.SUPPORT -> "Lezerv Support" to "Usually replies within a few hours"
+        s.role == Role.Client -> artisan(s.chatWith)?.name.orEmpty() to "Contact details are hidden"
+        else -> "Amaka O." to "Contact details are hidden"
+    }
     Pushed.Navigate -> "Job · Leaking sink" to "Amaka O. · Lekki Phase 1"
     Pushed.Notifications -> "Notifications" to if (s.unread > 0) "${s.unread} unread" else "All caught up"
     is Pushed.Verify -> (if (p.onboarding) "Become an artisan" else "Verification") to (if (p.onboarding) "Step 2 of 4 · Verification" else "ID and documents")
     Pushed.Payout -> "Payout account" to "Where your earnings are paid"
+    Pushed.Addresses -> "Saved addresses" to "Where artisans come to you"
+    Pushed.AddressEdit -> (if (s.account.editingAddressId == null) "New address" else "Edit address") to "Shared with the artisan only after you book"
+    Pushed.Payments -> "Payment methods" to "Cards, bank transfer and USSD"
+    Pushed.AddCard -> "Add a card" to "Visa, Mastercard or Verve"
+    is Pushed.Receipt -> "Receipt" to p.number
+    Pushed.Report -> "Report a problem" to s.reportJob
+    Pushed.Help -> "Help" to "Answers and support"
+    Pushed.Safety -> "Safety" to "Tools for you and your home"
+    Pushed.Settings -> "Settings" to "Notifications, language, account"
+    Pushed.EditProfile -> "Edit profile" to "Name, phone and email"
+    is Pushed.Legal -> (if (p.privacy) "Privacy policy" else "Terms of service") to "Draft for review"
+    Pushed.Invite -> "Invite friends" to "Share Lezerv"
+    Pushed.Services -> "Services and prices" to "What clients can book you for"
 }
 
 // ───────────────────────────── bottom navigation ─────────────────────────────

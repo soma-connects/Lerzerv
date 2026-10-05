@@ -129,7 +129,7 @@ const val SPLASH_MS = 1400L
 /** Inbox the demo starts with. New ones are added as bookings and jobs progress. */
 val SEED_NOTICES = listOf(
     com.lezerv.app.state.Notice(1, com.lezerv.app.state.Role.Client, "Tunde: Is the leak under the sink?", "New message about your plumbing request", "09:12", com.lezerv.app.state.Route.Chat("a2"), "Reply"),
-    com.lezerv.app.state.Notice(2, com.lezerv.app.state.Role.Client, "Payment released to Chinwe", "Deep clean · ₦28,000 · thanks for the review", "12 Sep", com.lezerv.app.state.Route.Chat("a1"), "Open chat", read = true),
+    com.lezerv.app.state.Notice(2, com.lezerv.app.state.Role.Client, "Payment released to Chinwe", "Deep clean · ₦26,775 · thanks for the review", "12 Sep", com.lezerv.app.state.Route.Chat("a1"), "Open chat", read = true),
     com.lezerv.app.state.Notice(3, com.lezerv.app.state.Role.Artisan, "You are approved", "Go online to start getting requests nearby.", "1h", com.lezerv.app.state.Route.ArtisanMap, "Go online"),
     com.lezerv.app.state.Notice(4, com.lezerv.app.state.Role.Artisan, "₦8,000 released", "Blocked shower drain · Femi A. confirmed", "Yesterday", com.lezerv.app.state.Route.Earnings, "View earnings", read = true),
 )
@@ -164,3 +164,60 @@ val PAY_METHODS = listOf(
 )
 const val PAID_THIS_MONTH = 112_000
 const val AVAILABLE_BALANCE = 48_200
+
+// ───────────── general app essentials: account, support, safety ─────────────
+
+/** Demo SMS code. PROPOSAL: real codes come from an SMS provider such as Termii. */
+const val DEMO_OTP = "123456"
+
+/** Chat thread key for Lezerv Support. */
+const val SUPPORT = "support"
+
+/** Areas on the drawn map, with where an address pin sits for each (map units). */
+val AREAS = listOf(
+    "Lekki Phase 1" to (360f to 530f), "Ikate" to (650f to 480f), "Osapa" to (120f to 680f), "Ikoyi" to (130f to 90f),
+)
+
+val SEED_MESSAGES = mapOf(
+    "a2" to listOf(com.lezerv.app.state.Message(false, "Hello, I saw your request. Is the leak under the sink or from the tap?", "09:12")),
+    "a1" to listOf(com.lezerv.app.state.Message(false, "Thank you for the review, Amaka.", "12 Sep")),
+)
+
+val SEED_PAST = listOf(
+    com.lezerv.app.state.PastJob("a1", "Deep clean", "12 Sep", 26775, "J-0141", 25500, 1275, "Visa ••2291"),
+    com.lezerv.app.state.PastJob("a4", "Socket repair", "28 Aug", 7350, "J-0139", 7000, 350, "Bank transfer"),
+)
+
+/** PROPOSAL: kept by the artisan if you cancel after they set off. */
+const val CANCEL_FEE = 1000
+val CANCEL_REASONS = listOf("Booked by mistake", "Found someone else", "Taking too long", "Changed my mind")
+val REPORT_REASONS = listOf("Work not finished", "Damage to my property", "Charged more than agreed", "Artisan didn’t show up", "Safety concern", "Something else")
+const val SAFETY_REASON = 4
+
+val LANGUAGES = listOf("English", "Pidgin", "Yorùbá", "Igbo", "Hausa")
+
+data class Faq(val q: String, val a: String)
+val FAQS = listOf(
+    Faq("How does escrow work?", "When you book, you pay Lezerv, not the artisan. We hold the money until you confirm the job is done, then release it minus our fee. If the artisan doesn’t show, you get it all back."),
+    Faq("What is the start code?", "A 4-digit code on your live job screen. Only read it out when the artisan is at your door. They can’t start the job, or get paid, without it."),
+    Faq("Can I cancel a booking?", "Yes, from the live job screen until the artisan arrives. It’s free while we confirm; once they’re on the way a ₦1,000 call-out fee goes to them."),
+    Faq("How are artisans verified?", "Every artisan uploads a government ID, proof of address and a photo. Our team checks them before the artisan can go online."),
+    Faq("Will the artisan see my phone number?", "No. Calls go through a Lezerv number and chat hides phone numbers, emails and links."),
+    Faq("Something went wrong with a job", "Open the job’s receipt and tap Report a problem. We pause the artisan’s payout while we look into it."),
+)
+
+/** Placeholder legal copy. DRAFT: must be reviewed by a Nigerian lawyer before launch. */
+val TERMS = listOf(
+    "Who we are" to "Lezerv connects people who need help at home with independent, verified artisans in Lagos. Lezerv is not the artisan’s employer.",
+    "Bookings and payment" to "Prices shown are starting prices. When you book, you pay Lezerv, which holds the money until you confirm the job is done. Lezerv charges clients a 5% service fee and artisans a 20% commission.",
+    "Cancellations" to "You can cancel until the artisan arrives. Once they are on the way, a call-out fee may apply.",
+    "Disputes" to "Report a problem within 48 hours of a job. Lezerv pauses the payout and decides refunds case by case.",
+    "Your account" to "Keep your account details accurate and don’t share your start codes. You can delete your account at any time in Settings.",
+)
+val PRIVACY = listOf(
+    "What we collect" to "Your name, phone number, email, saved addresses, job details, chat messages and, while a job is live, location.",
+    "Why" to "To match you with artisans nearby, process payments through our payment provider, keep everyone safe and resolve disputes.",
+    "Who sees it" to "Artisans see your first name and approximate area until you book, then your address for that job. They never see your phone number.",
+    "Your rights" to "Under the Nigeria Data Protection Act 2023 you can ask for a copy of your data, correct it or delete your account.",
+    "Retention" to "When you delete your account we remove your personal data within 30 days, except records we must keep by law.",
+)

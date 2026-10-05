@@ -64,12 +64,33 @@ architecture plan (v2 books directly and is native Kotlin), and the escrow timel
 Not carried over (they would change how booking works): Home with "Post a job", the
 artisan Job board with "I'm interested", and estimate/firm price quotes.
 
+## General app essentials
+
+Pages most on-demand service apps need, added beyond the designs:
+
+| Area | Pages | Code |
+|---|---|---|
+| Sign-in | Welcome, phone number, 6-digit SMS code, your details; guests can look around and are asked to sign in only when they pay | `AuthScreens.kt`, `state/AccountState.kt` |
+| Booking | Saved addresses (list, add/edit, picker on the booking screen), payment methods + add card (Luhn-checked), cancel booking with refund, receipts | `EssentialScreens.kt` |
+| Support | Help centre (FAQ), Lezerv Support chat, report a problem (creates a ticket, pauses payout) | `EssentialScreens.kt` |
+| Trust | Safety centre (call 112, trusted contact, how we keep you safe), Terms and Privacy (DRAFT text) | `EssentialScreens.kt`, `data/SampleData.kt` |
+| Account | Settings (notification switches, language, log out), edit profile, **delete account** (required by Google Play) | `EssentialScreens.kt` |
+| Growth | Invite friends with a referral code (amounts are a PROPOSAL) | `EssentialScreens.kt` |
+| Artisan | Services and prices editor | `EssentialScreens.kt` |
+
+`state/AccountState.kt` holds everything about the person (sign-in, profile, addresses,
+cards, settings) so `LezervState` stays about jobs. Signing out clears all personal data.
+`verify-desktop` also runs behaviour checks for the sign-in gate, cancel refunds and
+card validation (`gradle renderScreens` prints PASS/FAIL).
+
 ## Demo mode
 
 `DEMO_MODE` (in `app/build.gradle.kts`) keeps the prototype's helpers so every flow can be
 clicked through on sample data:
 
 - **Account → "Demo · switch to artisan/client"**, **"Demo · simulate offline"** and **"Demo · reset"**
+- The demo build starts signed in as the sample user; **Settings → Log out** shows the sign-in flow
+  (demo SMS code **123456**). With `DEMO_MODE` off the app starts as a guest.
 - **"Prototype · skip ahead"** on live tracking, **"Demo: fill 4827"** on the start-code step
 
 Try: Explore → tap Tunde's pin → Book now → Pay → watch him drive → skip ahead → Confirm →
@@ -105,5 +126,7 @@ You can ignore it in Android Studio, or delete it.
 - **PROPOSAL items needing backend** — escrow, start codes, masked calls, the request timer,
   earnings and payouts, push delivery (FCM), document upload to a private bucket, bank
   account-name lookup and the BVN check.
+- **Business decisions marked PROPOSAL** — cancellation fee (₦1,000), referral amounts, SMS
+  provider, and the Terms/Privacy text (draft, needs a Nigerian lawyer's review).
 - **Onboarding steps 1, 3 and 4** (profile, services, review) aren't designed yet; only step 2
   (verification) is on the Board.

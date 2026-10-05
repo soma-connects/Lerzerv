@@ -71,7 +71,7 @@ fun PaySheet(s: LezervState) {
                         LzIcon(m.icon, 22, if (on) Lz.Accent800 else Lz.Ink)
                         Column(Modifier.weight(1f)) {
                             Txt(m.title.uppercase(), heading(20, 22, tracking = .03f))
-                            Txt(m.sub, body(12, 16, color = Lz.Neutral700))
+                            Txt(if (i == 1) s.account.defaultCard?.let { "${it.label} · or a new card" } ?: m.sub else m.sub, body(12, 16, color = Lz.Neutral700))
                         }
                         if (on) LzIcon("check", 20, Lz.Accent700)
                     }

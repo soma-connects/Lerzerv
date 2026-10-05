@@ -95,8 +95,8 @@ fun Txt(text: String, style: TextStyle, modifier: Modifier = Modifier, maxLines:
 
 /** "01 ── LABEL ────────" section heading with the Modernist 2dp ink rule. */
 @Composable
-fun SectionRule(num: String, title: String, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+fun SectionRule(num: String, title: String, modifier: Modifier = Modifier, gutter: Dp = 20.dp) {
+    Row(modifier.fillMaxWidth().padding(horizontal = gutter), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Txt(num, heading(15, color = Lz.Accent700))
         Txt(title.uppercase(), label())
         Box(Modifier.weight(1f).height(2.dp).background(Lz.Ink))

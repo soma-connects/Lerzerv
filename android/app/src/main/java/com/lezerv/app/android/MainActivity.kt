@@ -2,6 +2,8 @@ package com.lezerv.app.android
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.Network
@@ -31,7 +33,9 @@ import com.lezerv.app.ui.theme.LzFonts
  * which would otherwise recreate the Activity and lose an in-progress booking.
  */
 class MainViewModel : ViewModel() {
-    val state = LezervState(demo = BuildConfig.DEMO_MODE)
+    // The demo build starts signed in as the sample user (Settings → Log out shows sign-in);
+    // a real build starts as a guest who can look around first.
+    val state = LezervState(demo = BuildConfig.DEMO_MODE, signedIn = BuildConfig.DEMO_MODE)
 }
 
 private val fonts = LzFonts(
@@ -62,6 +66,13 @@ class MainActivity : ComponentActivity() {
         appState = state
         state.requestNotificationPermission = {
             if (Build.VERSION.SDK_INT >= 33) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        // Opens the dialer with the number filled in; the user presses call (no permission needed).
+        state.dial = { number -> startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
+        // Android's share sheet: WhatsApp, SMS, email…
+        state.share = { text ->
+            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+            startActivity(Intent.createChooser(send, null))
         }
         watchNetwork(state)
         // Draw behind the system bars with dark icons on the light Lezerv ground.
@@ -95,6 +106,8 @@ class MainActivity : ComponentActivity() {
         networkCallback?.let(connectivity::unregisterNetworkCallback)
         // The ViewModel outlives this Activity; don't leave it holding a launcher from a dead one.
         appState.requestNotificationPermission = null
+        appState.dial = null
+        appState.share = null
         super.onDestroy()
     }
 }

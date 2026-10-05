@@ -225,18 +225,19 @@ fun BookScreen(s: LezervState) {
     }) {
         if (a.laundry) LaundryForm(s) else ServiceForm(s, a)
         SectionRule(if (a.laundry) "04" else "03", "Where", Modifier.padding(top = 24.dp, bottom = 12.dp))
+        val ad = s.account.currentAddress
         Column(Modifier.padding(horizontal = 20.dp).blueprint().border(1.dp, Lz.Ink)) {
-            Box(Modifier.borderBottom(1.dp, Lz.Ink).padding(1.dp)) {
-                MapInset(109.dp, Pt(360f, 530f), s.blueprintMap) { HomePin(360f, 532f, stem = 8) }
+            if (ad != null) Box(Modifier.borderBottom(1.dp, Lz.Ink).padding(1.dp)) {
+                MapInset(109.dp, Pt(ad.x, ad.y), s.blueprintMap) { HomePin(ad.x, ad.y + 2, stem = 8) }
             }
             Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LzIcon("map-pin", 20, Lz.Accent)
                 Column(Modifier.weight(1f)) {
-                    Txt("Home · 12 Admiralty Way", body(15, weight = 600))
-                    Txt("Lekki Phase 1, Lagos · Gate code at security", body(12, color = Lz.Neutral700))
+                    Txt(ad?.title ?: "Add where the artisan should come", body(15, weight = 600))
+                    Txt(ad?.sub ?: "Saved for next time", body(12, color = Lz.Neutral700))
                 }
-                Box(Modifier.height(36.dp).tap { s.toast("Drag the pin to set a new address") }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                    Txt("CHANGE", heading(16, tracking = .05f, color = Lz.Accent700))
+                Box(Modifier.height(36.dp).tap { if (ad == null) s.account.editAddress(null) else s.account.pickingAddress = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                    Txt(if (ad == null) "ADD" else "CHANGE", heading(16, tracking = .05f, color = Lz.Accent700))
                 }
             }
         }
@@ -425,6 +426,11 @@ fun TrackScreen(s: LezervState) {
             if (!j.laundry && j.stage <= 2) StartCode(if (j.stage == 2) "$fn is here. Read out this code." else "Only share this when $fn is at your door.")
             Column(Modifier.padding(top = 16.dp)) {
                 JobSpec(j, if (j.laundry) "Laundry" else a.service.label)
+                // Ways out of a job: cancel (until arrival, see LezervState.canCancel) and help.
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    if (s.canCancel) Txt("CANCEL BOOKING", label(12, .08f, Lz.Accent700), Modifier.tap { s.openCancel() }.padding(vertical = 10.dp))
+                    Txt("GET HELP", label(12, .08f, Lz.Accent700), Modifier.tap { s.push(com.lezerv.app.state.Pushed.Help) }.padding(vertical = 10.dp))
+                }
             }
             if (action != null) PrimaryWide(action.first, onClick = action.second, modifier = Modifier.padding(top = 18.dp))
             if (s.demo && !done && action == null && j.stage != 0) {

@@ -356,9 +356,10 @@ fun ArtisanAccountScreen(s: LezervState) {
         AccountRows(
             listOf(
                 AccountRow("badge-check", "Verification", "ID and address verified") { s.push(Pushed.Verify(onboarding = false)) },
-                AccountRow("wrench", "Services and prices", "Plumbing · 3 services"),
+                AccountRow("wrench", "Services and prices", "Plumbing · ${s.account.services.count { it.on }} services") { s.push(Pushed.Services) },
                 AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
-                AccountRow("settings", "Settings", "Notifications, language"),
+                AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
+                AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
             Modifier.padding(horizontal = 20.dp),
         )

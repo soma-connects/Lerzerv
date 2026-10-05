@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
     )
 
     var clock = 1_000_000L
-    fun state() = LezervState(demo = true, clock = { clock }, splash = false)
+    fun state() = LezervState(demo = true, clock = { clock }, splash = false, signedIn = true)
     fun shot(name: String, s: LezervState) {
         val scene = ImageComposeScene(392 * 2, 774 * 2, Density(2f)) { LezervApp(s, fonts, runTicker = false) }
         repeat(3) { scene.render(it * 500_000_000L) } // let LaunchedEffects and layout settle
@@ -85,4 +85,64 @@ fun main(args: Array<String>) {
     state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 40); openTab(Tab.Messages); openChat("a2"); draft = "Call me on 0803 555 4417"; send() }.let { shot("42-chat-system", it) }
     state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30); repeat(3) { advance() }; openReview(); reviewComment = "Fixed the trap and seals in 40 minutes." ; ticks(this, 40) }.let { shot("43-review-comment", it) }
     state().apply { openTab(Tab.ClientAccount); push(Pushed.Verify(onboarding = true)); idNumber = "12345678901"; toggleDoc(1); toggleDoc(2); submitVerification(true); ticks(this, 40); openTab(Tab.Earnings) }.let { shot("44-earnings-new", it) }
+
+    // General app essentials
+    fun guest() = LezervState(demo = true, clock = { clock }, splash = false, signedIn = false)
+    guest().let { shot("50-welcome", it) }
+    guest().apply { account.startPhone(); account.onPhoneInput("0803555441") }.let { shot("51-phone", it) }
+    guest().apply { account.startPhone(); account.onPhoneInput("08035554417"); account.sendCode(); account.code = "1234"; clock += 12_000; tick() }.let { shot("52-code", it) }
+    guest().apply { account.startPhone(); account.onPhoneInput("08035554417"); account.sendCode(); account.onCodeInput("123456"); account.name = "Amaka Obi" }.let { shot("53-details", it) }
+    guest().apply { account.browseAsGuest(); openTab(Tab.ClientAccount) }.let { shot("54-guest-account", it) }
+    state().apply { openTab(Tab.ClientAccount) }.let { shot("55-account", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Addresses) }.let { shot("56-addresses", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Addresses); account.editAddress(null); account.formStreet = "4 Bishop Aboyade Cole St"; account.formArea = "Ikate" }.let { shot("57-address-edit", it) }
+    state().apply { startBooking("a2"); account.pickingAddress = true }.let { shot("58-address-picker", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Payments) }.let { shot("59-payments", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Payments); account.startAddCard(); account.onCardNumber("5399831234567891"); account.onCardExpiry("0928"); account.onCardCvv("123") }.let { shot("60-add-card", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 40); openCancel() }.let { shot("61-cancel", it) }
+    state().apply { openTab(Tab.ClientJobs); push(Pushed.Receipt("J-0141")) }.let { shot("62-receipt", it) }
+    state().apply { openTab(Tab.ClientJobs); push(Pushed.Receipt("J-0141")); startReport("J-0141", 1); reportText = "Water marks on the parquet in the sitting room."; reportPhotos = 2 }.let { shot("63-report", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Help) }.let { shot("64-help", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Safety) }.let { shot("65-safety", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Settings) }.let { shot("66-settings", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Settings); account.deleting = true }.let { shot("67-delete", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Legal(privacy = true)) }.let { shot("68-privacy", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Invite) }.let { shot("69-invite", it) }
+    state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); push(Pushed.Services) }.let { shot("70-services", it) }
+    state().apply { openTab(Tab.ClientJobs); push(Pushed.Receipt("J-0141")); startReport("J-0141"); reportText = "The sink still drips after the visit."; submitReport(); openTab(Tab.Messages); openChat("support") }.let { shot("71-support-chat", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.EditProfile) }.let { shot("72-edit-profile", it) }
+
+    // Behaviour checks for the new rules (fail loudly if a rule breaks)
+    fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
+    guest().apply {
+        account.browseAsGuest(); startBooking("a2"); openPay()
+        check("guest paying is asked to sign in", account.authStep == com.lezerv.app.state.AuthStep.Phone && !paying)
+        account.onPhoneInput("+2348035554417"); check("+234 prefix stripped to 10 digits", account.phoneDraft == "8035554417")
+        account.sendCode(); account.onCodeInput("000000"); check("wrong code rejected", account.authStep == com.lezerv.app.state.AuthStep.Code)
+        account.onCodeInput("123456"); check("new user asked for name", account.authStep == com.lezerv.app.state.AuthStep.Details)
+        account.name = "Amaka"; check("single name not accepted", !account.detailsValid)
+        account.name = "Amaka Obi"; account.saveDetails(); check("after sign-in the pay sheet opens", account.signedIn && paying)
+    }
+    state().apply {
+        startBooking("a2"); pay(); answerPrime(false)
+        check("free cancel while confirming", canCancel && cancelFee == 0)
+        ticks(this, 30); check("fee once on the way", job!!.stage == 1 && cancelFee == 1000)
+        val total = job!!.total; openCancel(); confirmCancel()
+        check("cancel refunds total minus fee", job == null && past.first().cancelled && past.first().refund == total - 1000)
+    }
+    state().apply {
+        startBooking("a2"); pay(); answerPrime(false); ticks(this, 30); advance()
+        check("no cancel after arrival", !canCancel)
+    }
+    state().apply {
+        account.onCardNumber("4111 1111 1111 1111"); account.onCardExpiry("12/29"); account.onCardCvv("123")
+        check("valid Visa passes Luhn", account.cardValid && account.cardBrand == "Visa")
+        account.onCardNumber("4111111111111112"); check("one wrong digit fails Luhn", !account.cardValid)
+        account.onCardNumber("4111111111111111"); account.onCardExpiry("1329"); check("month 13 rejected", !account.cardValid)
+    }
+    state().apply {
+        account.signOut(); check("sign out returns to welcome", !account.signedIn && account.authStep == com.lezerv.app.state.AuthStep.Welcome)
+        check("sign out clears personal history", past.isEmpty() && messages.isEmpty() && notices.isEmpty() && account.addresses.isEmpty() && account.cards.isEmpty())
+        reset(); account.loadDemoUser(); check("demo reset restores the sample user", account.signedIn && past.isNotEmpty() && account.addresses.isNotEmpty())
+    }
 }

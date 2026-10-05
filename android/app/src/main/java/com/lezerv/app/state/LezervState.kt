@@ -29,6 +29,12 @@ import com.lezerv.app.data.ID_TYPES
 import com.lezerv.app.data.PAY_METHODS
 import com.lezerv.app.data.SEED_NOTICES
 import com.lezerv.app.data.SPLASH_MS
+import com.lezerv.app.data.CANCEL_FEE
+import com.lezerv.app.data.CANCEL_REASONS
+import com.lezerv.app.data.REPORT_REASONS
+import com.lezerv.app.data.SEED_MESSAGES
+import com.lezerv.app.data.SEED_PAST
+import com.lezerv.app.data.SUPPORT
 import kotlin.math.roundToInt
 
 enum class Role { Client, Artisan }
@@ -55,6 +61,20 @@ sealed interface Pushed {
     /** Artisan onboarding step 2 (ID + documents). [onboarding] = coming from "Become an artisan". */
     data class Verify(val onboarding: Boolean) : Pushed
     data object Payout : Pushed
+    // account and support pages (general app essentials)
+    data object Addresses : Pushed
+    data object AddressEdit : Pushed
+    data object Payments : Pushed
+    data object AddCard : Pushed
+    data class Receipt(val number: String) : Pushed
+    data object Report : Pushed
+    data object Help : Pushed
+    data object Safety : Pushed
+    data object Settings : Pushed
+    data object EditProfile : Pushed
+    data class Legal(val privacy: Boolean) : Pushed
+    data object Invite : Pushed
+    data object Services : Pushed
 }
 
 /**
@@ -68,6 +88,7 @@ sealed interface Route {
     data object ArtisanMap : Route
     data object Earnings : Route
     data object Payout : Route
+    data class Receipt(val number: String) : Route
 }
 
 /** An entry in the notifications inbox (bell, top right). */
@@ -88,6 +109,8 @@ data class ClientJob(
     val total: Int, val title: String, val whenLabel: String, val express: Boolean,
     /** Support reference, e.g. J-0142. */
     val number: String = "", val payMethod: String = "",
+    /** Price before Lezerv's 5% fee, and the fee itself, for the receipt. */
+    val sub: Int = 0, val fee: Int = 0,
 ) {
     val lastStage get() = if (laundry) 5 else 4
     /** Stages where someone is driving: the artisan to you, or the laundry rider both ways. */
@@ -97,7 +120,11 @@ data class ClientJob(
 /** The artisan's accepted request. Stage 0 driving, 1 arrived (enter code), 2 working, 3 done. */
 data class ArtisanJob(val stage: Int, val t: Float, val startedAt: Long = 0L)
 
-data class PastJob(val artisanId: String, val title: String, val date: String, val total: Int, val number: String = "")
+/** A finished or cancelled job; everything its receipt needs. [refund] > 0 means money went back. */
+data class PastJob(
+    val artisanId: String, val title: String, val date: String, val total: Int, val number: String = "",
+    val sub: Int = 0, val fee: Int = 0, val method: String = "Card", val cancelled: Boolean = false, val refund: Int = 0,
+)
 data class ArtisanPast(val title: String, val sub: String, val pay: Int)
 
 data class BookTotal(val sub: Int, val extra: Int, val fee: Int) {
@@ -117,7 +144,14 @@ class LezervState(
     val demo: Boolean = true,
     private val clock: () -> Long = { System.currentTimeMillis() },
     splash: Boolean = true,
+    signedIn: Boolean = false,
 ) {
+    /** Sign-in, profile, addresses, cards, settings: see AccountState. */
+    val account = AccountState(this, signedIn)
+
+    /** Platform hooks set by MainActivity (dial a number, open the share sheet). Null in previews. */
+    var dial: ((String) -> Unit)? = null
+    var share: ((String) -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -161,7 +195,19 @@ class LezervState(
 
     // ── client job + history ──
     var job by mutableStateOf<ClientJob?>(null); private set
-    var past by mutableStateOf(listOf(PastJob("a1", "Deep clean", "12 Sep", 28000, "J-0141"), PastJob("a4", "Socket repair", "28 Aug", 7350, "J-0139"))); private set
+    // History belongs to the signed-in demo user; a guest starts empty.
+    var past by mutableStateOf(if (signedIn) SEED_PAST else emptyList()); private set
+
+    // ── cancel booking ──
+    var cancelling by mutableStateOf(false); private set
+    var cancelReason by mutableIntStateOf(0)
+
+    // ── report a problem ──
+    var reportJob by mutableStateOf(""); private set
+    var reportReason by mutableIntStateOf(0)
+    var reportText by mutableStateOf("")
+    var reportPhotos by mutableIntStateOf(0)
+    private var nextTicket = 2041
     private var nextJobNo = 142
 
     // ── pay-into-escrow sheet (first design, slide 8) ──
@@ -175,12 +221,7 @@ class LezervState(
     var reviewComment by mutableStateOf("")
 
     // ── chat ──
-    var messages by mutableStateOf(
-        mapOf(
-            "a2" to listOf(Message(false, "Hello, I saw your request. Is the leak under the sink or from the tap?", "09:12")),
-            "a1" to listOf(Message(false, "Thank you for the review, Amaka.", "12 Sep")),
-        ),
-    ); private set
+    var messages by mutableStateOf(if (signedIn) SEED_MESSAGES else emptyMap()); private set
     var chatWith by mutableStateOf<String?>(null); private set
     var draft by mutableStateOf("")
 
@@ -189,7 +230,7 @@ class LezervState(
     var offline by mutableStateOf(false); private set
 
     // ── notifications inbox ──
-    var notices by mutableStateOf(SEED_NOTICES); private set
+    var notices by mutableStateOf(if (signedIn) SEED_NOTICES else emptyList()); private set
     private var nextNoticeId = 100
     val myNotices get() = notices.filter { it.role == role }
     val unread get() = myNotices.count { !it.read }
@@ -268,10 +309,14 @@ class LezervState(
     fun push(p: Pushed) { stack = stack + p }
 
     /** True while system back should stay inside the app; false lets Android close it. */
-    val canGoBack: Boolean get() = paying || showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
+    val canGoBack: Boolean get() = account.authStep != null || cancelling || account.pickingAddress || account.deleting || paying || showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
 
     /** Android system back. Returns false when there is nothing left to go back from (exit). */
     fun back(): Boolean = when {
+        account.authStep != null -> { account.authBack(); true }
+        cancelling -> { cancelling = false; true }
+        account.pickingAddress -> { account.pickingAddress = false; true }
+        account.deleting -> { account.deleting = false; true }
         paying -> { paying = false; true }
         showPrime -> { answerPrime(false); true }
         declining -> { declining = false; true }
@@ -338,7 +383,8 @@ class LezervState(
     fun changeCount(i: Int, d: Int) { laundryCounts = laundryCounts.toMutableList().also { it[i] = (it[i] + d).coerceAtLeast(0) } }
 
     /** Opens the "Pay into escrow" sheet to pick bank transfer, card or USSD. */
-    fun openPay() { payMethod = 0; paying = true }
+    /** Guests can look around freely; paying is the moment we ask them to sign in (Board 1g). */
+    fun openPay() = account.requireSignIn { payMethod = if (account.defaultCard != null) 1 else 0; paying = true }
     fun closePay() { paying = false }
 
     /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
@@ -351,7 +397,7 @@ class LezervState(
         val b = bookTotal()
         val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
         val whenLabel = if (a.laundry) PICKUP_WINDOWS[pickupWindow] else if (whenIdx == 0) "Now" else SLOTS[slot]
-        job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express, "J-0${nextJobNo++}", PAY_METHODS[payMethod].title)
+        job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express, "J-0${nextJobNo++}", payMethodLabel, b.sub + b.extra, b.fee)
         system(a.id, "You booked ${a.first} for ${title.lowercase()}. ${naira(b.total)} is held by Lezerv until you confirm the job is done.")
         stack = listOf(Pushed.Track); tab = Tab.ClientJobs; selected = null
         notify(Role.Client, "Booked · ${a.first} has your job", "$title · ${naira(b.total)} held in escrow", Route.Track, "Track job")
@@ -375,7 +421,7 @@ class LezervState(
         val j = job ?: return
         val a = artisan(j.artisanId) ?: return
         reviewing = false; job = null
-        past = listOf(PastJob(a.id, j.title, "Today", j.total, j.number)) + past
+        past = listOf(PastJob(a.id, j.title, "Today", j.total, j.number, j.sub, j.fee, j.payMethod)) + past
         system(a.id, "Payment released to ${a.first}. You rated ${stars}★.")
         stack = emptyList(); tab = Tab.ClientJobs
         toast("Payment released to ${a.first}. Thanks for the review.")
@@ -383,9 +429,19 @@ class LezervState(
 
     // ───────────────────────────── chat ─────────────────────────────
 
-    fun openChat(artisanId: String?) { chatWith = artisanId; draft = ""; push(Pushed.Chat) }
+    fun openChat(artisanId: String?) {
+        chatWith = artisanId; draft = ""
+        if (artisanId == SUPPORT && messages[SUPPORT].isNullOrEmpty())
+            system(SUPPORT, "Lezerv Support usually replies within a few hours. Include your job number if it’s about a job.")
+        push(Pushed.Chat)
+    }
 
-    private val chatKey get() = if (role == Role.Artisan) "client" else chatWith.orEmpty()
+    /** Which thread the chat screen shows: support, the artisan's one client, or the chosen artisan. */
+    private val chatKey get() = when {
+        chatWith == SUPPORT -> SUPPORT
+        role == Role.Artisan -> "client"
+        else -> chatWith.orEmpty()
+    }
     val chatMessages: List<Message> get() = messages[chatKey].orEmpty()
 
     fun send() {
@@ -446,16 +502,71 @@ class LezervState(
     val payoutLabel get() = if (!payoutSaved) "Not added yet" else "${BANKS.firstOrNull { it.first == payoutBank }?.second ?: payoutBank} ••${payoutAccount.takeLast(4)}"
 
     /** Demo-only: put everything back to the start. */
-    fun reset() {
-        val fresh = LezervState(demo, clock)
+    /**
+     * Puts the app back to the start. [withHistory] = false is used by sign-out, so nothing
+     * personal (jobs, chats, notifications) is left for the next person on this phone.
+     */
+    fun reset(withHistory: Boolean = true) {
+        val fresh = LezervState(demo, clock, splash = false, signedIn = withHistory)
         role = fresh.role; tab = fresh.tab; stack = fresh.stack; category = fresh.category; query = ""; selected = null; sheet = Sheet.Peek
         panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; messages = fresh.messages
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
-        showPrime = false; primed = false; notices = SEED_NOTICES; declining = false; offline = false
-        paying = false; nextJobNo = 142; reviewComment = ""; payoutSaved = true
+        showPrime = false; primed = false; notices = fresh.notices; declining = false; offline = false
+        paying = false; nextJobNo = 142; reviewComment = ""; payoutSaved = true; cancelling = false; reportJob = ""
         idType = 0; idNumber = ""; docsUploaded = fresh.docsUploaded; payoutBank = fresh.payoutBank; payoutAccount = fresh.payoutAccount; bvn = ""
     }
+
+    /** "Bank transfer", "Visa ••2291" or "USSD": what the receipt says you paid with. */
+    val payMethodLabel get() = if (payMethod == 1) account.defaultCard?.label ?: "Card" else PAY_METHODS[payMethod].title
+
+    // ───────────────────────────── cancel booking ─────────────────────────────
+
+    /** Cancelling is allowed until the artisan arrives (or the laundry is picked up). */
+    val canCancel get() = job?.let { it.stage <= 1 } == true
+
+    /** PROPOSAL policy: free while confirming; once they're on the way the call-out fee is kept. */
+    val cancelFee: Int get() = job?.let { if (it.stage == 0) 0 else CANCEL_FEE.coerceAtMost(it.total) } ?: 0
+
+    fun openCancel() { if (canCancel) { cancelReason = 0; cancelling = true } }
+
+    fun confirmCancel() {
+        val j = job ?: return
+        val a = jobArtisan ?: return
+        val refund = j.total - cancelFee
+        cancelling = false; job = null
+        past = listOf(PastJob(a.id, j.title, "Today", j.total, j.number, j.sub, j.fee, j.payMethod, cancelled = true, refund = refund)) + past
+        system(a.id, "Booking ${j.number} cancelled: ${CANCEL_REASONS[cancelReason].lowercase()}. ${naira(refund)} is going back to you.")
+        notify(Role.Client, "Booking cancelled · ${naira(refund)} refunded", "${j.title} · ${j.number}. Refunds reach you in 1–3 working days.", Route.Receipt(j.number), "View receipt")
+        stack = emptyList(); tab = Tab.ClientJobs
+        toast("Cancelled. ${naira(refund)} refund on its way.")
+    }
+
+    fun pastJob(number: String) = past.firstOrNull { it.number == number }
+
+    // ───────────────────────────── report a problem ─────────────────────────────
+
+    /** Opens the report form for a job; [reason] pre-selects one (e.g. safety). */
+    fun startReport(number: String, reason: Int = 0) {
+        reportJob = number; reportReason = reason; reportText = ""; reportPhotos = 0
+        push(Pushed.Report)
+    }
+
+    /** PROPOSAL: creates a support ticket and pauses the artisan's payout until it's resolved. */
+    fun submitReport() {
+        if (reportText.trim().length < 10) { toast("Tell us a bit more (at least a sentence)"); return }
+        val ticket = "LZ-${nextTicket++}"
+        val reason = REPORT_REASONS[reportReason]
+        system(SUPPORT, "Ticket $ticket opened for $reportJob: $reason. “${reportText.trim()}”" + if (reportPhotos > 0) " · $reportPhotos photo${if (reportPhotos > 1) "s" else ""}" else "")
+        system(SUPPORT, "Thanks. We’ve paused the payout on $reportJob while we look into it. An agent replies here within 24 hours.")
+        notify(role, "We’re looking into $reportJob", "Ticket $ticket · $reason", Route.Chat(SUPPORT), "Open support chat")
+        stack = stack.dropLast(1)
+        toast("Report sent · ticket $ticket")
+    }
+
+    fun callEmergency() = dial?.invoke("112") ?: toast("Calling 112")
+
+    fun shareText(text: String) = share?.invoke(text) ?: toast("Share sheet opens here")
 
     // ───────────────────────────── notifications ─────────────────────────────
 
@@ -498,10 +609,11 @@ class LezervState(
         when (val r = n.route) {
             Route.Track -> if (job != null) stack = listOf(Pushed.Track).also { tab = Tab.ClientJobs } else openTab(Tab.ClientJobs)
             Route.Review -> if (job != null) { stack = listOf(Pushed.Track); tab = Tab.ClientJobs; openReview() } else openTab(Tab.ClientJobs)
-            is Route.Chat -> { stack = emptyList(); tab = if (role == Role.Client) Tab.Messages else homeTab; openChat(r.artisanId) }
+            is Route.Chat -> { stack = emptyList(); tab = if (role == Role.Client) Tab.Messages else Tab.ArtisanAccount; openChat(r.artisanId) }
             Route.ArtisanMap -> openTab(Tab.ArtisanMap)
             Route.Earnings -> openTab(Tab.Earnings)
             Route.Payout -> { stack = emptyList(); tab = Tab.ArtisanAccount; push(Pushed.Payout) }
+            is Route.Receipt -> { stack = emptyList(); tab = Tab.ClientJobs; push(Pushed.Receipt(r.number)) }
         }
     }
 
@@ -564,6 +676,11 @@ class LezervState(
     fun toggleOfflineDemo() = updateOffline(!offline)
 
     fun dismissDecline() { declining = false }
+
+    init {
+        // A fresh install shows the welcome after the splash; guests can still look around.
+        if (!signedIn) account.showWelcome()
+    }
 
     // ── helpers for screens ──
     val jobArtisan: Artisan? get() = artisan(job?.artisanId)
