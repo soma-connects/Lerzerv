@@ -218,7 +218,7 @@ fun BookScreen(s: LezervState) {
     val bt = s.bookTotal()
     ScrollWithBar(bar = {
         BarFigure("Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
-        PrimaryButton({ s.pay() }) {
+        PrimaryButton({ s.openPay() }) {
             Txt("PAY", heading(20, tracking = .05f, color = Color.White))
             LzIcon("arrow-right", 20, Color.White)
         }
@@ -424,9 +424,7 @@ fun TrackScreen(s: LezervState) {
                 onCall = { s.toast("Calling through a Lezerv number. Your number stays hidden.") }, onChat = { s.openChat(a.id) }, modifier = Modifier.padding(top = 12.dp))
             if (!j.laundry && j.stage <= 2) StartCode(if (j.stage == 2) "$fn is here. Read out this code." else "Only share this when $fn is at your door.")
             Column(Modifier.padding(top = 16.dp)) {
-                KvLine("Job", j.title, 13, 9.dp)
-                KvLine(if (j.laundry) "Pickup" else "When", j.whenLabel, 13, 9.dp)
-                KvLine("Held in escrow", naira(j.total), 13, 9.dp)
+                JobSpec(j, if (j.laundry) "Laundry" else a.service.label)
             }
             if (action != null) PrimaryWide(action.first, onClick = action.second, modifier = Modifier.padding(top = 18.dp))
             if (s.demo && !done && action == null && j.stage != 0) {

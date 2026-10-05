@@ -89,7 +89,7 @@ fun ClientJobsScreen(s: LezervState) {
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(p.title.uppercase(), heading(20, 22))
-                        Txt("${pa.name} · ${p.date} · ${naira(p.total)}", body(12, color = Lz.Neutral800))
+                        Txt("${p.number} · ${pa.name} · ${p.date} · ${naira(p.total)}", body(12, color = Lz.Neutral800))
                     }
                     OutlineButton("Book again", { s.startBooking(pa.id) }, icon = "refresh-cw", height = 40.dp, fontSize = 15)
                 }
@@ -136,10 +136,12 @@ fun ChatScreen(s: LezervState) {
     val scroll = rememberScrollState()
     LaunchedEffect(msgs.size) { scroll.scrollTo(scroll.maxValue) }
     Column(Modifier.fillMaxSize()) {
+        ChatProtectionBanner()
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val maxBubble = maxWidth * 0.78f
             Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 msgs.forEach { m ->
+                    if (m.system) { SystemLine(m.text); return@forEach }
                     Column(
                         Modifier.align(if (m.me) Alignment.End else Alignment.Start).widthIn(max = maxBubble)
                             .then(
@@ -254,6 +256,12 @@ fun ReviewSheet(s: LezervState) {
             FlowRow(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 REVIEW_TAGS.forEach { t -> ChoiceChip(t, t in s.reviewTags, { s.toggleTag(t) }) }
             }
+            BasicTextField(
+                s.reviewComment, { s.reviewComment = it.take(500) },
+                Modifier.padding(top = 14.dp).fillMaxWidth().heightIn(min = 64.dp).background(Lz.Surface).border(1.dp, Lz.Divider).padding(horizontal = 12.dp, vertical = 10.dp),
+                textStyle = body(14, 20), cursorBrush = SolidColor(Lz.Accent),
+                decorationBox = { inner -> Box { if (s.reviewComment.isEmpty()) Txt("Comment (optional)", body(14, 20, color = Lz.Neutral600)); inner() } },
+            )
             Row(Modifier.padding(top = 16.dp).fillMaxWidth().borderTop(2.dp, Lz.Ink).padding(vertical = 12.dp)) {
                 Txt("Release to ${a.first}", body(14), Modifier.weight(1f))
                 Txt(naira(j.total), body(14, weight = 700))

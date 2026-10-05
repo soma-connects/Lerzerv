@@ -38,6 +38,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.ARTISAN_SCHEDULE
+import com.lezerv.app.data.AVAILABLE_BALANCE
+import com.lezerv.app.data.PAID_THIS_MONTH
 import com.lezerv.app.data.CLIENT_HOME
 import com.lezerv.app.data.DEMAND_ZONES
 import com.lezerv.app.data.DEMO_START_CODE
@@ -297,13 +299,37 @@ fun EarningsScreen(s: LezervState) {
         Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             week.forEachIndexed { i, (d, _) -> Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { Txt(d, label(11, .1f, if (i == 6) Lz.Accent700 else Lz.Neutral700)) } }
         }
+        // Available / held / paid out: the three states money moves through (first design, slide 13).
         Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp).fillMaxWidth().blueprint().border(1.dp, Lz.Ink)) {
-            Column(Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp)) { Txt("AVAILABLE", label(10, color = Lz.Neutral700)); Txt(naira(48200), heading(30, weight = 700)) }
-            Column(Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp)) { Txt("HELD IN ESCROW", label(10, color = Lz.Neutral700)); Txt(naira(s.earnedToday), heading(30, weight = 700)) }
+            MoneyCell("Available", naira(AVAILABLE_BALANCE), "to withdraw", Modifier.weight(1f))
+            MoneyCell("In escrow", naira(s.earnedToday), "until confirmed", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
+            MoneyCell("Paid out", naira(PAID_THIS_MONTH), "this month", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
         }
-        PrimaryWide("Withdraw to ${s.payoutLabel}", "landmark", { s.withdraw() }, Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp))
-        SectionRule("01", "Activity", Modifier.padding(top = 28.dp, bottom = 4.dp))
+        if (!s.payoutSaved) Row(
+            Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp).fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).tap { s.push(Pushed.Payout) }.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            LzIcon("circle-alert", 20, Lz.Accent800)
+            Column {
+                Txt("Add your payout account.", body(14, 20, weight = 700, color = Lz.Accent900))
+                Txt("Bank account and BVN are needed before the first withdrawal.", body(14, 20, color = Lz.Accent900))
+            }
+        }
+        PrimaryWide(if (s.payoutSaved) "Withdraw to ${s.payoutLabel}" else "Add payout account", "landmark", { s.withdraw() }, Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp))
+        SectionRule("01", "How you are paid", Modifier.padding(top = 28.dp, bottom = 10.dp))
+        Txt("The client pays Lezerv when they book. Lezerv holds it, takes 20% commission and releases the rest when the client confirms the job is done, or automatically after 24 hours.",
+            body(14, 21, color = Lz.Neutral800), Modifier.padding(horizontal = 20.dp))
+        SectionRule("02", "Activity", Modifier.padding(top = 28.dp, bottom = 4.dp))
         CompletedList(s, plus = true)
+    }
+}
+
+@Composable
+private fun MoneyCell(k: String, v: String, sub: String, modifier: Modifier) {
+    Column(modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+        Txt(k.uppercase(), label(10, color = Lz.Neutral700), ellipsis = true)
+        Txt(v, heading(24, weight = 700))
+        Txt(sub, body(11, color = Lz.Neutral700))
     }
 }
 

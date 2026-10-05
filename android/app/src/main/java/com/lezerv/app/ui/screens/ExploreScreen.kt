@@ -152,7 +152,13 @@ fun ExploreScreen(s: LezervState) {
             IconBox("locate-fixed", { s.recenter() }, iconSize = 22, bg = Lz.Bg, fg = Lz.Accent, modifier = Modifier.shadow(1.dp).semantics { contentDescription = "My location" })
         }
 
-        ScaleBar(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = sheetH + 12.dp))
+        // What the client must act on comes first (first design, "Needs your reply"); otherwise the scale bar.
+        val reply = s.needsReply
+        if (reply != null && sel == null) NeedsReplyCard(reply.first, reply.second, {
+            s.push(com.lezerv.app.state.Pushed.Track)
+            if (s.job?.let { it.stage == it.lastStage } == true) s.openReview()
+        }, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, end = 12.dp, bottom = sheetH + 12.dp))
+        else ScaleBar(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = sheetH + 12.dp))
 
         // bottom sheet
         Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(sheetH).shadow(12.dp).background(Lz.Bg).borderTop(2.dp, Lz.Ink).padding(top = 2.dp)) {

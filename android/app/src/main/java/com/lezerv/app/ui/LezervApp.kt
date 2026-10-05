@@ -48,6 +48,7 @@ import com.lezerv.app.ui.screens.BookScreen
 import com.lezerv.app.ui.screens.DeclineSheet
 import com.lezerv.app.ui.screens.NotificationsScreen
 import com.lezerv.app.ui.screens.OfflineBanner
+import com.lezerv.app.ui.screens.PaySheet
 import com.lezerv.app.ui.screens.PayoutScreen
 import com.lezerv.app.ui.screens.PrimeScreen
 import com.lezerv.app.ui.screens.SplashScreen
@@ -88,6 +89,7 @@ fun LezervApp(state: LezervState, fonts: LzFonts, modifier: Modifier = Modifier,
             }
             if (state.reviewing) ReviewSheet(state)
             if (state.declining && state.requestOpen) DeclineSheet(state)
+            if (state.paying) PaySheet(state)
             if (state.showPrime) PrimeScreen(state)
             state.snack?.let { Snackbar(it, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, end = 12.dp, bottom = if (state.top == null) 88.dp else 84.dp)) }
             if (state.showSplash) SplashScreen(state.splashProgress)

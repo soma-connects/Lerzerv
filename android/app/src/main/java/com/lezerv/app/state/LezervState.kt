@@ -26,6 +26,7 @@ import com.lezerv.app.data.optionPrice
 import com.lezerv.app.data.BANKS
 import com.lezerv.app.data.DECLINE_REASONS
 import com.lezerv.app.data.ID_TYPES
+import com.lezerv.app.data.PAY_METHODS
 import com.lezerv.app.data.SEED_NOTICES
 import com.lezerv.app.data.SPLASH_MS
 import kotlin.math.roundToInt
@@ -78,12 +79,15 @@ data class Notice(
 enum class Sheet { Peek, List }
 
 /** [pending] = written while offline; it is sent automatically on reconnect. */
-data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false, val pending: Boolean = false)
+/** [system] = a centred line Lezerv writes into the thread (bookings, hidden details, payments). */
+data class Message(val me: Boolean, val text: String, val at: String, val masked: Boolean = false, val pending: Boolean = false, val system: Boolean = false)
 
 /** The client's live booking. [stage] indexes SERVICE_STEPS or LAUNDRY_STEPS; [t] is 0..1 progress along the route. */
 data class ClientJob(
     val artisanId: String, val laundry: Boolean, val stage: Int, val t: Float,
     val total: Int, val title: String, val whenLabel: String, val express: Boolean,
+    /** Support reference, e.g. J-0142. */
+    val number: String = "", val payMethod: String = "",
 ) {
     val lastStage get() = if (laundry) 5 else 4
     /** Stages where someone is driving: the artisan to you, or the laundry rider both ways. */
@@ -93,7 +97,7 @@ data class ClientJob(
 /** The artisan's accepted request. Stage 0 driving, 1 arrived (enter code), 2 working, 3 done. */
 data class ArtisanJob(val stage: Int, val t: Float, val startedAt: Long = 0L)
 
-data class PastJob(val artisanId: String, val title: String, val date: String, val total: Int)
+data class PastJob(val artisanId: String, val title: String, val date: String, val total: Int, val number: String = "")
 data class ArtisanPast(val title: String, val sub: String, val pay: Int)
 
 data class BookTotal(val sub: Int, val extra: Int, val fee: Int) {
@@ -157,12 +161,18 @@ class LezervState(
 
     // ── client job + history ──
     var job by mutableStateOf<ClientJob?>(null); private set
-    var past by mutableStateOf(listOf(PastJob("a1", "Deep clean", "12 Sep", 28000), PastJob("a4", "Socket repair", "28 Aug", 7350))); private set
+    var past by mutableStateOf(listOf(PastJob("a1", "Deep clean", "12 Sep", 28000, "J-0141"), PastJob("a4", "Socket repair", "28 Aug", 7350, "J-0139"))); private set
+    private var nextJobNo = 142
+
+    // ── pay-into-escrow sheet (first design, slide 8) ──
+    var paying by mutableStateOf(false); private set
+    var payMethod by mutableIntStateOf(0)
 
     // ── review sheet ──
     var reviewing by mutableStateOf(false); private set
     var stars by mutableIntStateOf(5)
     var reviewTags by mutableStateOf(listOf("On time"))
+    var reviewComment by mutableStateOf("")
 
     // ── chat ──
     var messages by mutableStateOf(
@@ -193,6 +203,8 @@ class LezervState(
     // ── payout account ──
     var payoutBank by mutableStateOf("Guaranty Trust Bank")
     var payoutAccount by mutableStateOf("0123454821")
+    /** False for a brand-new artisan: Earnings then asks them to add an account first. */
+    var payoutSaved by mutableStateOf(true); private set
     var bvn by mutableStateOf("")
     var bankListOpen by mutableStateOf(false)
 
@@ -256,10 +268,11 @@ class LezervState(
     fun push(p: Pushed) { stack = stack + p }
 
     /** True while system back should stay inside the app; false lets Android close it. */
-    val canGoBack: Boolean get() = showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
+    val canGoBack: Boolean get() = paying || showPrime || declining || bankListOpen || reviewing || stack.isNotEmpty() || selected != null || sheet == Sheet.List || tab != homeTab
 
     /** Android system back. Returns false when there is nothing left to go back from (exit). */
     fun back(): Boolean = when {
+        paying -> { paying = false; true }
         showPrime -> { answerPrime(false); true }
         declining -> { declining = false; true }
         bankListOpen -> { bankListOpen = false; true }
@@ -324,13 +337,22 @@ class LezervState(
 
     fun changeCount(i: Int, d: Int) { laundryCounts = laundryCounts.toMutableList().also { it[i] = (it[i] + d).coerceAtLeast(0) } }
 
+    /** Opens the "Pay into escrow" sheet to pick bank transfer, card or USSD. */
+    fun openPay() { payMethod = 0; paying = true }
+    fun closePay() { paying = false }
+
+    /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
+    fun artisanTakeHome(b: BookTotal) = ((b.sub + b.extra) * 0.8).roundToInt()
+
     /** PROPOSAL: escrow. Payment is held by Lezerv until the client confirms the job is done. */
     fun pay() {
+        paying = false
         val a = artisan(bookArtisan) ?: return
         val b = bookTotal()
         val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
         val whenLabel = if (a.laundry) PICKUP_WINDOWS[pickupWindow] else if (whenIdx == 0) "Now" else SLOTS[slot]
-        job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express)
+        job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express, "J-0${nextJobNo++}", PAY_METHODS[payMethod].title)
+        system(a.id, "You booked ${a.first} for ${title.lowercase()}. ${naira(b.total)} is held by Lezerv until you confirm the job is done.")
         stack = listOf(Pushed.Track); tab = Tab.ClientJobs; selected = null
         notify(Role.Client, "Booked · ${a.first} has your job", "$title · ${naira(b.total)} held in escrow", Route.Track, "Track job")
         val paid = "${naira(b.total)} paid into Lezerv escrow"
@@ -345,7 +367,7 @@ class LezervState(
         job = j.copy(stage = j.stage + 1, t = 0f).also(::onStage)
     }
 
-    fun openReview() { reviewing = true; stars = 5; reviewTags = listOf("On time") }
+    fun openReview() { reviewing = true; stars = 5; reviewTags = listOf("On time"); reviewComment = "" }
 
     fun toggleTag(t: String) { reviewTags = if (t in reviewTags) reviewTags - t else reviewTags + t }
 
@@ -353,7 +375,8 @@ class LezervState(
         val j = job ?: return
         val a = artisan(j.artisanId) ?: return
         reviewing = false; job = null
-        past = listOf(PastJob(a.id, j.title, "Today", j.total)) + past
+        past = listOf(PastJob(a.id, j.title, "Today", j.total, j.number)) + past
+        system(a.id, "Payment released to ${a.first}. You rated ${stars}★.")
         stack = emptyList(); tab = Tab.ClientJobs
         toast("Payment released to ${a.first}. Thanks for the review.")
     }
@@ -371,8 +394,8 @@ class LezervState(
         val m = maskContacts(t)
         messages = messages + (chatKey to (messages[chatKey].orEmpty() + Message(true, m, "Now", m != t, pending = offline)))
         draft = ""
-        if (m != t) toast("Contact details are hidden to keep payment on Lezerv")
-        else if (offline) toast("You’re offline. It sends when you reconnect.")
+        if (m != t) system(chatKey, "We hid contact details from your message. Keep chat and payment on Lezerv.")
+        if (offline) toast("You’re offline. It sends when you reconnect.")
     }
 
     // ───────────────────────────── artisan ─────────────────────────────
@@ -392,7 +415,7 @@ class LezervState(
         toast("Declined · ${DECLINE_REASONS[declineReason].lowercase()}. Your acceptance rate is 94%.")
     }
 
-    fun acceptRequest() { requestOpen = false; declining = false; artisanJob = ArtisanJob(0, 0f); code = ""; stack = listOf(Pushed.Navigate) }
+    fun acceptRequest() { system("client", "You accepted Amaka’s request. Keep chat and payment on Lezerv."); requestOpen = false; declining = false; artisanJob = ArtisanJob(0, 0f); code = ""; stack = listOf(Pushed.Navigate) }
 
     val codeOk get() = code == DEMO_START_CODE
 
@@ -415,9 +438,12 @@ class LezervState(
         toast("₦6,400 added to escrow. Released when Amaka confirms.")
     }
 
-    fun withdraw() = toast("₦48,200 on its way to $payoutLabel")
+    fun withdraw() {
+        if (!payoutSaved) { push(Pushed.Payout); return }
+        toast("₦48,200 on its way to $payoutLabel")
+    }
 
-    val payoutLabel get() = "${BANKS.firstOrNull { it.first == payoutBank }?.second ?: payoutBank} ••${payoutAccount.takeLast(4)}"
+    val payoutLabel get() = if (!payoutSaved) "Not added yet" else "${BANKS.firstOrNull { it.first == payoutBank }?.second ?: payoutBank} ••${payoutAccount.takeLast(4)}"
 
     /** Demo-only: put everything back to the start. */
     fun reset() {
@@ -427,10 +453,30 @@ class LezervState(
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
         showPrime = false; primed = false; notices = SEED_NOTICES; declining = false; offline = false
+        paying = false; nextJobNo = 142; reviewComment = ""; payoutSaved = true
         idType = 0; idNumber = ""; docsUploaded = fresh.docsUploaded; payoutBank = fresh.payoutBank; payoutAccount = fresh.payoutAccount; bvn = ""
     }
 
     // ───────────────────────────── notifications ─────────────────────────────
+
+    /** Adds a centred Lezerv line to a chat thread. */
+    private fun system(key: String, text: String) {
+        messages = messages + (key to (messages[key].orEmpty() + Message(false, text, "Now", system = true)))
+    }
+
+    /**
+     * The one thing the client must do right now, if any: shown as a "Needs your reply" card
+     * on the map. Derived from the job, so it can never disagree with the tracking screen.
+     */
+    val needsReply: Pair<String, String>? get() {
+        val j = job ?: return null
+        val a = jobArtisan ?: return null
+        return when {
+            j.stage == j.lastStage -> "Rate ${a.first} and release ${naira(j.total)}" to "${j.title} is done. Payment stays in escrow until you confirm."
+            !j.laundry && j.stage == 2 -> "${a.first} is at your gate" to "Share your start code so the job can begin."
+            else -> null
+        }
+    }
 
     private fun notify(r: Role, title: String, body: String, route: Route, action: String) {
         notices = listOf(Notice(nextNoticeId++, r, title, body, "now", route, action)) + notices
@@ -495,6 +541,7 @@ class LezervState(
         if (!verifyReady) { toast(if (idNumber.length != idDigits) "Enter your ${idDigits}-character ${ID_TYPES[idType].first}" else "Add all three documents"); return }
         if (onboarding && demo) {
             switchRole(Role.Artisan)
+            payoutSaved = false; payoutAccount = "" // a new artisan has no bank details yet
             notify(Role.Artisan, "Documents received", "We’ll review them within 24 hours. Set up payouts meanwhile.", Route.Payout, "Add payout account")
             toast("Sent for review. Welcome to Lezerv.")
         } else {
@@ -509,7 +556,7 @@ class LezervState(
 
     fun savePayout() {
         if (!payoutReady) { toast(if (accountName == null) "Account number is 10 digits" else "BVN is 11 digits"); return }
-        bvn = ""; stack = stack.dropLast(1)
+        bvn = ""; payoutSaved = true; stack = stack.dropLast(1)
         toast("Payouts go to $payoutLabel")
     }
 

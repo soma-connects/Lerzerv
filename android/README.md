@@ -50,6 +50,20 @@ backend exists, `LezervState`'s actions become calls to a repository, and nothin
 Left out on purpose: the post-a-job board, estimate/firm quotes and the Capacitor
 architecture plan (v2 books directly and is native Kotlin), and the escrow timeline.
 
+## Added from the first design (Lezerv App Deck)
+
+`ui/screens/DeckScreens.kt` adds the deck's screens that fit the map-first flow:
+
+- **Pay into escrow** sheet: bank transfer, card or USSD, with the artisan's take-home after 20%
+- **Job spec block** on the live job: job number (J-0142), status pill, service, when, escrow
+- **"Needs your reply"** card on the map when the client must share the start code or rate
+- **Chat**: "contact details are hidden" banner and centred system lines (booked, hidden, released)
+- **Review**: optional comment
+- **Earnings**: available / in escrow / paid out, "add your payout account" reminder, "how you are paid"
+
+Not carried over (they would change how booking works): Home with "Post a job", the
+artisan Job board with "I'm interested", and estimate/firm price quotes.
+
 ## Demo mode
 
 `DEMO_MODE` (in `app/build.gradle.kts`) keeps the prototype's helpers so every flow can be

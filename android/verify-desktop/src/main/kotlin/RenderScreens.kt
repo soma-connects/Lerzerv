@@ -48,14 +48,14 @@ fun main(args: Array<String>) {
     state().apply { push(Pushed.Profile("a2")) }.let { shot("05-profile", it) }
     state().apply { startBooking("a2"); whenIdx = 1 }.let { shot("06-book-service", it) }
     state().apply { startBooking("a3"); express = true }.let { shot("07-book-laundry", it) }
-    state().apply { startBooking("a2"); pay(); ticks(this, 30 + 50) }.let { shot("08-track-driving", it) }
-    state().apply { startBooking("a2"); pay(); ticks(this, 30); advance() }.let { shot("09-track-arrived", it) }
-    state().apply { startBooking("a3"); pay(); ticks(this, 30 + 112); ticks(this, 1) }.let { shot("10-track-laundry", it) }
-    state().apply { startBooking("a2"); pay(); ticks(this, 30 + 50); openTab(Tab.ClientJobs) }.let { shot("11-client-jobs", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30 + 50) }.let { shot("08-track-driving", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30); advance() }.let { shot("09-track-arrived", it) }
+    state().apply { startBooking("a3"); pay(); answerPrime(false); ticks(this, 30 + 112); ticks(this, 1) }.let { shot("10-track-laundry", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30 + 50); openTab(Tab.ClientJobs) }.let { shot("11-client-jobs", it) }
     state().apply { openTab(Tab.Messages) }.let { shot("12-messages", it) }
     state().apply { openChat("a2"); draft = "Call me on 0803 555 4417"; send() }.let { shot("13-chat-masked", it) }
     state().apply { openTab(Tab.ClientAccount) }.let { shot("14-client-account", it) }
-    state().apply { startBooking("a2"); pay(); ticks(this, 30); repeat(3) { advance() }; openReview() }.let { shot("15-review", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30); repeat(3) { advance() }; openReview() }.let { shot("15-review", it) }
 
     state().apply { switchRole(Role.Artisan) }.let { shot("20-artisan-offline", it) }
     state().apply { switchRole(Role.Artisan); toggleOnline(); ticks(this, 30) ; ticks(this, 80) }.let { shot("21-artisan-request", it) }
@@ -78,4 +78,11 @@ fun main(args: Array<String>) {
     state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); push(Pushed.Payout); bvn = "12345" }.let { shot("37-payout", it) }
     state().apply { switchRole(Role.Artisan); toggleOnline(); ticks(this, 30); declineRequest(); declineReason = 0 }.let { shot("38-decline", it) }
     state().apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount) }.let { shot("39-artisan-account", it) }
+
+    // First-design (deck) additions
+    state().apply { startBooking("a2"); openPay(); payMethod = 1 }.let { shot("40-pay-sheet", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30 + 112); openTab(Tab.Explore) }.let { shot("41-needs-reply", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 40); openTab(Tab.Messages); openChat("a2"); draft = "Call me on 0803 555 4417"; send() }.let { shot("42-chat-system", it) }
+    state().apply { startBooking("a2"); pay(); answerPrime(false); ticks(this, 30); repeat(3) { advance() }; openReview(); reviewComment = "Fixed the trap and seals in 40 minutes." ; ticks(this, 40) }.let { shot("43-review-comment", it) }
+    state().apply { openTab(Tab.ClientAccount); push(Pushed.Verify(onboarding = true)); idNumber = "12345678901"; toggleDoc(1); toggleDoc(2); submitVerification(true); ticks(this, 40); openTab(Tab.Earnings) }.let { shot("44-earnings-new", it) }
 }

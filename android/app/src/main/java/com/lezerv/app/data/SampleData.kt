@@ -152,3 +152,15 @@ val BANKS = listOf(
 )
 
 val DECLINE_REASONS = listOf("Too far from me", "Busy right now", "Not my kind of job", "Price too low")
+
+// ───────────── from the first design (Lezerv App Deck) ─────────────
+
+data class PayMethod(val title: String, val sub: String, val icon: String)
+/** PROPOSAL: Paystack (card, bank transfer, USSD) once keys are connected. */
+val PAY_METHODS = listOf(
+    PayMethod("Bank transfer", "Pay from any Nigerian bank app", "landmark"),
+    PayMethod("Card", "Verve, Mastercard, Visa", "credit-card"),
+    PayMethod("USSD", "No data needed", "hash"),
+)
+const val PAID_THIS_MONTH = 112_000
+const val AVAILABLE_BALANCE = 48_200
