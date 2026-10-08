@@ -155,9 +155,11 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
 10. **`resend-email` is an open mail relay.** The Edge Function sends any email, to any
     address, with any subject and HTML, for anyone holding the public anon key (which the
     website ships to every visitor): default JWT checks accept the anon key. Someone can
-    send convincing phishing "from Lezerv". Fix: have the website call an RPC or a
-    function that builds the booking email server-side from a booking id, and let only
-    the database (shared secret, as `send-push` does) call `resend-email`.
+    send convincing phishing "from Lezerv". **Fixed by 0026** on `claude/mobile-backend`:
+    triggers build all six emails in the database (recipients from rows the database
+    holds, fixed escaped templates, per-address and hourly limits), `resend-email`
+    accepts only the service-role key, and a website pull request removes the browser's
+    email code. Setup and deploy order: `supabase/EMAILS.md` in the backend repo.
 11. **The website never saves an artisan's location.** "Become an artisan" doesn't send
     `p_lat` / `p_lng`, so every approved artisan had none and the app's map was empty.
     0025 places them at their service areas meanwhile; the real fix is a "pin your base"
