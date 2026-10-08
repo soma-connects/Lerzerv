@@ -5,7 +5,6 @@ import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck } from 'lucide-react
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { ambassadorService } from '../services/ambassadorService';
-import { emailService } from '../services/emailService';
 import './Login.css'; // Reusing some login styles for consistency
 
 const Signup: React.FC = () => {
@@ -35,8 +34,8 @@ const Signup: React.FC = () => {
 
       if (error) throw error;
 
-      // Send a branded welcome email (fire-and-forget)
-      emailService.sendWelcomeEmail(fullName, email).catch(() => {});
+      // The welcome email is sent by the database once the address is
+      // confirmed (migration 0026), not from the browser.
 
       // Attribute referral if a code was stored from a ?ref= link
       const refCode = ambassadorService.getReferralCode();
