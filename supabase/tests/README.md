@@ -23,6 +23,7 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `harness.py` | Starts the database, applies the migrations, and runs statements as a given user (`db.as_(uid)`), like PostgREST does |
 | `test_direct_booking.py` | 0021 (no self-made admins), 0022 (phone profiles, map privacy, app tickets), 0023 (booking a chosen artisan, offers, start codes, saved addresses) |
 | `test_push.py` | 0024: registering phones, phones changing hands, what the database hands to `send-push` |
+| `test_map.py` | 0022 + 0025: the app's map, including artisans with no location shown at the area they serve |
 
 The `send-push` Edge Function has its own test, run with Node 22+:
 `node --experimental-strip-types supabase/functions/send-push/push.test.ts`
