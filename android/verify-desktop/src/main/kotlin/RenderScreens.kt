@@ -145,6 +145,7 @@ fun main(args: Array<String>) {
     twoPhones().second.apply { acceptIncoming(); openTab(Tab.ArtisanJobs) }.let { shot("97-live-artisan-jobs", it) }
     twoPhones().second.apply { openTab(Tab.ArtisanAccount) }.let { shot("98-live-artisan-account", it) }
     twoPhones().first.apply { openTab(Tab.ClientAccount) }.let { shot("99-live-client-account", it) }
+    twoPhones().second.apply { toggleOnline(); toggleOnline() }.let { shot("100-live-artisan-prime", it) }
 
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }

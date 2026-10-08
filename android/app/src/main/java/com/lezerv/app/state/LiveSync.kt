@@ -56,6 +56,8 @@ class LiveSync(
     private val app: LezervState,
     private val api: LezervApi,
     private val scope: CoroutineScope,
+    /** Sent with the push token, so the team can tell which app versions are out there. */
+    private val appVersion: String = "",
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
     /** The signed-in Supabase user, or null. */
@@ -94,6 +96,11 @@ class LiveSync(
         .let { open -> open.firstOrNull { it.id == focusedJob } ?: open.firstOrNull() }
 
     fun focus(jobId: String) { focusedJob = jobId }
+
+    /** This phone's Firebase token, once the platform has one. */
+    var pushToken: String? = null; private set
+    /** A notification tapped before the saved sign-in was back: opened once it is. */
+    private var pendingPush: Pair<String, String?>? = null
 
     /** When each ended countdown last asked the server to expire it (at most every few seconds). */
     private val expiring = mutableMapOf<String, Long>()
@@ -167,10 +174,36 @@ class LiveSync(
     fun cancelSignIn() = signOut()
 
     fun signOut() {
+        val token = pushToken
+        pendingPush = null
         chatWatch?.cancel(); noticeWatch?.cancel(); radiusSave?.cancel()
         userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null; startCodes = emptyMap()
         me = null; artisanJobs = emptyList(); arrived = emptySet(); justCompleted = null; expiring.clear()
-        scope.launch { attempt("sign out", quiet = true) { api.signOut() } }
+        scope.launch {
+            // Unregister first: once signed out, the server can't tell whose phone this is.
+            if (token != null) attempt("turn off notifications", quiet = true) { api.unregisterDevice(token) }
+            attempt("sign out", quiet = true) { api.signOut() }
+        }
+    }
+
+    // ═════════════════════════════ push ═════════════════════════════
+
+    /** The platform has a token for this phone (new install, or Google rotated it). */
+    fun setPushToken(token: String) {
+        if (token == pushToken) return
+        pushToken = token
+        if (userId != null) scope.launch { registerPush() }
+    }
+
+    private suspend fun registerPush() {
+        val token = pushToken ?: return
+        attempt("turn on notifications", quiet = true) { api.registerDevice(token, appVersion) }
+    }
+
+    /** A notification was tapped. Before the saved sign-in is back, wait for it. */
+    fun openFromPush(type: String, notificationId: String?) {
+        if (userId == null) { pendingPush = type to notificationId; return }
+        app.openPushRoute(type, notificationId)
     }
 
     /** No deletion endpoint yet, so the request goes to support, who must act within 30 days. */
@@ -184,7 +217,9 @@ class LiveSync(
         val p = attempt("load your profile", quiet = true) { api.myProfile() }
         app.account.onLiveSignIn(p?.fullName.orEmpty(), p?.email.orEmpty(), p?.phone?.let(::localPhone), restored)
         watchNotices(id)
+        registerPush()
         refresh()
+        pendingPush?.let { (type, nid) -> pendingPush = null; app.openPushRoute(type, nid) }
     }
 
     /** Re-reads everything of the person's, side by side. */
@@ -250,7 +285,7 @@ class LiveSync(
         api.setAvailability(on)
         me = me?.copy(isAvailable = on)
         app.onArtisanProfile(on, me?.serviceRadiusKm ?: app.radiusKm)
-        if (on) refreshArtisanJobs()
+        if (on) { refreshArtisanJobs(); app.onWentOnline() }
     }
 
     /** The radius slider sends many values while dragged; only the one it settles on is saved. */
@@ -398,12 +433,7 @@ class LiveSync(
     }
 
     private fun toNotice(n: NotificationDto): Notice {
-        val (route, action) = when (n.type) {
-            "message" -> Route.Messages to "Open messages"
-            "support_reply" -> Route.Chat(SUPPORT) to "Open support chat"
-            "job_offer", "job_offer_missed", "job_posted" -> Route.ArtisanMap to "Open requests"
-            else -> Route.Jobs to "View your jobs"
-        }
+        val (route, action) = routeFor(n.type)
         return Notice(app.newNoticeId(), Role.Client, n.title, n.body.orEmpty(), timeLabel(n.createdAt, app.now, zone), route, action, n.read, remoteId = n.id)
     }
 
@@ -461,6 +491,14 @@ class LiveSync(
 
     companion object {
         val OPEN_TICKET = setOf("open", "pending")
+
+        /** Where a notification of [type] leads, and its button: the same from the inbox or a push. */
+        fun routeFor(type: String): Pair<Route, String> = when (type) {
+            "message" -> Route.Messages to "Open messages"
+            "support_reply" -> Route.Chat(SUPPORT) to "Open support chat"
+            "job_offer", "job_offer_missed", "job_posted" -> Route.ArtisanMap to "Open requests"
+            else -> Route.Jobs to "View your jobs"
+        }
         /** How often an online artisan's app checks for offers, besides realtime. */
         const val POLL_MS = 15_000L
         /** How soon to ask again when the server says an offer hasn't expired yet (clock skew). */

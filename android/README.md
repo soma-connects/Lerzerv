@@ -144,6 +144,7 @@ Rebuild, and the app runs live. Without them it runs on sample data, exactly as 
 | Support chat and report a problem (`open_support_ticket`, `reply_support_ticket`) | |
 | **Artisan side**: online switch, incoming requests with accept/decline, job screen with Google Maps directions, start with the client's code (`start_job`), mark complete, jobs list, coverage radius | |
 | Delete account (sends a deletion request to support) | |
+| **Push notifications** (Firebase): requests, job updates and messages with the app closed; tapping one opens the right screen | |
 
 Before the first live run:
 
@@ -156,6 +157,26 @@ Before the first live run:
 2. **Phone sign-in needs an SMS provider** in Supabase → Authentication → Providers →
    Phone (Twilio, MessageBird, Vonage or Textlocal built in; Termii through the Send SMS
    hook). Until then use email sign-in with a lezerv.com account.
+3. **Push notifications (optional, but artisans need them):** follow
+   `supabase/PUSH_NOTIFICATIONS.md` in `soma-connects/Lerzerv`. It adds four
+   `firebase.*` lines to `local.properties`; without them the app runs without pushes.
+
+### Push notifications in the app
+
+`android/Push.kt` sets Firebase up from `local.properties` (no `google-services.json`, no
+Google services Gradle plugin), creates the *Job requests*, *Your jobs* and *Messages*
+channels, and builds each notification from the data `send-push` sends.
+`LezervMessagingService` receives pushes while the app is closed; while it's open,
+Realtime already shows everything, so pushes are skipped. `LiveSync` registers the phone
+after sign-in and unregisters it before sign-out. Tapping a notification opens the same
+screen as the in-app inbox (`LiveSync.routeFor`), after the saved sign-in is restored.
+Clients are asked about notifications after their first booking, artisans when they
+first go online, and nobody is asked if Android already allows them.
+
+These Android-only files can't be compiled in the cloud environment this was built in.
+They were checked against the real Android 14 framework classes (Robolectric's
+`android-all`) with stand-ins for Firebase and AndroidX, so a first build in Android
+Studio may still need a small fix.
 
 `docs/BACKEND_MAP.md` maps every screen to the backend (what's ready, what needs a
 migration, what's missing) and suggests a build order.

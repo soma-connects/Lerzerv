@@ -4,7 +4,9 @@ What every screen in the native app needs from the backend, what already exists 
 `soma-connects/Lerzerv` (`supabase/migrations/0001–0018` on `main`, plus `0019` and `0020` on
 unmerged branches), and what is missing.
 
-> **Update:** steps 1–3 of §5 are done (the app is connected and books directly, see §6).
+> **Update:** steps 1–3 of §5 are done (the app is connected and books directly, see §6),
+> and push notifications from step 6 (0024 + the `send-push` function, see
+> `supabase/PUSH_NOTIFICATIONS.md`).
 > The `claude/mobile-backend` branch adds **0021** (security fix), **0022** (phone
 > identities, approximate map positions, app support tickets) and **0023** (direct booking:
 > offers, start codes, saved addresses). 0023 needs 0019 and 0020 merged first.
@@ -150,6 +152,12 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
 9. Tidy-up: `upsert_artisan_profile` exists twice (0008's version was never dropped when
    0011 added the ID-document arguments). The website always sends the new arguments, so
    it works, but a call without them is ambiguous. Drop the 13-argument version.
+10. **`resend-email` is an open mail relay.** The Edge Function sends any email, to any
+    address, with any subject and HTML, for anyone holding the public anon key (which the
+    website ships to every visitor): default JWT checks accept the anon key. Someone can
+    send convincing phishing "from Lezerv". Fix: have the website call an RPC or a
+    function that builds the booking email server-side from a booking id, and let only
+    the database (shared secret, as `send-push` does) call `resend-email`.
 
 ---
 
@@ -219,3 +227,4 @@ the direct-booking flow.
 | Notifications | `notifications`, update `read`, Realtime inserts | `type` routes: `message` → Messages, `support_reply` → support chat, others → Jobs |
 | Support, report | `support_tickets`, `open_support_ticket` (0022), `reply_support_ticket`, Realtime | Reports link the job |
 | Delete account | `open_support_ticket` | Until a deletion Edge Function exists |
+| Push notifications | `register_device` / `unregister_device` (0024); a trigger on `notifications` calls the `send-push` function | Data-only FCM messages; requests expire with their offer window |

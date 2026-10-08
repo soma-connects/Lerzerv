@@ -405,7 +405,7 @@ fun SettingsScreen(s: LezervState) {
             LinkRow("user", "Edit profile", "${a.name.ifBlank { "No name yet" }} · ${a.phoneMasked}", { s.push(Pushed.EditProfile) })
             LinkRow("file-text", "Terms of service", null, { s.push(Pushed.Legal(privacy = false)) })
             LinkRow("shield-check", "Privacy policy", null, { s.push(Pushed.Legal(privacy = true)) })
-            LinkRow("info", "About Lezerv", "Version 0.1.0", { s.toast("Lezerv 0.1.0 · Lagos") })
+            LinkRow("info", "About Lezerv", "Version 0.2.0", { s.toast("Lezerv 0.2.0 · Lagos") })
         }
         OutlineButton("Log out", { a.signOut() }, Modifier.fillMaxWidth(), icon = "log-out")
         Txt("DELETE MY ACCOUNT", label(12, .08f, Lz.Neutral700), Modifier.tap { a.deleting = true }.padding(vertical = 8.dp))

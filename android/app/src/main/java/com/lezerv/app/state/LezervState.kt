@@ -181,11 +181,24 @@ class LezervState(
     val isLive get() = live != null
 
     /** Switches from sample data to the backend: the map empties, then fills with real artisans. */
-    fun connect(api: LezervApi, scope: CoroutineScope) {
+    fun connect(api: LezervApi, scope: CoroutineScope, appVersion: String = "") {
         if (live != null) return
         replaceArtisans(emptyList())
-        live = LiveSync(this, api, scope).also { it.start() }
+        live = LiveSync(this, api, scope, appVersion).also { it.start() }
     }
+
+    // ── push notifications (set by MainActivity) ──
+    /** Whether Android will show this app's notifications. Null in previews: assume not. */
+    var notificationsAllowed: (() -> Boolean)? = null
+
+    /** The phone's Firebase token, from the platform. */
+    fun setPushToken(token: String) { live?.setPushToken(token) }
+
+    /** A notification was tapped: open what it's about (after sign-in, if that's still loading). */
+    fun openFromPush(type: String, notificationId: String?) { live?.openFromPush(type, notificationId) }
+
+    /** Ask about notifications only when there's a reason and Android isn't already allowing them. */
+    private val shouldPrime get() = !primed && notificationsAllowed?.invoke() != true
 
     /** Platform hooks set by MainActivity (dial a number, open the share sheet). Null in previews. */
     var dial: ((String) -> Unit)? = null
@@ -481,8 +494,11 @@ class LezervState(
     internal fun onRequestSent(artisanFirst: String) {
         stack = emptyList(); tab = Tab.ClientJobs; selected = null
         val msg = "Request sent. Waiting for $artisanFirst to accept."
-        if (!primed) { showPrime = true; afterPrimeToast = msg } else toast(msg)
+        if (shouldPrime) { showPrime = true; afterPrimeToast = msg } else toast(msg)
     }
+
+    /** Live: an artisan going online for the first time is the moment they need notifications most. */
+    internal fun onWentOnline() { if (shouldPrime) showPrime = true }
 
     /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
     fun artisanTakeHome(b: BookTotal) = ((b.sub + b.extra) * 0.8).roundToInt()
@@ -500,7 +516,7 @@ class LezervState(
         notify(Role.Client, "Booked · ${a.first} has your job", "$title · ${naira(b.total)} held in escrow", Route.Track, "Track job")
         val paid = "${naira(b.total)} paid into Lezerv escrow"
         // First booking: ask about notifications, and keep the receipt toast until that's answered.
-        if (!primed) { showPrime = true; afterPrimeToast = paid } else toast(paid)
+        if (shouldPrime) { showPrime = true; afterPrimeToast = paid } else toast(paid)
     }
 
     /** Moves the job to its next stage (client "Confirm the job is done", or demo skip). */
@@ -815,7 +831,19 @@ class LezervState(
     fun openNotice(n: Notice) {
         notices = notices.map { if (it.id == n.id) it.copy(read = true) else it }
         if (!n.read && n.remoteId != null) live?.markRead(n.remoteId)
-        when (val r = n.route) {
+        openRoute(n.route)
+    }
+
+    /** Live: the screen a tapped push is about. Marked read like a tap in the inbox. */
+    internal fun openPushRoute(type: String, notificationId: String?) {
+        val inInbox = notices.firstOrNull { notificationId != null && it.remoteId == notificationId }
+        if (inInbox != null) { openNotice(inInbox); return }
+        notificationId?.let { live?.markRead(it) }
+        openRoute(LiveSync.routeFor(type).first)
+    }
+
+    private fun openRoute(route: Route) {
+        when (val r = route) {
             Route.Track -> if (job != null) stack = listOf(Pushed.Track).also { tab = Tab.ClientJobs } else openTab(Tab.ClientJobs)
             Route.Review -> if (job != null) { stack = listOf(Pushed.Track); tab = Tab.ClientJobs; openReview() } else openTab(Tab.ClientJobs)
             is Route.Chat -> { stack = emptyList(); tab = if (role == Role.Client) Tab.Messages else Tab.ArtisanAccount; openChat(r.artisanId) }

@@ -69,6 +69,7 @@ fun main() = runBlocking {
                 """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/accept_job_offer" -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
+            path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/start_job" -> respond("""{"started": false, "attempts_left": 3}""", HttpStatusCode.OK, json)
             path == "/rest/v1/conversations" -> respond(
                 """[{"id":"conv1","job_id":"j1","artisan_id":"7f3e","last_message_at":"2026-10-05T09:12:00+00:00","artisan":{"display_name":"Tunde Bakare"},"job":{"title":"Leak repair"}}]""", HttpStatusCode.OK, json)
@@ -169,6 +170,13 @@ fun main() = runBlocking {
     check("mark read is a PATCH on that row", sent.last().startsWith("PATCH /rest/v1/notifications?id=eq.n1") && sent.last().contains("\"read\":true"))
     api.markAllNotificationsRead()
     check("mark all read: one PATCH on my unread rows", sent.last().startsWith("PATCH /rest/v1/notifications?") && sent.last().contains("user_id=eq.user-1") && sent.last().contains("read=eq.false"))
+
+    // push
+    api.registerDevice("fcm-token-abc", "0.2.0")
+    check("register_device gets the token, platform and app version", sent.last().startsWith("POST /rest/v1/rpc/register_device") &&
+        sent.last().contains("\"p_token\":\"fcm-token-abc\"") && sent.last().contains("\"p_platform\":\"android\"") && sent.last().contains("\"p_app_version\":\"0.2.0\""))
+    api.unregisterDevice("fcm-token-abc")
+    check("unregister_device names the token", sent.last().startsWith("POST /rest/v1/rpc/unregister_device") && sent.last().contains("\"p_token\":\"fcm-token-abc\""))
 
     // support
     val t = api.openTicket("Work not finished: still dripping", "j1")

@@ -73,6 +73,8 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     )
     val notifications = mutableMapOf("user-1" to mutableListOf(NotificationDto("n1", "job_assigned", "Artisan assigned", "We matched an artisan to \"Leak repair\".", "/my-jobs", false, "2026-10-05T09:10:00+00:00")))
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
+    /** device_tokens: token → user. */
+    val devices = mutableMapOf<String, String>()
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
 
@@ -106,6 +108,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     var codeOk = "123456"
     /** Never answer the artisan list, to see the map's loading state. */
     var hangArtisans = false
+    /** Hold "restore the saved sign-in" until completed, like a slow start-up. */
+    var holdRestore: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
     // Shortcuts the checks use.
     val messageFeed get() = world.messageFeed
@@ -118,7 +122,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     private fun myArtisanId() = world.artisanUser.entries.firstOrNull { it.value == sessionUser }?.key
     private fun first(name: String?) = name?.substringBefore(' ')
 
-    override suspend fun restoreSession(): String? { log("restore"); return sessionUser }
+    override suspend fun restoreSession(): String? { log("restore"); holdRestore?.await(); return sessionUser }
     override suspend fun sendPhoneCode(phone: String) = log("otp $phone")
     override suspend fun verifyPhoneCode(phone: String, code: String): String {
         log("verify $phone $code")
@@ -289,6 +293,10 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         return MessageDto(world.next("m"), conversationId, me(), redacted, false, "2026-10-05T09:13:00+00:00").also { world.messages += it }
     }
     override fun messageInserts(conversationId: String): Flow<MessageDto> = world.messageFeed.filter { it.conversationId == conversationId }
+
+    // ── push ──
+    override suspend fun registerDevice(token: String, appVersion: String) { log("register $token $appVersion"); world.devices[token] = me() }
+    override suspend fun unregisterDevice(token: String) { log("unregister $token"); if (world.devices[token] == me()) world.devices.remove(token) }
 
     // ── notifications ──
     override suspend fun notifications(): List<NotificationDto> { log("notifications"); return world.notifications[me()].orEmpty().toList() }

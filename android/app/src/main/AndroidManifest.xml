@@ -13,6 +13,7 @@
 
     <!-- allowBackup off: the saved sign-in (Supabase session) must not be copied into cloud backups. -->
     <application
+        android:name=".android.LezervApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -21,11 +22,28 @@
         <activity
             android:name=".android.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Push notifications (Firebase Cloud Messaging). Firebase is set up in
+             LezervApplication from local.properties, so there is no google-services.json. -->
+        <service
+            android:name=".android.LezervMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="jobs" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_lezerv" />
     </application>
 </manifest>

@@ -78,6 +78,10 @@ interface LezervApi {
     fun messageInserts(conversationId: String): Flow<MessageDto>
 
     // ── notifications ──
+    /** register_device() (0024): this phone gets the person's pushes. */
+    suspend fun registerDevice(token: String, appVersion: String)
+    /** unregister_device(): called before signing out, while still allowed to. */
+    suspend fun unregisterDevice(token: String)
     suspend fun notifications(): List<NotificationDto>
     suspend fun markNotificationRead(id: String)
     suspend fun markAllNotificationsRead()

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lezerv.app.BuildConfig
@@ -42,7 +43,7 @@ class MainViewModel : ViewModel() {
     val state: LezervState = if (backend.isSet) {
         // Live: real artisans, sign-in, jobs, chat and notifications. Starts as a guest,
         // or as whoever signed in last time. viewModelScope stops its work when the app closes.
-        LezervState(demo = BuildConfig.DEMO_MODE).also { it.connect(SupabaseApi(createLezervClient(backend)), viewModelScope) }
+        LezervState(demo = BuildConfig.DEMO_MODE).also { it.connect(SupabaseApi(createLezervClient(backend)), viewModelScope, BuildConfig.VERSION_NAME) }
     } else {
         // Sample data: the demo build starts signed in as the sample user (Settings → Log out
         // shows sign-in); a non-demo build starts as a guest who can look around first.
@@ -92,6 +93,12 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent.createChooser(send, null))
         }
         watchNetwork(state)
+        // Push: the phone's token (registered once signed in), and taps on notifications.
+        state.notificationsAllowed = { NotificationManagerCompat.from(this).areNotificationsEnabled() }
+        Push.onToken = { token -> runOnUiThread { state.setPushToken(token) } }
+        Push.requestToken { token -> state.setPushToken(token) }
+        // Only on a fresh start: after a rotation the same intent comes back and must not reopen it.
+        if (savedInstanceState == null) openFromPush(intent)
         // Draw behind the system bars with dark icons on the light Lezerv ground.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
@@ -103,6 +110,27 @@ class MainActivity : ComponentActivity() {
             // safeDrawingPadding keeps content clear of the status bar, gesture bar and keyboard.
             LezervApp(state, fonts, Modifier.safeDrawingPadding())
         }
+    }
+
+    /** The app was already open and a notification was tapped (launchMode singleTop). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        openFromPush(intent)
+    }
+
+    private fun openFromPush(intent: Intent?) {
+        val type = intent?.getStringExtra(Push.EXTRA_TYPE) ?: return
+        appState.openFromPush(type, intent.getStringExtra(Push.EXTRA_ID)?.ifBlank { null })
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Push.appVisible = true
+    }
+
+    override fun onStop() {
+        Push.appVisible = false
+        super.onStop()
     }
 
     /** Feeds real connectivity into the offline banner and the queued-message retry. */
@@ -126,6 +154,8 @@ class MainActivity : ComponentActivity() {
         appState.dial = null
         appState.share = null
         appState.openMaps = null
+        appState.notificationsAllowed = null
+        Push.onToken = null
         super.onDestroy()
     }
 }

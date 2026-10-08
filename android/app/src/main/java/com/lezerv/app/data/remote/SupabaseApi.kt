@@ -223,6 +223,14 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
 
     // ───────────────────────────── notifications ─────────────────────────────
 
+    override suspend fun registerDevice(token: String, appVersion: String) {
+        db.rpc("register_device", buildJsonObject { put("p_token", token); put("p_platform", "android"); put("p_app_version", appVersion) })
+    }
+
+    override suspend fun unregisterDevice(token: String) {
+        db.rpc("unregister_device", buildJsonObject { put("p_token", token) })
+    }
+
     override suspend fun notifications(): List<NotificationDto> =
         db.from("notifications").select { order("created_at", Order.DESCENDING); limit(50) }.decodeList()
 

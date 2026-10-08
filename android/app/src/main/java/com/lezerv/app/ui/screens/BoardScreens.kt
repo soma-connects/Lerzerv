@@ -105,10 +105,14 @@ fun SplashScreen(progress: Float) {
 fun PrimeScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().background(Lz.Bg).tap { }.verticalScroll(rememberScrollState()).padding(start = 22.dp, end = 22.dp, top = 30.dp, bottom = 20.dp)) {
         Box(Modifier.blueprint().size(64.dp).background(Lz.Accent100).border(1.dp, Lz.Accent), contentAlignment = Alignment.Center) { LzIcon("bell", 32, Lz.Accent800) }
-        Txt("KNOW THE MOMENT THEY’RE ON THE WAY.", heading(52, 48), Modifier.padding(top = 22.dp, bottom = 12.dp))
-        Txt("Artisans move fast. Turn on notifications so you don’t have to keep the app open.", body(16, 24, color = Lz.Neutral800))
+        val artisan = s.role == com.lezerv.app.state.Role.Artisan
+        // Artisans: requests only last seconds, so this is what keeps them earning with the app closed.
+        Txt(if (artisan) "GET REQUESTS WITH THE APP CLOSED." else "KNOW THE MOMENT THEY’RE ON THE WAY.", heading(52, 48), Modifier.padding(top = 22.dp, bottom = 12.dp))
+        Txt(if (artisan) "Clients book you directly and you have seconds to accept. Notifications reach you even when Lezerv isn’t open."
+            else "Artisans move fast. Turn on notifications so you don’t have to keep the app open.", body(16, 24, color = Lz.Neutral800))
         Column(Modifier.padding(top = 22.dp).borderTop(1.dp, Lz.Ink)) {
-            listOf("navigation" to "Your artisan sets off to you", "key-round" to "They reach your gate and need the start code", "message-square" to "You get a new message").forEach { (ic, t) ->
+            (if (artisan) listOf("timer" to "A client books you: accept before the timer runs out", "message-square" to "A client sends you a message", "circle-alert" to "A request is withdrawn or a job changes")
+            else listOf("navigation" to "Your artisan sets off to you", "key-round" to "They reach your gate and need the start code", "message-square" to "You get a new message")).forEach { (ic, t) ->
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 13.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     LzIcon(ic, 22, Lz.Accent700); Txt(t, body(15, 21))
                 }

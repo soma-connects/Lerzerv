@@ -29,8 +29,8 @@ val LIVE_NOW: Long = OffsetDateTime.parse("2026-10-05T12:00:00Z").toInstant().to
  * away on the calling thread, and the fake never really waits, so every action has
  * finished by the time the call returns: the checks can look at the result straight after.
  */
-fun liveApp(api: FakeBackend, clock: () -> Long = { LIVE_NOW }): LezervState =
-    LezervState(demo = true, clock = clock, splash = false).also { it.connect(api, CoroutineScope(Dispatchers.Unconfined + SupervisorJob())) }
+fun liveApp(api: FakeBackend, connectWith: String = "0.2.0-test", clock: () -> Long = { LIVE_NOW }): LezervState =
+    LezervState(demo = true, clock = clock, splash = false).also { it.connect(api, CoroutineScope(Dispatchers.Unconfined + SupervisorJob()), connectWith) }
 
 /** Drives LiveSync the way a person would, against [FakeBackend]. Run: gradle liveChecks */
 fun main() {
@@ -248,6 +248,48 @@ fun main() {
         tunde.changeRadius(7)
         Thread.sleep(900) // the slider save waits for the drag to settle
         check("the coverage radius is saved once it settles", tundeApi.calls.count { it.startsWith("radius") } == 1 && tundeApi.calls.contains("radius 7"))
+    }
+
+    // ══ push notifications ══
+    run {
+        val world = FakeWorld()
+        // A guest: Firebase gives the phone a token, but there's nobody to register it for yet.
+        val guestApi = FakeBackend(world = world)
+        val g = liveApp(guestApi)
+        g.setPushToken("fcm-token-1")
+        check("a guest's phone isn't registered for anyone", guestApi.calls.none { it.startsWith("register") })
+        g.account.startEmail(); g.account.emailDraft = "amaka@example.com"; g.account.password = "secret12"; g.account.signInWithEmail()
+        check("signing in registers the phone, with the app version", guestApi.calls.contains("register fcm-token-1 0.2.0-test") && world.devices["fcm-token-1"] == "user-1")
+        g.setPushToken("fcm-token-2")
+        check("when Google gives the phone a new token, it's registered too", world.devices["fcm-token-2"] == "user-1")
+        g.account.signOut()
+        val i = guestApi.calls.indexOf("unregister fcm-token-2")
+        check("signing out unregisters the phone first, while it still can", i >= 0 && guestApi.calls.getOrNull(i + 1) == "signout" && "fcm-token-2" !in world.devices)
+
+        // Tapping a notification while the app is still restoring the sign-in.
+        val slowApi = FakeBackend(sessionUser = "user-1", world = world).apply { holdRestore = kotlinx.coroutines.CompletableDeferred() }
+        val cold = liveApp(slowApi, connectWith = "0.2.0-test")
+        cold.openFromPush("message", "n-x")
+        check("a tap during start-up waits for the sign-in", cold.tab == Tab.Explore)
+        slowApi.holdRestore!!.complete(Unit)
+        check("…then opens what it's about", cold.tab == Tab.Messages && slowApi.calls.contains("read n-x"))
+        cold.openFromPush("job_accepted", "n1")
+        check("a push already in the inbox opens it and marks it read", cold.tab == Tab.ClientJobs && slowApi.calls.contains("read n1") && cold.notices.first { it.remoteId == "n1" }.read)
+        cold.openFromPush("support_reply", null)
+        check("support replies open the support chat", cold.top == Pushed.Chat && cold.chatWith == SUPPORT)
+
+        // An artisan
+        val tApi = FakeBackend(sessionUser = "art-user", world = world)
+        val t = liveApp(tApi)
+        t.openFromPush("job_offer", null)
+        check("a request push takes an artisan to the requests map", t.role == Role.Artisan && t.tab == Tab.ArtisanMap)
+        t.toggleOnline(); t.toggleOnline()
+        check("going online is when an artisan is asked about notifications", t.online && t.showPrime)
+        t.answerPrime(true); t.toggleOnline(); t.toggleOnline()
+        check("…once", !t.showPrime)
+        val allowed = liveApp(FakeBackend(sessionUser = "art-user", world = world)).apply { notificationsAllowed = { true } }
+        allowed.toggleOnline(); allowed.toggleOnline()
+        check("never if Android already allows them", !allowed.showPrime)
     }
 
     // ── time labels ──
