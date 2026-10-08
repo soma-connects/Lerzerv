@@ -158,6 +158,10 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
     send convincing phishing "from Lezerv". Fix: have the website call an RPC or a
     function that builds the booking email server-side from a booking id, and let only
     the database (shared secret, as `send-push` does) call `resend-email`.
+11. **The website never saves an artisan's location.** "Become an artisan" doesn't send
+    `p_lat` / `p_lng`, so every approved artisan had none and the app's map was empty.
+    0025 places them at their service areas meanwhile; the real fix is a "pin your base"
+    step on the website and the app's GPS when an artisan goes online.
 
 ---
 
@@ -215,7 +219,7 @@ the direct-booking flow.
 
 | App | Backend call | Notes |
 |---|---|---|
-| Map | `map_artisans(lat, lng, 10 km)` | Falls back to `search_artisans` if 0022 isn't applied: pins then sit at the right distance in an approximate direction |
+| Map | `map_artisans(lat, lng, 10 km)` | Falls back to `search_artisans` if 0022 isn't applied: pins then sit at the right distance in an approximate direction. **0025:** artisans with no location (everyone who signed up on the website, whose form doesn't ask) appear at the centre of the area they serve nearest the client, marked approximate; the app then says "Serves Lekki" instead of a distance |
 | Profile | `get_artisan_public` | Reviews; services and prices still use typical Lagos prices (`artisan_services` is missing) |
 | Sign-in | Auth: phone OTP, or email + password | Then `profiles` for name, email, phone |
 | Saved addresses | `client_addresses` (0023) | Owner-only; the area picks the service area |

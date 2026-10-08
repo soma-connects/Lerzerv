@@ -39,11 +39,16 @@ data class Artisan(
     val busyLabel: String = "Busy until 3 pm",
     /** Live only: the backend category to book them for (see toArtisan). */
     val slug: String? = null,
+    /** Live only: shown at this service area's centre, because they gave no location (0025). */
+    val areaLabel: String? = null,
 ) {
     val km: Double get() = hypot((x - UX).toDouble(), (y - UY).toDouble()) / KM
     val eta: Int get() = (km * 5 + 4).roundToInt()
     val first: String get() = name.substringBefore(' ')
     val service: Service get() = SERVICE.getValue(svc)
+
+    /** How far away, honestly: an area-placed artisan's distance is only to the middle of that area. */
+    val distanceLabel: String get() = areaLabel?.let { "Serves $it" } ?: "${fixed1(km)} km · $eta min"
 }
 
 val ARTISANS = listOf(

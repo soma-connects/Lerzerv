@@ -45,6 +45,9 @@ data class MapArtisanDto(
     val lat: Double? = null,
     val lng: Double? = null,
     val categories: List<String> = emptyList(),
+    /** 0025: placed at this service area because the artisan gave no location of their own. */
+    @SerialName("area_name") val areaName: String? = null,
+    val approximate: Boolean = false,
 )
 
 @Serializable

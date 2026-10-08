@@ -121,6 +121,8 @@ fun main(args: Array<String>) {
     live(signedIn = false).let { shot("82-live-welcome", it) }
     live(signedIn = false).apply { account.startEmail(); account.emailDraft = "amaka@example.com"; account.password = "secret12" }.let { shot("83-live-email", it) }
     live().apply { push(Pushed.Profile("7f3e")) }.let { shot("84-live-profile", it) }
+    live().apply { sheet = Sheet.List }.let { shot("81b-live-explore-list", it) }
+    live().apply { push(Pushed.Profile("c1a0")) }.let { shot("84b-live-profile-area", it) }
     live().withAddress().apply { startBooking("7f3e"); option = 1 }.let { shot("85-live-book", it) }
     live().withAddress().apply { startBooking("7f3e"); option = 1; sendRequest(); answerPrime(false) }.let { shot("86-live-jobs", it) }
     live().apply { openTab(Tab.Messages) }.let { shot("87-live-messages", it) }

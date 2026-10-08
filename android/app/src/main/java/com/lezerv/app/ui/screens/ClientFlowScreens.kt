@@ -161,7 +161,8 @@ fun ProfileScreen(s: LezervState, id: String) {
         Row(Modifier.padding(horizontal = 20.dp).fillMaxWidth().borderTop(2.dp, Lz.Ink).borderBottom(2.dp, Lz.Ink)) {
             Stat("Rating", fixed1(a.rating), "${a.reviews} reviews", Modifier.weight(1f).padding(vertical = 12.dp))
             Stat("Jobs", "${a.jobs}", "on Lezerv", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp))
-            Stat("Away", fixed1(a.km), "km · ${a.eta} min", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp))
+            Stat("Away", (if (a.areaLabel != null) "~" else "") + fixed1(a.km), a.areaLabel?.let { "km · serves $it" } ?: "km · ${a.eta} min",
+                Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp))
         }
         // Privacy: clients see an approximate area until they book.
         Box(Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp).blueprint().border(1.dp, Lz.Ink).padding(1.dp)) {

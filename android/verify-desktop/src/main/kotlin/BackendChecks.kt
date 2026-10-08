@@ -43,7 +43,7 @@ fun main() = runBlocking {
                 """{"code":"PGRST202","details":"Searched for the function public.map_artisans","hint":null,"message":"Could not find the function public.map_artisans(p_lat, p_lng, p_radius_km) in the schema cache"}""",
                 HttpStatusCode.NotFound, json)
             path == "/rest/v1/rpc/map_artisans" -> respond(
-                """[{"id":"7f3e","display_name":"Tunde Bakare","bio":"Leaks and drains.","city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"is_available":true,"avg_rating":4.83,"total_reviews":156,"completed_jobs":228,"distance_km":0.9,"lat":6.45,"lng":3.48,"categories":["plumbing"]}]""", HttpStatusCode.OK, json)
+                """[{"id":"7f3e","display_name":"Tunde Bakare","bio":"Leaks and drains.","city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"is_available":true,"avg_rating":4.83,"total_reviews":156,"completed_jobs":228,"distance_km":0.9,"lat":6.45,"lng":3.48,"categories":["plumbing"],"area_name":null,"approximate":false},{"id":"c1a0","display_name":"Chinwe Okafor","bio":null,"city":"Lagos","avatar_url":null,"years_experience":6,"is_verified":true,"is_available":false,"avg_rating":4.9,"total_reviews":212,"completed_jobs":340,"distance_km":2.0,"lat":6.445,"lng":3.49,"categories":["cleaning"],"area_name":"Lekki","approximate":true}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/search_artisans" -> respond(
                 """[{"id":"7f3e","display_name":"Tunde Bakare","bio":null,"city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":156,"completed_jobs":228,"distance_km":0.9,"categories":["plumbing","borehole-water"]}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/get_artisan_public" && bodyOf(r).contains("missing") -> respond("null", HttpStatusCode.OK, json)
@@ -115,6 +115,8 @@ fun main() = runBlocking {
     check("with 0022, map_artisans gives rounded positions", near[0].lat == 6.45 && near[0].lng == 3.48 && sent.last().contains("\"p_radius_km\":10"))
     val a2 = near[0].toArtisan()
     check("rating rounded for display, verified kept", a2.rating == 4.8 && a2.verified && a2.online)
+    val placed = near[1].toArtisan()
+    check("0025: an artisan without a location is shown as serving an area, not a distance", placed.areaLabel == "Lekki" && placed.distanceLabel == "Serves Lekki" && a2.areaLabel == null)
 
     val profile = api.artisanProfile("7f3e")
     check("get_artisan_public parsed with reviews", profile?.reviews?.single()?.reviewer == "Amaka" && shortDate(profile.reviews.single().createdAt) == "12 Sep")

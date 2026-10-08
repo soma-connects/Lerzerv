@@ -64,9 +64,11 @@ private fun toMap(eastKm: Double, northKm: Double): Pair<Float, Float> =
  */
 fun mapPosition(dto: MapArtisanDto): Pair<Float, Float> {
     val h = stableHash(dto.id)
-    // Spread artisans that share a ~550 m grid square so their pins don't stack.
-    val jitterE = ((h % 21) - 10) / 100.0
-    val jitterN = (((h / 21) % 21) - 10) / 100.0
+    // Spread artisans that share a spot so their pins don't stack: ~100 m within a rounded
+    // ~550 m square, ~500 m around an area's centre, where many can share the exact point.
+    val spread = if (dto.approximate) 50.0 else 100.0
+    val jitterE = ((h % 21) - 10) / spread
+    val jitterN = (((h / 21) % 21) - 10) / spread
     if (dto.lat != null && dto.lng != null) {
         val east = (dto.lng - REF_LNG) * 111.32 * cos(REF_LAT * PI / 180)
         val north = (dto.lat - REF_LAT) * 110.57
@@ -95,6 +97,7 @@ fun MapArtisanDto.toArtisan(): Artisan {
         bio = bio?.takeIf { it.isNotBlank() } ?: "${yearsExperience.takeIf { it > 0 }?.let { "$it years’ experience. " } ?: ""}Verified by Lezerv.",
         busyLabel = "Not taking jobs now",
         slug = slug,
+        areaLabel = areaName?.takeIf { approximate },
     )
 }
 

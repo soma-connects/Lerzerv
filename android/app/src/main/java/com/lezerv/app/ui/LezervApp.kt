@@ -207,7 +207,7 @@ private fun TopBar(s: LezervState) {
 }
 
 private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when (p) {
-    is Pushed.Profile -> s.artisan(p.artisanId)?.let { it.name to "${SERVICE.getValue(it.svc).label} · ${fixed1(it.km)} km away" } ?: ("" to "")
+    is Pushed.Profile -> s.artisan(p.artisanId)?.let { it.name to "${SERVICE.getValue(it.svc).label} · " + (it.areaLabel?.let { area -> "serves $area" } ?: "${fixed1(it.km)} km away") } ?: ("" to "")
     Pushed.Book -> s.artisan(s.bookArtisan)?.let { (if (it.laundry) "Laundry pickup" else "Book ${it.first}") to "${it.name} · ${SERVICE.getValue(it.svc).label}" } ?: ("" to "")
     Pushed.Track -> s.job?.let { j -> (if (j.laundry) "Laundry order" else "Live job") to "${j.title} · ${s.jobArtisan?.name}" } ?: ("Job" to "")
     Pushed.Chat -> when {

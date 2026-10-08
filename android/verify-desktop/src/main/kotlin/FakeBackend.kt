@@ -41,7 +41,8 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     )
     val artisans = listOf(
         MapArtisanDto("7f3e", "Tunde Bakare", "Leaks and drains.", "Lagos", 9, true, true, 4.83, 156, 228, 0.9, 6.45, 3.48, listOf("plumbing")),
-        MapArtisanDto("c1a0", "Chinwe Okafor", null, "Lagos", 6, true, true, 4.9, 212, 340, 1.1, 6.44, 3.465, listOf("cleaning")),
+        // Signed up on the website, so no location: placed at the Lekki area centre (0025).
+        MapArtisanDto("c1a0", "Chinwe Okafor", null, "Lagos", 6, true, true, 4.9, 212, 340, 2.0, 6.445, 3.49, listOf("cleaning"), areaName = "Lekki", approximate = true),
         MapArtisanDto("b9d2", "Bisi Laundromat", null, "Lagos", 4, true, false, 4.8, 205, 880, 2.0, 6.465, 3.47, listOf("laundry")),
     )
     /** Which user each artisan profile belongs to. */

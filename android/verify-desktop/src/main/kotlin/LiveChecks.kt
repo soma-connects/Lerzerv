@@ -44,6 +44,7 @@ fun main() {
         val s = liveApp(api)
         check("map shows the backend's artisans, not the samples", s.artisans.map { it.name } == listOf("Tunde Bakare", "Chinwe Okafor", "Bisi Laundromat") && s.artisan("a2") == null)
         check("artisans asked for within 10 km", "artisans 10" in api.calls)
+        check("an artisan with no location of their own says which area they serve", s.artisan("c1a0")?.distanceLabel == "Serves Lekki" && s.artisan("7f3e")?.distanceLabel?.endsWith("min") == true)
         check("guest sees the welcome; nothing personal is loaded", s.account.authStep == AuthStep.Welcome && "jobs" !in api.calls)
         check("guest has no fake history", s.past.isEmpty() && s.notices.isEmpty() && s.threads.isEmpty())
 

@@ -229,7 +229,7 @@ private fun SelectedArtisan(s: LezervState, a: Artisan) {
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AvailTag(a)
-                    Tag("${fixed1(a.km)} km · ${a.eta} min")
+                    Tag(a.distanceLabel)
                 }
             }
             IconBox("x", { s.selected = null }, size = 40, iconSize = 22, border = null, modifier = Modifier.semantics { contentDescription = "Close" })
@@ -285,8 +285,14 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                         Txt("${a.service.label} · ★ ${fixed1(a.rating)} · ${if (a.online) "Available now" else a.busyLabel}", body(12, 17, color = Lz.Neutral800))
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Txt("${fixed1(a.km)} km", heading(20, 22))
-                        Txt("${a.eta} MIN", label(11, .08f, Lz.Accent700))
+                        // Area-placed artisans: the area they serve, not a distance we don't know.
+                        if (a.areaLabel != null) {
+                            Txt("SERVES", label(11, .08f, Lz.Accent700))
+                            Txt(a.areaLabel.uppercase(), heading(18, 20), ellipsis = true)
+                        } else {
+                            Txt("${fixed1(a.km)} km", heading(20, 22))
+                            Txt("${a.eta} MIN", label(11, .08f, Lz.Accent700))
+                        }
                     }
                 }
             }
