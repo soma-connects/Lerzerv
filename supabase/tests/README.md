@@ -22,6 +22,10 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `shim.sql` | Stand-ins for Supabase's own pieces: the `anon` / `authenticated` / `service_role` roles with Supabase's default grants, `auth.users` and `auth.uid()`, `storage`, a pg_net stub that never sends, the realtime publication |
 | `harness.py` | Starts the database, applies the migrations, and runs statements as a given user (`db.as_(uid)`), like PostgREST does |
 | `test_direct_booking.py` | 0021 (no self-made admins), 0022 (phone profiles, map privacy, app tickets), 0023 (booking a chosen artisan, offers, start codes, saved addresses) |
+| `test_push.py` | 0024: registering phones, phones changing hands, what the database hands to `send-push` |
+
+The `send-push` Edge Function has its own test, run with Node 22+:
+`node --experimental-strip-types supabase/functions/send-push/push.test.ts`
 
 The shim is close to Supabase but not identical (no PostgREST, no real
 Realtime), so a pass here is strong evidence, not a guarantee: still apply
