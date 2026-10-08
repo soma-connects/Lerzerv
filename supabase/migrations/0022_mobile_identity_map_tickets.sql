@@ -20,6 +20,39 @@
 --    open_support_ticket(), optionally linked to a job ("report a problem").
 -- ═══════════════════════════════════════════════════════════════════
 
+-- ── 0. One word for an ordinary user: 'user' ────────────────────────
+-- The live database predates these migration files. Its profiles table has
+-- a check constraint, profiles_role_check, added outside migrations, that
+-- allows 'user' and 'admin', the two roles the website uses. Migrations
+-- 0001–0014 (and 0021) wrote 'customer', which that constraint rejects, so
+-- since it was added the sign-up trigger has silently created no profile
+-- (0014 swallows the error). From here on, ordinary users are 'user'.
+do $$
+declare v_def text;
+begin
+  select pg_get_constraintdef(oid) into v_def from pg_constraint
+  where conname = 'profiles_role_check' and conrelid = 'public.profiles'::regclass;
+  -- Stop with a clear message rather than guess, if this database names roles differently.
+  if v_def is not null and v_def not like '%''user''%' then
+    raise exception 'profiles_role_check doesn''t allow ''user'' (it says: %). Ask the developer before running 0022.', v_def;
+  end if;
+end $$;
+
+alter table public.profiles alter column role set default 'user';
+update public.profiles set role = 'user' where role is null or role = 'customer';
+do $$
+begin
+  -- Databases built from these files didn't have the constraint; give them the live one.
+  if not exists (select 1 from pg_constraint where conname = 'profiles_role_check' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_role_check check (role in ('user', 'admin'));
+  end if;
+end $$;
+
+-- 0021's rule, with the right word: a user may create only their own row, only as a 'user'.
+drop policy if exists "profiles_insert" on public.profiles;
+create policy "profiles_insert" on public.profiles
+  for insert with check (id = auth.uid() and coalesce(role, 'user') = 'user');
+
 -- ── 1. Phone identities ─────────────────────────────────────────────
 alter table public.profiles alter column email drop not null;
 alter table public.profiles add column if not exists phone text;
@@ -39,7 +72,7 @@ begin
       new.email,
       new.phone,
       coalesce(new.raw_user_meta_data->>'full_name', ''),
-      'customer'
+      'user'
     )
     on conflict (id) do nothing;
   exception when others then
@@ -50,9 +83,10 @@ begin
 end;
 $$;
 
--- Backfill users who signed up with a phone and never got a profile.
+-- Backfill everyone who never got a profile: phone sign-ups, and anyone the
+-- 'customer' / profiles_role_check mismatch above turned away.
 insert into public.profiles (id, email, phone, full_name, role)
-select u.id, u.email, u.phone, coalesce(u.raw_user_meta_data->>'full_name', ''), 'customer'
+select u.id, u.email, u.phone, coalesce(u.raw_user_meta_data->>'full_name', ''), 'user'
 from auth.users u
 left join public.profiles p on p.id = u.id
 where p.id is null

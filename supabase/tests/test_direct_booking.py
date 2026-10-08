@@ -36,7 +36,7 @@ try:
           db.fails("delete from profiles where id = auth.uid()", uid=amaka)
           and db.fails("insert into profiles (id, email, role) values (auth.uid(), 'x@y.z', 'admin')", uid=amaka))
     db.fails("update profiles set role = 'admin' where id = auth.uid()", uid=amaka)
-    check("0021 · …nor update their own role", q("select role from profiles where id = %s", amaka)[0] == "customer")
+    check("0021 · …nor update their own role", q("select role from profiles where id = %s", amaka)[0] == "user")
     check("0021 · a user can't insert an approved, verified artisan row",
           db.fails("insert into artisans (user_id, display_name, city, status, is_verified) values (auth.uid(), 'Fake', 'Lagos', 'approved', true)", uid=amaka))
 
