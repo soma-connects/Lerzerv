@@ -4,9 +4,10 @@
  * Until migration 0026 the website called this from the browser with any
  * recipient, subject and HTML, which made it an open relay for anyone with
  * the public key. Now the database builds every email (0017 admin alerts,
- * 0026 customer emails) and calls this through pg_net with the service-role
- * key. Anyone else gets 401, and there are no CORS headers, so a browser
- * can't call it at all.
+ * 0026 customer emails) and calls this through pg_net with a shared secret
+ * (EMAIL_WEBHOOK_SECRET). Anyone else gets 401, and there are no CORS headers,
+ * so a browser can't call it at all. Deploy with --no-verify-jwt: the gateway's
+ * login check only accepts signed-in users' tokens and would refuse the database.
  *
  * The sender is fixed here, not chosen by the caller.
  *
@@ -19,9 +20,8 @@
  *                          domain is verified in Resend. Until then Resend's test
  *                          sender is used, which only delivers to the Resend
  *                          account owner's own address.
- *   EMAIL_WEBHOOK_SECRET   optional, only if the database's admin_alert_service_key
- *                          holds something other than the service-role key
- * Provided by Supabase: SUPABASE_SERVICE_ROLE_KEY.
+ *   EMAIL_WEBHOOK_SECRET   the same value as Vault's admin_alert_service_key
+ * Also accepted, if a caller sends it: SUPABASE_SERVICE_ROLE_KEY (Supabase provides it).
  */
 
 export interface Deps {
