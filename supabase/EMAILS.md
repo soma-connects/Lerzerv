@@ -5,7 +5,7 @@ Edge Function, which only the database may call.
 
 ```
 row change ─trigger─▶ admin_alerts (outbox) ─pg_net─▶ resend-email ─▶ Resend ─▶ inbox
- (0017, 0026)          who, what, status       service-role key     fixed sender
+ (0017, 0026)          who, what, status       shared secret        fixed sender
 ```
 
 **Why.** Until 0026 the website built six emails in the browser and asked
@@ -59,15 +59,27 @@ select status, count(*), max(created_at) as latest from public.admin_alerts grou
 - Secrets missing, or alerts stuck as `unconfigured`: add them (step 1b).
 - Alerts `failed`: see the table under "Check it works".
 
-#### 1b. Add the secrets (only if missing)
+#### 1b. Set the two secrets
+
+The database proves who it is to `resend-email` with a **shared secret**: a long
+random password that only Vault and the function know. (Not the service_role key:
+Supabase's gateway refuses API keys sent to functions, and a leaked mail password is
+far less dangerous than a leaked master key.) Make one, e.g. `openssl rand -hex 32`,
+or 64 random letters and digits from a password manager.
+
+Replace the CAPITALS, keep the quotes:
 
 ```sql
-select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/resend-email', 'admin_alert_endpoint');
-select vault.create_secret('<service_role key>', 'admin_alert_service_key');
+-- first time
+select vault.create_secret('https://YOUR_PROJECT_REF.supabase.co/functions/v1/resend-email', 'admin_alert_endpoint');
+select vault.create_secret('YOUR_SHARED_SECRET', 'admin_alert_service_key');
+-- or, to change existing ones
+select vault.update_secret((select id from vault.secrets where name = 'admin_alert_endpoint'), 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/resend-email');
+select vault.update_secret((select id from vault.secrets where name = 'admin_alert_service_key'), 'YOUR_SHARED_SECRET');
 ```
 
-The service_role key is in Supabase → Project Settings → API. It is a password
-for the whole database: only ever paste it into Vault, never into the website or app.
+The project ref is the part of `VITE_SUPABASE_URL` before `.supabase.co`. The same
+shared secret goes into the function's `EMAIL_WEBHOOK_SECRET` (step 3).
 
 ### 2. Apply `0026_server_side_emails.sql`
 
@@ -78,17 +90,19 @@ its own copies until step 4, so for a few minutes some people may get two.
 ### 3. Redeploy `resend-email`
 
 ```sh
-supabase functions deploy resend-email
+npx supabase functions deploy resend-email --no-verify-jwt
 ```
 
-From here the function refuses everyone except the database (401), so the
-website's copies stop. Keep JWT verification on (the default): the database's
-service-role key passes it.
+`--no-verify-jwt` turns off the gateway's login check, which only accepts signed-in
+users' tokens and would refuse the database. The function checks the shared secret
+itself, so it still refuses everyone except the database (401) and the website's
+copies stop.
 
 Function secrets (Supabase → Edge Functions → Secrets):
 
 | Secret | |
 |---|---|
+| `EMAIL_WEBHOOK_SECRET` | the shared secret from step 1b |
 | `RESEND_API_KEY` | already set |
 | `EMAIL_FROM` | optional, see step 5 |
 
@@ -129,7 +143,7 @@ select created, status_code, left(content, 200) from net._http_response order by
 | Status / error | Meaning |
 |---|---|
 | `unconfigured` | the Vault secrets from step 1b are missing |
-| `failed` · `HTTP 401` | `admin_alert_service_key` isn't this project's service_role key |
+| `failed` · `HTTP 401` | `{"code":"INVALID_CREDENTIALS"}`: the gateway's login check is on (redeploy with `--no-verify-jwt`). `{"error":"unauthorized"}`: Vault's `admin_alert_service_key` and the function's `EMAIL_WEBHOOK_SECRET` differ |
 | `failed` · `HTTP 403` | the sender domain isn't verified in Resend (step 5) |
 | `failed` · `HTTP 500` | `RESEND_API_KEY` isn't set on the function |
 | `suppressed` | a limit was reached, or the typed-in address isn't valid; not sent on purpose |
