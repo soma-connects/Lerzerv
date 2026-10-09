@@ -25,6 +25,7 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `test_push.py` | 0024: registering phones, phones changing hands, what the database hands to `send-push` |
 | `test_map.py` | 0022 + 0025: the app's map, including artisans with no location shown at the area they serve |
 | `test_live_roles.py` | The live database's hand-made `profiles_role_check` ('user' / 'admin'): reproduces sign-ups getting no profile, and checks 0022 repairs it (or refuses clearly if roles are named differently) |
+| `test_locations.py` | 0027: artisans sharing their GPS position (rounded in public, exact in private), pinned addresses, and the job's pin reaching the artisan only once they accept |
 | `test_emails.py` | 0026: which actions send which email to whom, escaping, the per-address and hourly limits, retries keeping their recipients, and that nobody can send their own |
 
 The Edge Functions have their own tests, run with Node 22+:
