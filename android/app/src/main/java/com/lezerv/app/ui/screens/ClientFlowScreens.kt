@@ -46,6 +46,7 @@ import com.lezerv.app.data.LAUNDRY_ITEMS
 import com.lezerv.app.data.LAUNDRY_STEPS
 import com.lezerv.app.data.OPTIONS
 import com.lezerv.app.data.PICKUP_WINDOWS
+import com.lezerv.app.data.MapAim
 import com.lezerv.app.data.Pt
 import com.lezerv.app.data.SERVICE_STEPS
 import com.lezerv.app.data.SLOTS
@@ -80,6 +81,8 @@ import com.lezerv.app.ui.map.CentredMarker
 import com.lezerv.app.ui.map.MAP_H
 import com.lezerv.app.ui.map.MAP_W
 import com.lezerv.app.ui.map.MapCircle
+import com.lezerv.app.ui.map.LocalGeoMap
+import com.lezerv.app.ui.map.MapCredit
 import com.lezerv.app.ui.map.MapWorld
 import com.lezerv.app.ui.map.RouteLine
 import com.lezerv.app.ui.map.UserDot
@@ -119,13 +122,22 @@ internal fun BarFigure(k: String, v: String, unit: String? = null, size: Int = 2
     }
 }
 
-/** A fixed-size window onto the map, centred on a map point. Used for small inset maps. */
+/**
+ * A fixed-size window onto the map, centred on a map point. Used for small inset maps:
+ * the real map (still, no panning) when live on a phone, else the drawn one.
+ */
 @Composable
-internal fun MapInset(height: Dp, center: Pt, blueprint: Boolean, modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
+internal fun MapInset(height: Dp, center: Pt, s: LezervState, modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
+    val geo = LocalGeoMap.current
+    if (geo != null && s.isLive) {
+        geo.Show(s.plane, MapAim(center, height.value / 2), interactive = false, grid = s.blueprintMap, credit = MapCredit(),
+            modifier = modifier.fillMaxWidth().height(height).clipToBounds(), overlay = content)
+        return
+    }
     BoxWithConstraints(modifier.fillMaxWidth().height(height).clipToBounds()) {
         val w = maxWidth.value
         val h = maxHeight.value
-        MapWorld((w / 2 - center.x).coerceIn(w - MAP_W, 0f), (h / 2 - center.y).coerceIn(h - MAP_H, 0f), blueprint, content = content)
+        MapWorld((w / 2 - center.x).coerceIn(w - MAP_W, 0f), (h / 2 - center.y).coerceIn(h - MAP_H, 0f), s.blueprintMap, content = content)
     }
 }
 
@@ -166,7 +178,7 @@ fun ProfileScreen(s: LezervState, id: String) {
         }
         // Privacy: clients see an approximate area until they book.
         Box(Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp).blueprint().border(1.dp, Lz.Ink).padding(1.dp)) {
-            MapInset(130.dp, Pt(a.x, a.y), s.blueprintMap) {
+            MapInset(130.dp, Pt(a.x, a.y), s) {
                 MapCircle(a.x, a.y, 60f, Lz.Accent, Lz.Accent.copy(alpha = .12f))
                 UserDot()
             }
@@ -231,7 +243,8 @@ fun BookScreen(s: LezervState) {
         val ad = s.account.currentAddress
         Column(Modifier.padding(horizontal = 20.dp).blueprint().border(1.dp, Lz.Ink)) {
             if (ad != null) Box(Modifier.borderBottom(1.dp, Lz.Ink).padding(1.dp)) {
-                MapInset(109.dp, Pt(ad.x, ad.y), s.blueprintMap) { HomePin(ad.x, ad.y + 2, stem = 8) }
+                val at = s.addressPos(ad)
+                MapInset(109.dp, at, s) { HomePin(at.x, at.y + 2, stem = 8) }
             }
             Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LzIcon("map-pin", 20, Lz.Accent)

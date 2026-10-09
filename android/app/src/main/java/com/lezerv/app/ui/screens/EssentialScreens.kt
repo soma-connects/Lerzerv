@@ -70,6 +70,7 @@ import com.lezerv.app.ui.theme.Lz
 import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
+import kotlin.math.roundToInt
 
 // Pages most on-demand service apps need that the designs didn't cover yet.
 // They reuse the Industry look: square objects, ink rules, one green action per view.
@@ -142,7 +143,7 @@ fun AddressesScreen(s: LezervState) {
 @Composable
 fun AddressEditScreen(s: LezervState) {
     val a = s.account
-    val area = AREAS.first { it.first == a.formArea }.second
+    val at = s.formPos
     FormPage(bar = { PrimaryWide("Save address", "check", { a.saveAddress() }, alpha = if (a.formStreet.trim().length >= 4) 1f else .5f) }) {
         Column {
             FormLabel("Label")
@@ -157,10 +158,20 @@ fun AddressEditScreen(s: LezervState) {
             }
         }
         Box(Modifier.blueprint().border(1.dp, Lz.Ink).padding(1.dp)) {
-            MapInset(120.dp, Pt(area.first, area.second - 6), s.blueprintMap) { HomePin(area.first, area.second, stem = 8) }
-            Box(Modifier.align(Alignment.BottomStart).padding(8.dp).background(Lz.Bg).border(1.dp, Lz.Ink).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                Txt("PIN FROM THE AREA · PROPOSAL: DRAG TO ADJUST", label(10, .05f))
+            MapInset(120.dp, Pt(at.x, at.y - 6), s) { HomePin(at.x, at.y, stem = 8) }
+            val pinLabel = when {
+                !s.isLive -> "PIN FROM THE AREA · PROPOSAL: DRAG TO ADJUST"
+                a.formPin == null -> "PIN FROM THE AREA · ARTISANS GET THE STREET"
+                else -> "PINNED WHERE YOU WERE" + (a.formPinAccuracy?.let { " · ±${it.roundToInt()} M" } ?: "")
             }
+            Box(Modifier.align(Alignment.BottomStart).padding(8.dp).background(Lz.Bg).border(1.dp, Lz.Ink).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                Txt(pinLabel, label(10, .05f))
+            }
+        }
+        // Live: drop the pin where the phone is, so the artisan's "Navigate" goes to the gate.
+        if (s.isLive) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlineButton(if (a.formPin == null) "I’m here: use my location" else "Pin again here", { a.pinHere() }, Modifier.weight(1f), icon = "locate-fixed", height = 44.dp, fontSize = 15)
+            if (a.formPin != null) OutlineButton("Clear pin", { a.clearPin() }, height = 44.dp, fontSize = 15, dashed = true)
         }
         Column { FormLabel("Directions for the artisan (optional)"); LzField(a.formNote, { a.formNote = it.take(120) }, "Gate code, landmark, which floor", singleLine = false, minHeight = 76.dp) }
         if (a.editingAddressId != null) OutlineButton("Delete this address", { a.deleteAddress(a.editingAddressId!!) }, Modifier.fillMaxWidth(), icon = "trash-2", dashed = true)

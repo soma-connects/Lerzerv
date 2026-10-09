@@ -1,5 +1,6 @@
 package com.lezerv.verify
 
+import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.ArtisanJobDto
 import com.lezerv.app.data.remote.ArtisanPublicDto
@@ -28,11 +29,14 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import java.time.Instant
 
+/** The Lekki service area's centre (0025). */
+val LEKKI_CENTRE = GeoPoint(6.445, 3.49)
+
 /**
  * The shared "database" behind one or more [FakeBackend] sessions: a client's app and an
  * artisan's app can each have their own session over the same world, the way two phones
- * share one Supabase project. It follows the rules of migrations 0008–0023 closely enough
- * to drive the apps: offers, start codes, who sees which address.
+ * share one Supabase project. It follows the rules of migrations 0008–0027 closely enough
+ * to drive the apps: offers, start codes, who sees which address, shared locations.
  */
 class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val profiles = mutableMapOf(
@@ -49,12 +53,18 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val artisanUser = mapOf("7f3e" to "art-user", "c1a0" to "art-user-2", "b9d2" to "art-user-3")
     val available = artisans.associate { it.id to it.isAvailable }.toMutableMap()
     val radius = mutableMapOf("7f3e" to 5)
+    /** update_my_location (0027): each artisan's exact point and when it was shared. */
+    val shared = mutableMapOf<String, Pair<GeoPoint, Long>>()
+    /** Where the last map search looked from. */
+    var searchedFrom: GeoPoint? = null
 
     /** A service_jobs row plus its job_private row. */
     data class Job(
         val id: String, val client: String, val title: String, val category: SlugName, var status: String,
         var artisan: String?, val requested: String?, val number: Long, val area: String, val fullAddress: String?,
         val code: String?, var offerExpires: Long?, var accepted: Boolean, var startedAt: Long? = null,
+        /** job_private.lat/lng (0027): the address's pin, if it had one. */
+        val pin: GeoPoint? = null,
         val description: String? = null, val details: Map<String, String> = emptyMap(), val created: String = "2026-10-05T09:00:00+00:00",
         var quoted: Double? = null, var agreed: Double? = null, var wrongCodes: Int = 0,
     ) {
@@ -144,8 +154,16 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun categories(): List<CategoryDto> = emptyList()
     override suspend fun artisansNear(lat: Double, lng: Double, radiusKm: Int): List<MapArtisanDto> {
         log("artisans $radiusKm")
+        world.searchedFrom = GeoPoint(lat, lng)
         if (hangArtisans) kotlinx.coroutines.awaitCancellation()
-        return world.artisans.map { it.copy(isAvailable = world.available[it.id] == true) }
+        // Someone who shared a location is shown there, rounded to ~550 m like 0022 does.
+        fun round(d: Double) = Math.round(d / 0.005) * 0.005
+        return world.artisans.map { a ->
+            val at = world.shared[a.id]?.first
+            a.copy(isAvailable = world.available[a.id] == true).let {
+                if (at == null) it else it.copy(lat = round(at.lat), lng = round(at.lng), areaName = null, approximate = false)
+            }
+        }
     }
     override suspend fun artisanProfile(id: String): ArtisanPublicDto? {
         log("artisan $id")
@@ -157,7 +175,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     // ── addresses ──
     override suspend fun addresses(): List<AddressDto> { log("addresses"); return world.addresses[me()].orEmpty().toList() }
     override suspend fun saveAddress(a: AddressDto): AddressDto {
-        log("saveAddress ${a.id.ifBlank { "new" }} ${a.label} | ${a.street} | ${a.area} | ${a.areaSlug} | ${a.note}")
+        log("saveAddress ${a.id.ifBlank { "new" }} ${a.label} | ${a.street} | ${a.area} | ${a.areaSlug} | ${a.note}" + (if (a.lat != null) " @ ${a.lat},${a.lng}" else ""))
         val list = world.addresses.getOrPut(me()) { mutableListOf() }
         if (a.id.isBlank()) return a.copy(id = world.next("addr-")).also { list += it }
         val i = list.indexOfFirst { it.id == a.id }.takeIf { it >= 0 } ?: throw IllegalStateException("no such address")
@@ -184,6 +202,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             world.next("job-"), me(), b.title, SlugName(b.categorySlug, b.categorySlug.replaceFirstChar { it.uppercase() }), "assigned", a.id, a.id,
             1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
             world.clock() + 30_000, false, description = b.description, details = b.details,
+            pin = if (ad.lat != null && ad.lng != null) GeoPoint(ad.lat, ad.lng) else null,
         )
         world.jobs.add(0, job)
         world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} · answer within 30 seconds")
@@ -223,6 +242,14 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun setAvailability(online: Boolean) { log("available $online"); world.available[myArtisanId()!!] = online }
     override suspend fun setRadius(km: Int) { log("radius $km"); world.radius[myArtisanId()!!] = km }
 
+    override suspend fun updateMyLocation(lat: Double, lng: Double): Boolean {
+        log("location $lat,$lng")
+        val id = myArtisanId() ?: throw ServerMessage("only artisans share their location")
+        if (world.shared[id]?.let { world.clock() - it.second < 30_000 } == true) return false
+        world.shared[id] = GeoPoint(lat, lng) to world.clock()
+        return true
+    }
+
     override suspend fun artisanJobs(): List<ArtisanJobDto> {
         log("artisanJobs")
         val mine = myArtisanId() ?: return emptyList()
@@ -232,6 +259,9 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
                 buildJsonObject { j.details.forEach { (k, v) -> put(k, JsonPrimitive(v)) } },
                 j.offerExpires?.let(world::iso), if (j.accepted) world.iso(world.clock()) else null, j.startedAt?.let(world::iso), null,
                 j.created, j.agreed, first(world.profiles[j.client]?.fullName), world.conversations.firstOrNull { it.jobId == j.id }?.id,
+                // 0027: the area's centre always; the client's pin once the job is theirs.
+                LEKKI_CENTRE.lat, LEKKI_CENTRE.lng,
+                j.pin?.lat?.takeIf { !j.offerPending && j.status != "completed" }, j.pin?.lng?.takeIf { !j.offerPending && j.status != "completed" },
             )
         }
     }

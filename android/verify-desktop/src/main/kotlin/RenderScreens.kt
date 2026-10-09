@@ -149,6 +149,16 @@ fun main(args: Array<String>) {
     twoPhones().first.apply { openTab(Tab.ClientAccount) }.let { shot("99-live-client-account", it) }
     twoPhones().second.apply { toggleOnline(); toggleOnline() }.let { shot("100-live-artisan-prime", it) }
 
+    // Location (0027). On a phone these use the real map; here, the drawn one underneath.
+    val atAdmiralty = com.lezerv.app.data.GeoFix(com.lezerv.app.data.GeoPoint(6.4491, 3.4738), 12f)
+    live().apply { attachLocator(FakeLocator(allowedNow = true, at = atAdmiralty)) }.let { shot("101-live-explore-located", it) }
+    live().apply {
+        attachLocator(FakeLocator(allowedNow = true, at = atAdmiralty))
+        account.editAddress(null); account.formStreet = "4 Bishop Aboyade Cole St"; account.formArea = "Ikate"; account.pinHere()
+    }.let { shot("102-live-address-pinned", it) }
+    // No job in progress (that hint comes first): online, but the map doesn't know where they are.
+    liveApp(FakeBackend("art-user").apply { world.jobs.clear() }).apply { switchRole(Role.Artisan) }.let { shot("103-live-artisan-share-hint", it) }
+
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
     guest().apply {

@@ -65,8 +65,9 @@ fun main() = runBlocking {
                 """[{"id":"7f3e","display_name":"Tunde Bakare","status":"approved","is_available":true,"service_radius_km":7,"avg_rating":4.83,"is_verified":true}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/artisans" && r.method.value == "PATCH" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/set_artisan_availability" -> respond("", HttpStatusCode.NoContent, json)
+            path == "/rest/v1/rpc/update_my_location" -> respond("true", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/my_artisan_jobs" -> respond(
-                """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null}]""", HttpStatusCode.OK, json)
+                """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null,"area_lat":6.445,"area_lng":3.49,"lat":null,"lng":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/accept_job_offer" -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
             path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" -> respond("", HttpStatusCode.NoContent, json)
@@ -135,6 +136,9 @@ fun main() = runBlocking {
     check("a new address is inserted and the saved row returned", added.id == "addr2" && sent.last().startsWith("POST /rest/v1/client_addresses") && sent.last().contains("\"area_slug\":\"ikoyi\""))
     val edited = api.saveAddress(AddressDto("addr1", "Home", "5 Bishop Aboyade Cole St", "Ikate", "lekki"))
     check("an existing one is updated by id", edited.street.startsWith("5 ") && sent.last().startsWith("PATCH /rest/v1/client_addresses?") && sent.last().contains("id=eq.addr1"))
+    api.saveAddress(AddressDto(label = "Home", street = "4 Bishop Aboyade Cole St", area = "Ikate", areaSlug = "lekki", lat = 6.43871, lng = 3.46022))
+    check("a pinned address sends its lat/lng; addresses are read with them (0027)",
+        sent.last().contains("\"lat\":6.43871") && sent.last().contains("\"lng\":3.46022") && (sent.last().contains("lat%2Clng") || sent.last().contains("lat,lng")))
 
     // booking
     val booked = api.bookArtisan(Booking("7f3e", "plumbing", "Leak repair", "addr1", null, null, "App estimate ₦15,750", mapOf("estimate" to "₦15,750")))
@@ -153,6 +157,10 @@ fun main() = runBlocking {
     check("the radius is a PATCH on the artisan's own row", sent.last().startsWith("PATCH /rest/v1/artisans?") && sent.last().contains("\"service_radius_km\":7"))
     val offer = api.artisanJobs().single()
     check("my_artisan_jobs parsed, details readable", offer.offerPending && offer.clientFirstName == "Amaka" && offer.detail("when") == "Now" && offer.detail("estimate") == "₦15,750")
+    check("…with the area's centre for an offer, and no pin yet (0027)", offer.areaLat == 6.445 && offer.areaLng == 3.49 && offer.lat == null)
+    val saved = api.updateMyLocation(6.4491, 3.4738)
+    check("an artisan's position goes to update_my_location", saved && sent.last().startsWith("POST /rest/v1/rpc/update_my_location") &&
+        sent.last().contains("\"p_lat\":6.4491") && sent.last().contains("\"p_lng\":3.4738"))
     val late = runCatching { api.acceptOffer("j2") }.exceptionOrNull()
     check("a late accept comes back in the server's words", late is ServerMessage && late.message == "too late — this request has expired")
     val start = api.startJob("j2", "1111")

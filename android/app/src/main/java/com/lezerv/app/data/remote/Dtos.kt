@@ -177,6 +177,9 @@ data class AddressDto(
     val area: String,
     @SerialName("area_slug") val areaSlug: String,
     val note: String? = null,
+    /** The pin from "use my current location" (exact; only the owner and, once booked, their artisan see it). */
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 /** What the app sends to book_artisan() (0023). [details] lands in service_jobs.details. */
@@ -210,7 +213,7 @@ data class MyArtisanDto(
     @SerialName("is_verified") val isVerified: Boolean = false,
 )
 
-/** A row of my_artisan_jobs() (0023): what an artisan may see of a job. */
+/** A row of my_artisan_jobs() (0023, 0027): what an artisan may see of a job. */
 @Serializable
 data class ArtisanJobDto(
     val id: String,
@@ -233,6 +236,12 @@ data class ArtisanJobDto(
     @SerialName("agreed_amount") val agreedAmount: Double? = null,
     @SerialName("client_first_name") val clientFirstName: String? = null,
     @SerialName("conversation_id") val conversationId: String? = null,
+    /** 0027: the area's centre, for offers (no street yet). */
+    @SerialName("area_lat") val areaLat: Double? = null,
+    @SerialName("area_lng") val areaLng: Double? = null,
+    /** 0027: the client's pin, once the job is theirs. Null if the address has none. */
+    val lat: Double? = null,
+    val lng: Double? = null,
 ) {
     val offerPending get() = status == "assigned" && offerExpiresAt != null && offerAcceptedAt == null
     fun detail(key: String): String? = details?.get(key)?.jsonPrimitive?.contentOrNull

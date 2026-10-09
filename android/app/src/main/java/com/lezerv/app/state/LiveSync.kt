@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.lezerv.app.data.AREAS
+import com.lezerv.app.data.GeoFix
+import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.Review
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.remote.AddressDto
@@ -15,8 +17,6 @@ import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.MessageDto
 import com.lezerv.app.data.remote.MyArtisanDto
 import com.lezerv.app.data.remote.NotificationDto
-import com.lezerv.app.data.remote.REF_LAT
-import com.lezerv.app.data.remote.REF_LNG
 import com.lezerv.app.data.remote.ServerMessage
 import com.lezerv.app.data.remote.TicketDto
 import com.lezerv.app.data.remote.TicketMessageDto
@@ -51,6 +51,10 @@ const val NEARBY_KM = 10
  * Booking (0023): "Book" offers the job to the chosen artisan, who has a short window to
  * accept; their app shows it as an incoming request. Still demo-only when live: paying into
  * escrow, live tracking, earnings and payouts.
+ *
+ * Location (0027): the map looks around the phone's GPS once allowed (the client's position
+ * is only ever a search point, never stored). An online artisan's phone reports where they
+ * are when they go online and every [SHARE_MS] after, so clients nearby find them.
  */
 class LiveSync(
     private val app: LezervState,
@@ -106,6 +110,10 @@ class LiveSync(
     private val expiring = mutableMapOf<String, Long>()
     private var lastPoll = 0L
     private var radiusSave: Job? = null
+    /** A location request is running (GPS can take seconds); a second one waits for it. */
+    private var locating = false
+    /** When an online artisan's phone last tried to share its position. */
+    private var lastShare = 0L
 
     // Realtime subscriptions. Cancelling the coroutine leaves the channel (see SupabaseApi.inserts).
     private var chatWatch: Job? = null
@@ -125,14 +133,66 @@ class LiveSync(
     /** "Try again" on the empty map. */
     fun reload() { scope.launch { loadArtisans() } }
 
+    /** Artisans around wherever "you" are (app.origin), placed on the map around that point. */
     suspend fun loadArtisans() {
         loadingArtisans = true
         try {
-            attempt("load artisans near you") { api.artisansNear(REF_LAT, REF_LNG, NEARBY_KM) }
-                ?.let { list -> app.replaceArtisans(list.map { it.toArtisan() }) }
+            val at = app.origin
+            attempt("load artisans near you") { api.artisansNear(at.lat, at.lng, NEARBY_KM) }
+                // A newer location may have arrived while this loaded; its own load will follow.
+                ?.takeIf { at == app.origin }
+                ?.let { list -> app.plane.let { plane -> app.replaceArtisans(list.map { it.toArtisan(plane) }) } }
         } finally {
             loadingArtisans = false
         }
+    }
+
+    // ═════════════════════════════ location ═════════════════════════════
+
+    /**
+     * Asks the phone where it is. If that moved "you", the map reloads around the new spot;
+     * an online artisan also shares it. [quietly]: no message if location is off.
+     */
+    fun locate(quietly: Boolean) {
+        val l = app.locator ?: return
+        if (locating) return
+        locating = true
+        scope.launch {
+            try {
+                val fix = fix(l)
+                if (fix == null) {
+                    if (!quietly) app.toast("Couldn’t find you. Check that location is on.")
+                    return@launch
+                }
+                if (app.onLocated(fix.point)) loadArtisans()
+                if (isArtisan && me?.isAvailable == true) share(fix)
+            } finally {
+                locating = false
+            }
+        }
+    }
+
+    /** "Use my current location" on the address form. */
+    fun pinHere() {
+        val l = app.locator ?: return
+        scope.launch {
+            val fix = fix(l)
+            if (fix == null) app.toast("Couldn’t find you. Check that location is on.") else app.account.onPinned(fix)
+        }
+    }
+
+    /** A position, or null. A permission taken away in Settings meanwhile is just "no position". */
+    private suspend fun fix(l: Locator): GeoFix? = try {
+        l.locate()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
+    private suspend fun share(fix: GeoFix) {
+        lastShare = app.now // whatever prompted it, the next one is due SHARE_MS from now
+        attempt("share your location", quiet = true) { api.updateMyLocation(fix.point.lat, fix.point.lng) }
     }
 
     // ═════════════════════════════ sign-in ═════════════════════════════
@@ -285,7 +345,11 @@ class LiveSync(
         api.setAvailability(on)
         me = me?.copy(isAvailable = on)
         app.onArtisanProfile(on, me?.serviceRadiusKm ?: app.radiusKm)
-        if (on) { refreshArtisanJobs(); app.onWentOnline() }
+        if (on) {
+            refreshArtisanJobs(); app.onWentOnline()
+            // Clients find you by where you are. Without permission, the map asks (a hint card).
+            if (app.locator?.allowed() == true) locate(quietly = true)
+        }
     }
 
     /** The radius slider sends many values while dragged; only the one it settles on is saved. */
@@ -360,6 +424,11 @@ class LiveSync(
         if (isArtisan && me?.isAvailable == true && nowMs - lastPoll > POLL_MS) {
             lastPoll = nowMs
             scope.launch { refreshArtisanJobs() }
+        }
+        // Online artisans move about; keep their position fresh while the app is open.
+        if (isArtisan && me?.isAvailable == true && app.locator?.allowed() == true && nowMs - lastShare > SHARE_MS) {
+            lastShare = nowMs
+            locate(quietly = true)
         }
     }
 
@@ -441,7 +510,8 @@ class LiveSync(
 
     private fun toAddress(a: AddressDto): Address {
         val (x, y) = (AREAS.firstOrNull { it.first == a.area } ?: AREAS.first()).second
-        return Address(a.id, a.label, a.street, a.area, a.note.orEmpty(), x, y)
+        val pin = if (a.lat != null && a.lng != null) GeoPoint(a.lat, a.lng) else null
+        return Address(a.id, a.label, a.street, a.area, a.note.orEmpty(), x, y, pin)
     }
 
     private fun toMessage(m: MessageDto) = Message(m.senderId != null && m.senderId == userId, m.body, timeLabel(m.createdAt, app.now, zone), system = m.isSystem, id = m.id)
@@ -501,6 +571,8 @@ class LiveSync(
         }
         /** How often an online artisan's app checks for offers, besides realtime. */
         const val POLL_MS = 15_000L
+        /** How often an online artisan's phone shares where it is (the server ignores more than one per 30 s). */
+        const val SHARE_MS = 5 * 60_000L
         /** How soon to ask again when the server says an offer hasn't expired yet (clock skew). */
         const val RETRY_MS = 5_000L
 

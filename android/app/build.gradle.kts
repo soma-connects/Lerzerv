@@ -17,6 +17,10 @@ plugins {
 // (Project settings → General → Your apps → the Android app):
 //   firebase.projectId=…   firebase.appId=1:…:android:…   firebase.apiKey=…   firebase.senderId=…
 // Without them the app works the same, just without pushes.
+//
+// The real map's look and data (optional): a MapLibre style URL. The default is OpenFreeMap's
+// free "positron" style (OpenStreetMap data, no key). MapTiler, Stadia etc. work the same:
+//   map.styleUrl=https://…/style.json
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use(::load)
@@ -31,8 +35,8 @@ android {
         applicationId = "com.lezerv.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         // Demo mode: sample data plus the prototype helpers (role switch in Account,
         // "Prototype · skip ahead", "Demo: fill 4827", Reset). Turn off once the backend
@@ -44,6 +48,7 @@ android {
         buildConfigField("String", "FIREBASE_APP_ID", "\"${localProp("firebase.appId")}\"")
         buildConfigField("String", "FIREBASE_API_KEY", "\"${localProp("firebase.apiKey")}\"")
         buildConfigField("String", "FIREBASE_SENDER_ID", "\"${localProp("firebase.senderId")}\"")
+        buildConfigField("String", "MAP_STYLE_URL", "\"${localProp("map.styleUrl").ifEmpty { "https://tiles.openfreemap.org/styles/positron" }}\"")
     }
 
     buildTypes {
@@ -68,6 +73,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose) // LocalLifecycleOwner, for the map
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui)
@@ -82,4 +88,6 @@ dependencies {
     // Push notifications: Firebase Cloud Messaging (set up from local.properties, see above).
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    // The real map: MapLibre Native (open source) drawing OpenStreetMap data.
+    implementation(libs.maplibre)
 }

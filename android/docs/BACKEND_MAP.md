@@ -113,7 +113,7 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
 | Map: demand zones | Busy areas | Nothing | **MISSING** | Admin RPC that counts open jobs per area (later) |
 | Incoming request, 30 s timer | Offer to one artisan with expiry | `rebook_artisan` + `decline_assigned_job` (branch); no expiry | **ADJUST** | `offer_expires_at` + `accept_assigned_job`; a scheduled job returns expired offers to the pool |
 | Decline with reason | Reason sent back | `decline_assigned_job(job, reason)` (branch) | READY (after merge) | — |
-| Navigate to client | Client address and position | `address_text` only | **ADJUST** | `service_jobs.lat/lng` (from `book_artisan`), shown only once assigned |
+| Navigate to client | Client address and position | **Done (0027):** `job_private.lat/lng` from the address's pin, returned by `my_artisan_jobs` once accepted | READY | — |
 | Enter start code, start | Check the code, start the job | `update_service_job_status('in_progress')` (no code) | **MISSING** | `start_job(job_id, code)` |
 | Mark complete | Complete | `update_service_job_status('completed')` | READY | — |
 | Send position while on a job | Live location | Nothing | **MISSING** | Insert into `job_locations` every 5–10 s (see client live job) |
@@ -162,8 +162,9 @@ exists. If it does, store it on the job (`client_fee_amount`) next to `commissio
     email code. Setup and deploy order: `supabase/EMAILS.md` in the backend repo.
 11. **The website never saves an artisan's location.** "Become an artisan" doesn't send
     `p_lat` / `p_lng`, so every approved artisan had none and the app's map was empty.
-    0025 places them at their service areas meanwhile; the real fix is a "pin your base"
-    step on the website and the app's GPS when an artisan goes online.
+    0025 places them at their service areas meanwhile. **The app's half is done (0027):**
+    artisans share their GPS position when they go online. A "pin your base" step on the
+    website would cover artisans who only use the website.
 
 ---
 
@@ -224,11 +225,13 @@ the direct-booking flow.
 | Map | `map_artisans(lat, lng, 10 km)` | Falls back to `search_artisans` if 0022 isn't applied: pins then sit at the right distance in an approximate direction. **0025:** artisans with no location (everyone who signed up on the website, whose form doesn't ask) appear at the centre of the area they serve nearest the client, marked approximate; the app then says "Serves Lekki" instead of a distance |
 | Profile | `get_artisan_public` | Reviews; services and prices still use typical Lagos prices (`artisan_services` is missing) |
 | Sign-in | Auth: phone OTP, or email + password | Then `profiles` for name, email, phone |
-| Saved addresses | `client_addresses` (0023) | Owner-only; the area picks the service area |
+| Saved addresses | `client_addresses` (0023) | Owner-only; the area picks the service area. **0027:** an optional pin (lat/lng) from "I'm here" |
+| Your position | `map_artisans(your GPS lat, lng)` | Read from the phone only while the app is open, never stored; Lekki Phase 1 until allowed |
+| Artisan position | `update_my_location` (0027) | On going online and every 5 min while online. Exact point in `artisan_private`, ~550 m rounding in public (0022); at most one update per 30 s |
 | Book | `book_artisan` (0023) | Offer to the chosen artisan; 30 s by default (`settings.offer_window_seconds`); unanswered offers go to the pool (`expire_job_offers`, also run by pg_cron if enabled) |
 | Jobs | `service_jobs` with category, assigned and requested artisan embedded; `job_private` for start codes | Countdown while the offer is open; the start code once accepted; cancel before work starts |
 | Artisan: online, radius | `set_artisan_availability`, `artisans.service_radius_km` | |
-| Artisan: requests and jobs | `my_artisan_jobs`, `accept_job_offer`, `decline_assigned_job` (0020), `start_job`, `update_service_job_status` | The artisan sees the area until they accept, the street after; never the start code |
+| Artisan: requests and jobs | `my_artisan_jobs`, `accept_job_offer`, `decline_assigned_job` (0020), `start_job`, `update_service_job_status` | The artisan sees the area until they accept, the street after; never the start code. **0027:** the area's centre for offers (`area_lat/lng`), the client's pin once accepted (`lat/lng`), for *Navigate* |
 | Messages, chat | `conversations`, `messages`, `send_message`, Realtime inserts | Server redaction is what's shown |
 | Notifications | `notifications`, update `read`, Realtime inserts | `type` routes: `message` → Messages, `support_reply` → support chat, others → Jobs |
 | Support, report | `support_tickets`, `open_support_ticket` (0022), `reply_support_ticket`, Realtime | Reports link the job |

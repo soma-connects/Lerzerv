@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,6 +46,7 @@ import com.lezerv.app.data.PAID_THIS_MONTH
 import com.lezerv.app.data.CLIENT_HOME
 import com.lezerv.app.data.DEMAND_ZONES
 import com.lezerv.app.data.DEMO_START_CODE
+import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.KM
 import com.lezerv.app.data.Pt
 import com.lezerv.app.data.REQUEST_PIN
@@ -75,6 +78,7 @@ import com.lezerv.app.ui.icons.LzIcon
 import com.lezerv.app.ui.map.CentredMarker
 import com.lezerv.app.ui.map.DemandZone
 import com.lezerv.app.ui.map.MapCircle
+import com.lezerv.app.ui.map.MapCredit
 import com.lezerv.app.ui.map.MapWorld
 import com.lezerv.app.ui.map.RouteLine
 import com.lezerv.app.ui.map.UserDot
@@ -93,12 +97,21 @@ import kotlin.math.roundToInt
 @Composable
 fun ArtisanMapScreen(s: LezervState) {
     val on = s.online
-    Box(Modifier.fillMaxSize()) {
-        PannableMap(s) {
-            // Demand zones and the request's pin are sample data; live has neither yet.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // A new request: bring its area into view, halfway between you and it, above the card.
+        val pin = s.incomingPin
+        val vw = maxWidth.value
+        LaunchedEffect(s.incoming?.id) { pin?.let { s.lookAt(Pt((UX + it.x) / 2, (UY + it.y) / 2), vw, 230f) } }
+        PannableMap(s, MapCredit(Alignment.TopStart, PaddingValues(start = 12.dp, top = 124.dp))) {
+            // Demand zones are sample data; live has none yet.
             if (!s.isLive) DEMAND_ZONES.forEach { DemandZone(it.x, it.y, it.r, it.label) }
             MapCircle(UX, UY, s.radiusKm * KM / 2, Lz.Ink, alpha = .55f)
             if (s.requestOpen && !s.isLive) HomePin(REQUEST_PIN.x, REQUEST_PIN.y)
+            // A live request shows its area (the street comes once accepted): ~1 km around its centre.
+            s.incomingPin?.let { p ->
+                MapCircle(p.x, p.y, KM, Lz.Accent, Lz.Accent.copy(alpha = .1f))
+                HomePin(p.x, p.y)
+            }
             UserDot()
         }
 
@@ -136,6 +149,8 @@ fun ArtisanMapScreen(s: LezervState) {
         when {
             incoming != null -> RequestCard(s, incoming, bottom)
             current != null -> Hint("navigation", "${current.title} for ${current.clientFirstName ?: "your client"} is in progress. Tap to open it.", bottom.tap { s.push(Pushed.Navigate) }, Lz.Accent)
+            // Online but the map doesn't know where they are: clients see them at their area's centre.
+            on && s.isLive && !s.originFromGps -> Hint("locate-fixed", "Share your location so clients nearby can find you. Tap to allow it.", bottom.tap { s.useMyLocation() }, Lz.Accent)
             on && s.artisanJob == null -> Hint("timer", if (s.isLive) "Looking for requests within ${s.radiusKm} km. They pop up here, and you have a few seconds to accept." else "Looking for jobs within ${s.radiusKm} km. Hatched areas have more requests right now.", bottom, Lz.Accent)
             !on -> Hint("power", if (s.isLive) "You won’t get requests while offline. Clients can’t book you either." else "You won’t get requests while offline. Clients can still see your profile.", bottom)
         }
@@ -273,7 +288,10 @@ private fun LiveArtisanJob(s: LezervState) {
     val stage = when { done -> 3; j.status == "in_progress" -> 2; j.id in live.arrived -> 1; else -> 0 }
     val client = j.clientFirstName ?: "Your client"
     val address = j.addressText ?: j.areaName.orEmpty()
-    val spot = AREAS.firstOrNull { it.first == j.areaName }?.second ?: AREAS.first().second
+    // The client's pin once the job is theirs (0027); else the area, roughly; else the drawn spot.
+    val pin = s.jobPin(j)
+    val spot = pin?.first ?: (AREAS.firstOrNull { it.first == j.areaName }?.second ?: AREAS.first().second).let { Pt(it.first, it.second) }
+    val exactPin = if (j.lat != null && j.lng != null) GeoPoint(j.lat, j.lng) else null
     val minutes = isoMillis(j.startedAt)?.let { ((s.now - it) / 60_000).toInt().coerceAtLeast(0) } ?: 0
     data class Stage(val kicker: String, val status: String, val big: String, val bigLabel: String, val action: Pair<String, () -> Unit>)
     val st = when (stage) {
@@ -284,14 +302,17 @@ private fun LiveArtisanJob(s: LezervState) {
     }
     Column(Modifier.fillMaxSize()) {
         Box {
-            MapInset(220.dp, Pt(spot.first, spot.second), s.blueprintMap) { HomePin(spot.first, spot.second + 2) }
+            MapInset(220.dp, spot, s) {
+                if (pin?.second == false) MapCircle(spot.x, spot.y, KM, Lz.Accent, Lz.Accent.copy(alpha = .1f))
+                HomePin(spot.x, spot.y + 2)
+            }
             Row(Modifier.padding(12.dp).fillMaxWidth().background(Lz.Ink).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LzIcon("map-pin", 24, Color.White)
                 Column(Modifier.weight(1f)) {
                     Txt("DESTINATION", heading(20, 20, weight = 700, color = Color.White))
                     Txt(address, body(12, 16, color = Color.White.copy(alpha = .85f)))
                 }
-                Box(Modifier.heightIn(min = 40.dp).border(1.dp, Color.White).tap { s.navigateTo(address) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.heightIn(min = 40.dp).border(1.dp, Color.White).tap { s.navigateTo(address, exactPin) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                     Txt("NAVIGATE", heading(16, tracking = .05f, color = Color.White))
                 }
             }

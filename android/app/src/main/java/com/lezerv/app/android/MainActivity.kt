@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -31,6 +32,7 @@ import com.lezerv.app.data.remote.SupabaseApi
 import com.lezerv.app.data.remote.createLezervClient
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.ui.LezervApp
+import com.lezerv.app.ui.map.LocalGeoMap
 import com.lezerv.app.ui.theme.LzFonts
 
 /**
@@ -50,6 +52,9 @@ class MainViewModel : ViewModel() {
         LezervState(demo = BuildConfig.DEMO_MODE, signedIn = BuildConfig.DEMO_MODE)
     }
 }
+
+/** One map renderer for the whole app (it holds no per-screen state). */
+private val geoMap = MapLibreGeoMap(BuildConfig.MAP_STYLE_URL)
 
 private val fonts = LzFonts(
     heading = FontFamily(
@@ -82,11 +87,14 @@ class MainActivity : ComponentActivity() {
         }
         // Opens the dialer with the number filled in; the user presses call (no permission needed).
         state.dial = { number -> startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
-        // Google Maps (or any maps app) at the client's address, for real directions.
-        state.openMaps = { address ->
-            val geo = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode("$address, Lagos")))
-            try { startActivity(geo) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a maps app for directions") }
+        // Google Maps (or any maps app) for real directions: at the client's pin when the job
+        // has one (0027), else searching their address.
+        state.openMaps = { address, at ->
+            val uri = if (at != null) "geo:${at.lat},${at.lng}?q=${at.lat},${at.lng}(${Uri.encode(address)})" else "geo:0,0?q=" + Uri.encode("$address, Lagos")
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a maps app for directions") }
         }
+        // The phone's location: the map centres on you, and online artisans share where they are.
+        state.attachLocator(AndroidLocator(this))
         // Android's share sheet: WhatsApp, SMS, email…
         state.share = { text ->
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
@@ -107,8 +115,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             // System back: close sheets, pop pushed screens, then return to the home tab.
             BackHandler(enabled = state.canGoBack) { state.back() }
-            // safeDrawingPadding keeps content clear of the status bar, gesture bar and keyboard.
-            LezervApp(state, fonts, Modifier.safeDrawingPadding())
+            // The real map for live screens (the demo keeps the drawn one, see PannableMap).
+            CompositionLocalProvider(LocalGeoMap provides geoMap) {
+                // safeDrawingPadding keeps content clear of the status bar, gesture bar and keyboard.
+                LezervApp(state, fonts, Modifier.safeDrawingPadding())
+            }
         }
     }
 
@@ -126,6 +137,8 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         Push.appVisible = true
+        // Back from the background: people move, so look again (only if already allowed).
+        appState.onForeground()
     }
 
     override fun onStop() {
@@ -154,6 +167,7 @@ class MainActivity : ComponentActivity() {
         appState.dial = null
         appState.share = null
         appState.openMaps = null
+        appState.attachLocator(null) // it holds this Activity
         appState.notificationsAllowed = null
         Push.onToken = null
         super.onDestroy()

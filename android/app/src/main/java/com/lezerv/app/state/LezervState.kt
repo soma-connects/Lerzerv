@@ -7,10 +7,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.lezerv.app.data.AREAS
+import com.lezerv.app.data.AREA_CENTRES
 import com.lezerv.app.data.ARTISANS
 import com.lezerv.app.data.Artisan
 import com.lezerv.app.data.DEMO_START_CODE
 import com.lezerv.app.data.EXPRESS_FEE
+import com.lezerv.app.data.GeoPoint
+import com.lezerv.app.data.LEKKI_PHASE_1
+import com.lezerv.app.data.LocalPlane
+import com.lezerv.app.data.MapAim
+import com.lezerv.app.data.Pt
 import com.lezerv.app.data.LAUNDRY_ITEMS
 import com.lezerv.app.data.OPTIONS
 import com.lezerv.app.data.PICKUP_WINDOWS
@@ -36,7 +43,9 @@ import com.lezerv.app.data.SEED_PAST
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.REVIEWS
 import com.lezerv.app.data.Review
+import com.lezerv.app.data.remote.ArtisanJobDto
 import com.lezerv.app.data.remote.Booking
+import com.lezerv.app.data.remote.areaSlug
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.active
 import com.lezerv.app.data.remote.backendSlug
@@ -203,8 +212,8 @@ class LezervState(
     /** Platform hooks set by MainActivity (dial a number, open the share sheet). Null in previews. */
     var dial: ((String) -> Unit)? = null
     var share: ((String) -> Unit)? = null
-    /** Opens a maps app (Google Maps) at an address. */
-    var openMaps: ((String) -> Unit)? = null
+    /** Opens a maps app (Google Maps) for directions: at the pin when there is one, else the address. */
+    var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -239,6 +248,18 @@ class LezervState(
     var panY by mutableStateOf<Float?>(null)
     var dragging by mutableStateOf(false)
     var blueprintMap by mutableStateOf(true)
+
+    // ── where "you" are ──
+    /** The point the map centres on and distances are measured from: this phone's GPS once allowed, else Lekki Phase 1. */
+    var origin by mutableStateOf(LEKKI_PHASE_1); private set
+    /** True once [origin] came from this phone. */
+    var originFromGps by mutableStateOf(false); private set
+    /** Map units around [origin]: how every screen turns a place into a position. */
+    val plane get() = LocalPlane(origin)
+    /** Where the real map looks; [pick] and [recenter] move it. */
+    var aim by mutableStateOf(MapAim(Pt(UX, UY), USER_TOP)); private set
+    /** The phone's location service (MainActivity's). Null in previews. */
+    var locator: Locator? = null; private set
 
     // ── booking form ──
     var bookArtisan by mutableStateOf<String?>(null); private set
@@ -418,9 +439,59 @@ class LezervState(
         selected = id; sheet = Sheet.Peek
         panX = viewportW / 2 - a.x
         panY = 230f - a.y
+        aim = MapAim(Pt(a.x, a.y), 230f, aim.seq + 1)
     }
 
-    fun recenter() { panX = null; panY = null }
+    /** Moves the map so [p] sits [fromTop] dp below the top, centred across a [viewportW]-wide map. */
+    fun lookAt(p: Pt, viewportW: Float, fromTop: Float) {
+        panX = viewportW / 2 - p.x
+        panY = fromTop - p.y
+        aim = MapAim(p, fromTop, aim.seq + 1)
+    }
+
+    /** "My location": back to you. Live, it also looks again, asking for permission the first time. */
+    fun recenter() {
+        panX = null; panY = null
+        aim = MapAim(Pt(UX, UY), USER_TOP, aim.seq + 1)
+        if (isLive) useMyLocation()
+    }
+
+    // ───────────────────────────── location ─────────────────────────────
+
+    /** MainActivity hands over the phone's location service. If it's already allowed, use it now. */
+    fun attachLocator(l: Locator?) {
+        locator = l
+        if (l != null && l.allowed()) useMyLocation(ask = false)
+    }
+
+    /** Back on screen: people move between visits, so look again (quietly, never asking). */
+    fun onForeground() { if (locator?.allowed() == true) useMyLocation(ask = false) }
+
+    /**
+     * Finds the phone and centres the app on it. With [ask] (someone tapped "my location"),
+     * Android's permission dialog comes first if needed; without, only an existing permission
+     * is used. The demo always stays in Lekki, where its sample artisans are.
+     */
+    fun useMyLocation(ask: Boolean = true) {
+        val live = live ?: return
+        val l = locator ?: return
+        if (!l.allowed()) {
+            if (ask) l.ask { ok -> if (ok) live.locate(quietly = false) else toast(LOCATION_DENIED) }
+            return
+        }
+        live.locate(quietly = !ask)
+    }
+
+    /** The phone was found at [p]. True when that moved "you" (the artisans then reload around it). */
+    internal fun onLocated(p: GeoPoint): Boolean {
+        val moved = !originFromGps || plane.km(origin, p) > MOVED_KM
+        originFromGps = true
+        if (!moved) return false
+        origin = p
+        panX = null; panY = null
+        aim = MapAim(Pt(UX, UY), USER_TOP, aim.seq + 1)
+        return true
+    }
 
     fun pickCategory(k: String) { category = k; selected = null }
 
@@ -768,7 +839,7 @@ class LezervState(
 
     fun shareText(text: String) = share?.invoke(text) ?: toast("Share sheet opens here")
 
-    fun navigateTo(address: String) = openMaps?.invoke(address) ?: toast("Opens Google Maps at $address")
+    fun navigateTo(address: String, at: GeoPoint? = null) = openMaps?.invoke(address, at) ?: toast("Opens Google Maps at $address")
 
     // ───────────────────────────── notifications ─────────────────────────────
 
@@ -933,4 +1004,35 @@ class LezervState(
     val livePast get() = live?.jobs.orEmpty().filterNot { it.active }
     fun serviceLabel(a: Artisan) = SERVICE.getValue(a.svc).label
     val clientPos get() = com.lezerv.app.data.Pt(UX, UY)
+
+    /** Where an address sits: live, its pin or else its area's centre; in the demo, its drawn spot. */
+    fun addressPos(a: Address): Pt =
+        if (isLive) plane.toMap(a.point ?: AREA_CENTRES[areaSlug(a.area)] ?: origin) else Pt(a.x, a.y)
+
+    /** The address form's pin position, the same way. */
+    val formPos: Pt get() = with(account) {
+        if (isLive) plane.toMap(formPin ?: AREA_CENTRES[areaSlug(formArea)] ?: origin)
+        else (AREAS.firstOrNull { it.first == formArea } ?: AREAS.first()).second.let { Pt(it.first, it.second) }
+    }
+
+    /**
+     * Where an artisan's job is on the map, and whether that's exact: the client's pin once the
+     * job is theirs (0027), else the area's centre (offers, and addresses without a pin).
+     */
+    fun jobPin(j: ArtisanJobDto): Pair<Pt, Boolean>? = when {
+        j.lat != null && j.lng != null -> plane.toMap(GeoPoint(j.lat, j.lng)) to true
+        j.areaLat != null && j.areaLng != null -> plane.toMap(GeoPoint(j.areaLat, j.areaLng)) to false
+        else -> null
+    }
+
+    /** The request on the artisan's map, where it is (approximately: no street until they accept). */
+    val incomingPin: Pt? get() = live?.currentOffer(now)?.let { jobPin(it)?.first }
+
+    companion object {
+        /** The user dot sits this far (dp) below the top of a full-screen map. */
+        const val USER_TOP = 300f
+        /** A new GPS fix closer than this (km) to the last one doesn't move the map. */
+        const val MOVED_KM = 0.2
+        const val LOCATION_DENIED = "Showing Lekki Phase 1. To see artisans near you, allow location for Lezerv in your phone’s Settings."
+    }
 }

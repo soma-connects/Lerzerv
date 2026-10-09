@@ -7,14 +7,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.lezerv.app.data.AREAS
 import com.lezerv.app.data.DEMO_OTP
+import com.lezerv.app.data.GeoFix
+import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.areaSlug
 
 /** Steps of the sign-in flow, shown full screen over the app. [Email] is for existing lezerv.com accounts (live only). */
 enum class AuthStep { Welcome, Phone, Code, Details, Email }
 
-/** A saved place. [id] is the client_addresses row when live, "1", "2"… in the demo. */
-data class Address(val id: String, val label: String, val street: String, val area: String, val note: String, val x: Float, val y: Float) {
+/**
+ * A saved place. [id] is the client_addresses row when live, "1", "2"… in the demo.
+ * [x]/[y] place it on the drawn map (demo); [point] is its pin from the phone's GPS, if dropped.
+ */
+data class Address(val id: String, val label: String, val street: String, val area: String, val note: String, val x: Float, val y: Float, val point: GeoPoint? = null) {
     val title get() = "$label · $street"
     val sub get() = "$area, Lagos" + if (note.isNotBlank()) " · $note" else ""
 }
@@ -72,6 +77,9 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     var formStreet by mutableStateOf("")
     var formArea by mutableStateOf(AREAS.first().first)
     var formNote by mutableStateOf("")
+    /** The form's pin ("use my current location"), and how sure the phone was, in metres, when just taken. */
+    var formPin by mutableStateOf<GeoPoint?>(null); private set
+    var formPinAccuracy by mutableStateOf<Float?>(null); private set
 
     // ───────────── payment cards ─────────────
     var cards by mutableStateOf(if (signedIn) listOf(SavedCard(1, "Visa", "2291", "08/27")) else emptyList()); private set
@@ -255,6 +263,7 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         editingAddressId = a?.id
         formLabel = a?.label ?: if (addresses.none { it.label == "Home" }) "Home" else "Work"
         formStreet = a?.street.orEmpty(); formArea = a?.area ?: AREAS.first().first; formNote = a?.note.orEmpty()
+        formPin = a?.point; formPinAccuracy = null
         pickingAddress = false
         app.push(Pushed.AddressEdit)
     }
@@ -264,12 +273,32 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         val live = app.live
         if (live != null) {
             // Live, addresses are stored in Supabase, which needs an account.
-            requireSignIn { live.saveAddress(AddressDto(editingAddressId.orEmpty(), formLabel, formStreet.trim(), formArea, areaSlug(formArea), formNote.trim().ifEmpty { null })) }
+            requireSignIn {
+                live.saveAddress(AddressDto(editingAddressId.orEmpty(), formLabel, formStreet.trim(), formArea, areaSlug(formArea), formNote.trim().ifEmpty { null }, formPin?.lat, formPin?.lng))
+            }
             return
         }
         val (ax, ay) = AREAS.first { it.first == formArea }.second
         onAddressSaved(Address(editingAddressId ?: "${nextAddressId++}", formLabel, formStreet.trim(), formArea, formNote.trim(), ax, ay))
     }
+
+    /**
+     * "Use my current location": pins the address where the phone is, for when you're there.
+     * The artisan then gets the exact gate once they accept, not just the area.
+     */
+    fun pinHere() {
+        val live = app.live ?: return
+        val l = app.locator ?: return app.toast("Location isn’t available on this phone")
+        if (!l.allowed()) {
+            l.ask { ok -> if (ok) live.pinHere() else app.toast("Allow location for Lezerv in Settings to pin your address.") }
+            return
+        }
+        live.pinHere()
+    }
+
+    fun clearPin() { formPin = null; formPinAccuracy = null }
+
+    internal fun onPinned(fix: GeoFix) { formPin = fix.point; formPinAccuracy = fix.accuracyM }
 
     internal fun onAddressSaved(a: Address) {
         addresses = if (addresses.any { it.id == a.id }) addresses.map { if (it.id == a.id) a else it } else addresses + a

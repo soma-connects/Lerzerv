@@ -128,10 +128,12 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         if (a.id.isBlank()) {
             db.from("client_addresses").insert(buildJsonObject {
                 put("label", a.label); put("street", a.street); put("area", a.area); put("area_slug", a.areaSlug); put("note", a.note)
+                put("lat", a.lat); put("lng", a.lng)
             }) { select(Columns.list(ADDRESS_COLUMNS)) }.decodeSingle()
         } else {
             db.from("client_addresses").update({
                 set("label", a.label); set("street", a.street); set("area", a.area); set("area_slug", a.areaSlug); set("note", a.note)
+                set("lat", a.lat); set("lng", a.lng)
             }) { select(Columns.list(ADDRESS_COLUMNS)); filter { eq("id", a.id) } }.decodeSingle()
         }
     }
@@ -186,6 +188,10 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     override suspend fun setRadius(km: Int) {
         // Owners may update this column (0005 column grants).
         db.from("artisans").update({ set("service_radius_km", km) }) { filter { eq("user_id", uid()) } }
+    }
+
+    override suspend fun updateMyLocation(lat: Double, lng: Double): Boolean = saying {
+        db.rpc("update_my_location", buildJsonObject { put("p_lat", lat); put("p_lng", lng) }).decodeAs<Boolean>()
     }
 
     override suspend fun artisanJobs(): List<ArtisanJobDto> = db.rpc("my_artisan_jobs").decodeList()
@@ -304,6 +310,6 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
             // service_jobs links to artisans three ways now (0020, 0023), so each embed names its link.
             "category:service_categories(slug,name),artisan:artisans!assigned_artisan_id(display_name)," +
             "requested:artisans!requested_artisan_id(display_name)"
-        val ADDRESS_COLUMNS = listOf("id", "label", "street", "area", "area_slug", "note")
+        val ADDRESS_COLUMNS = listOf("id", "label", "street", "area", "area_slug", "note", "lat", "lng")
     }
 }

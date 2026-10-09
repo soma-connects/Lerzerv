@@ -1,6 +1,9 @@
 package com.lezerv.verify
 
 import com.lezerv.app.data.DECLINE_REASONS
+import com.lezerv.app.data.GeoFix
+import com.lezerv.app.data.GeoPoint
+import com.lezerv.app.data.LEKKI_PHASE_1
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.remote.MessageDto
 import com.lezerv.app.data.remote.NotificationDto
@@ -10,6 +13,8 @@ import com.lezerv.app.data.remote.jobStatus
 import com.lezerv.app.data.remote.timeLabel
 import com.lezerv.app.state.AuthStep
 import com.lezerv.app.state.LezervState
+import com.lezerv.app.state.LiveSync
+import com.lezerv.app.state.Locator
 import com.lezerv.app.state.Pushed
 import com.lezerv.app.state.Role
 import com.lezerv.app.state.Route
@@ -293,6 +298,97 @@ fun main() {
         check("never if Android already allows them", !allowed.showPrime)
     }
 
+    // ══ location (0027): the map follows the phone; artisans share where they are ══
+    run {
+        val ikoyi = GeoFix(GeoPoint(6.4541, 3.4339), 25f)
+        val world = FakeWorld()
+        val api = FakeBackend(sessionUser = "user-1", world = world)
+        val s = liveApp(api)
+        check("before any location: the map looks around Lekki Phase 1", s.origin == LEKKI_PHASE_1 && !s.originFromGps && world.searchedFrom == LEKKI_PHASE_1)
+        val loc = FakeLocator(allowedNow = false, at = ikoyi)
+        s.attachLocator(loc)
+        check("opening the app doesn't ask for location out of the blue", loc.asked == 0 && !s.originFromGps)
+        val searches = api.calls.count { it == "artisans 10" }
+        s.recenter()
+        check("tapping \"my location\" asks Android, then moves you to where the phone is", loc.asked == 1 && s.originFromGps && s.origin == ikoyi.point)
+        check("…and the map reloads around you", world.searchedFrom == ikoyi.point && api.calls.count { it == "artisans 10" } == searches + 1)
+        val tunde = s.artisan("7f3e")!!
+        check("distances are now from you: Tunde in Lekki is ~5 km from Ikoyi", tunde.km in 4.5..5.8)
+        check("the map is aimed back at you", s.aim.target == com.lezerv.app.data.Pt(com.lezerv.app.data.UX, com.lezerv.app.data.UY))
+        loc.at = GeoFix(GeoPoint(6.4549, 3.4339), 10f) // ~90 m north
+        s.onForeground()
+        check("a small move doesn't reload the map", api.calls.count { it == "artisans 10" } == searches + 1 && s.origin == ikoyi.point)
+        loc.at = null
+        s.recenter()
+        check("location switched off: told so when they asked", s.snack == "Couldn’t find you. Check that location is on.")
+        s.toast("ok"); s.onForeground()
+        check("…but not when it was only a quiet check", s.snack == "ok")
+
+        val denied = liveApp(FakeBackend(world = world))
+        val no = FakeLocator(allowedNow = false, grant = false, at = ikoyi)
+        denied.attachLocator(no); denied.recenter()
+        check("saying no keeps Lekki Phase 1 and says how to change it", !denied.originFromGps && denied.snack == LezervState.LOCATION_DENIED)
+
+        val already = liveApp(FakeBackend(world = world))
+        already.attachLocator(FakeLocator(allowedNow = true, at = ikoyi))
+        check("if location was allowed before, the app uses it straight away, without asking", already.originFromGps && already.origin == ikoyi.point)
+
+        val demo = LezervState(demo = true, splash = false)
+        demo.attachLocator(FakeLocator(allowedNow = true, at = ikoyi)); demo.recenter()
+        check("the demo stays in Lekki, where its sample artisans are", !demo.originFromGps && demo.origin == LEKKI_PHASE_1)
+    }
+
+    run {
+        var now = LIVE_NOW
+        val world = FakeWorld { now }
+        val admiralty = GeoFix(GeoPoint(6.4491, 3.4738), 8f)
+        val home = GeoFix(GeoPoint(6.43871, 3.46022), 12f)
+        val amakaApi = FakeBackend(sessionUser = "user-1", world = world)
+        val tundeApi = FakeBackend(sessionUser = "art-user", world = world)
+        val amaka = liveApp(amakaApi) { now }
+        val tunde = liveApp(tundeApi) { now }
+        tunde.switchRole(Role.Artisan)
+        check("an online artisan without location permission is asked by a hint, not a pop-up", tunde.online && !tunde.originFromGps && tundeApi.calls.none { it.startsWith("location") })
+        val tLoc = FakeLocator(allowedNow = false, at = admiralty)
+        tunde.attachLocator(tLoc)
+        tunde.useMyLocation()
+        check("allowing it shares where they are", tLoc.asked == 1 && tundeApi.calls.contains("location 6.4491,3.4738") && world.shared["7f3e"]?.first == admiralty.point)
+        amaka.live!!.reload()
+        val shown = kotlinx.coroutines.runBlocking { amakaApi.artisansNear(6.4478, 3.4723, 10) }.first { it.id == "7f3e" }
+        check("clients see them there, rounded to ~550 m, no longer 'approximate'", shown.lat == 6.45 && shown.lng == 3.475 && !shown.approximate)
+        val shares = tundeApi.calls.count { it.startsWith("location") }
+        now += 60_000; tunde.tick()
+        check("while online, no new share within 5 minutes", tundeApi.calls.count { it.startsWith("location") } == shares)
+        now += LiveSync.SHARE_MS; tunde.tick()
+        check("…then the phone shares again", tundeApi.calls.count { it.startsWith("location") } == shares + 1)
+        tunde.toggleOnline() // offline
+        now += LiveSync.SHARE_MS * 2; tunde.tick()
+        check("offline: the phone stops sharing", tundeApi.calls.count { it.startsWith("location") } == shares + 1)
+        tunde.toggleOnline() // online again
+        check("going online shares straight away", tundeApi.calls.count { it.startsWith("location") } == shares + 2)
+
+        // Amaka pins her address at her gate, then books Tunde.
+        val aLoc = FakeLocator(allowedNow = true, at = home)
+        amaka.attachLocator(aLoc)
+        amaka.account.editAddress(null); amaka.account.formStreet = "4 Bishop Aboyade Cole St"; amaka.account.formArea = "Ikate"
+        check("a new address has no pin; it's shown at its area's centre", amaka.account.formPin == null && amaka.formPos == amaka.plane.toMap(LEKKI_CENTRE))
+        amaka.account.pinHere()
+        check("\"I'm here\" pins it where the phone is, with how sure it was", amaka.account.formPin == home.point && amaka.account.formPinAccuracy == 12f && amaka.formPos == amaka.plane.toMap(home.point))
+        amaka.account.saveAddress()
+        check("the pin is saved with the address", amakaApi.calls.last() == "saveAddress new Home | 4 Bishop Aboyade Cole St | Ikate | lekki | null @ 6.43871,3.46022"
+            && amaka.account.currentAddress?.point == home.point)
+        amaka.startBooking("7f3e"); amaka.option = 0; amaka.sendRequest(); amaka.answerPrime(false)
+        val offer = kotlinx.coroutines.runBlocking { tundeApi.artisanJobs() }.first()
+        check("the offer gives Tunde the area's centre, not her pin", offer.lat == null && tunde.jobPin(offer)?.second == false && tunde.incomingPin == tunde.plane.toMap(LEKKI_CENTRE))
+        tunde.acceptIncoming()
+        val job = tunde.liveArtisanJob!!
+        check("once accepted, he gets her exact pin for directions", job.lat == home.point.lat && job.lng == home.point.lng && tunde.jobPin(job) == (tunde.plane.toMap(home.point) to true))
+        var opened: Pair<String, GeoPoint?>? = null
+        tunde.openMaps = { a, at -> opened = a to at }
+        tunde.navigateTo(job.addressText!!, GeoPoint(job.lat!!, job.lng!!))
+        check("\"Navigate\" opens the maps app at the pin", opened?.second == home.point)
+    }
+
     // ── time labels ──
     val z = ZoneId.of("Africa/Lagos")
     check("time labels: today, yesterday, older, Postgres text form",
@@ -300,4 +396,12 @@ fun main() {
             timeLabel("2026-09-12T10:00:00+00:00", LIVE_NOW, z) == "12 Sep" && timeLabel("2026-10-05 07:05:00+00", LIVE_NOW, z) == "08:05" && timeLabel("garbage", LIVE_NOW, z) == "")
 
     println("\nAll $n live-mode checks passed.")
+}
+
+/** A pretend phone location service: [grant] is the answer to Android's dialog, [at] where the phone is. */
+class FakeLocator(var allowedNow: Boolean = false, var grant: Boolean = true, var at: GeoFix? = null) : Locator {
+    var asked = 0
+    override fun allowed() = allowedNow
+    override fun ask(done: (Boolean) -> Unit) { asked++; allowedNow = grant; done(grant) }
+    override suspend fun locate(): GeoFix? = at
 }

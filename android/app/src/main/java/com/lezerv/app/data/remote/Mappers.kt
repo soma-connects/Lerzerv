@@ -1,10 +1,11 @@
 package com.lezerv.app.data.remote
 
 import com.lezerv.app.data.Artisan
+import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.KM
+import com.lezerv.app.data.LEKKI_PHASE_1
+import com.lezerv.app.data.LocalPlane
 import com.lezerv.app.data.Review
-import com.lezerv.app.data.UX
-import com.lezerv.app.data.UY
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -13,13 +14,6 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
-
-/**
- * Where "you" are until the app reads the phone's GPS (next step): Lekki Phase 1,
- * the centre of the drawn map (its scale bar reads 6.4478° N 3.4723° E).
- */
-const val REF_LAT = 6.4478
-const val REF_LNG = 3.4723
 
 /** Backend category slug → the app's category chip. */
 fun appCategory(slug: String): String? = when (slug) {
@@ -53,16 +47,13 @@ val TYPICAL_FROM = mapOf(
 
 private fun stableHash(s: String): Int = s.fold(17) { h, c -> h * 31 + c.code }.let { abs(it) }
 
-/** Kilometres east/north of the reference point → drawn-map units. */
-private fun toMap(eastKm: Double, northKm: Double): Pair<Float, Float> =
-    (UX + eastKm * KM).toFloat() to (UY - northKm * KM).toFloat()
-
 /**
- * Where to draw an artisan. With map_artisans() we have a rounded position; with
- * search_artisans() only a distance, so the pin goes at that distance in a direction
- * derived from the id (stable between refreshes, clearly "approximate" in the UI).
+ * Where to draw an artisan, in map units around [plane]'s origin (you). With map_artisans()
+ * we have a rounded position; with search_artisans() only a distance, so the pin goes at
+ * that distance in a direction derived from the id (stable between refreshes, clearly
+ * "approximate" in the UI).
  */
-fun mapPosition(dto: MapArtisanDto): Pair<Float, Float> {
+fun mapPosition(dto: MapArtisanDto, plane: LocalPlane = LocalPlane(LEKKI_PHASE_1)): Pair<Float, Float> {
     val h = stableHash(dto.id)
     // Spread artisans that share a spot so their pins don't stack: ~100 m within a rounded
     // ~550 m square, ~500 m around an area's centre, where many can share the exact point.
@@ -70,25 +61,24 @@ fun mapPosition(dto: MapArtisanDto): Pair<Float, Float> {
     val jitterE = ((h % 21) - 10) / spread
     val jitterN = (((h / 21) % 21) - 10) / spread
     if (dto.lat != null && dto.lng != null) {
-        val east = (dto.lng - REF_LNG) * 111.32 * cos(REF_LAT * PI / 180)
-        val north = (dto.lat - REF_LAT) * 110.57
-        return toMap(east + jitterE, north + jitterN)
+        val p = plane.toMap(GeoPoint(dto.lat, dto.lng))
+        return (p.x + jitterE * KM).toFloat() to (p.y - jitterN * KM).toFloat()
     }
     val bearing = (h % 360) * PI / 180
-    return toMap(dto.distanceKm * sin(bearing), dto.distanceKm * cos(bearing))
+    return plane.toMap(dto.distanceKm * sin(bearing), dto.distanceKm * cos(bearing)).let { it.x to it.y }
 }
 
 /** "Tunde Bakare" → "TB". */
 fun initialsOf(name: String): String =
     name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.take(2).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
 
-/** Backend row → the app's Artisan model. */
-fun MapArtisanDto.toArtisan(): Artisan {
+/** Backend row → the app's Artisan model, placed around [plane]'s origin. */
+fun MapArtisanDto.toArtisan(plane: LocalPlane = LocalPlane(LEKKI_PHASE_1)): Artisan {
     val svc = categories.firstNotNullOfOrNull(::appCategory) ?: "repair"
     // The artisan's own category for that chip: booking must name one they offer.
     val slug = categories.firstOrNull { appCategory(it) == svc }
     val (from, unit) = TYPICAL_FROM.getValue(svc)
-    val (x, y) = mapPosition(this)
+    val (x, y) = mapPosition(this, plane)
     return Artisan(
         id = id, name = displayName, ini = initialsOf(displayName),
         svc = svc, x = x, y = y,

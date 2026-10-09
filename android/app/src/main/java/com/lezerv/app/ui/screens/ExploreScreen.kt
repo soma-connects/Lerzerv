@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,7 +65,9 @@ import com.lezerv.app.ui.components.tap
 import com.lezerv.app.ui.icons.LzIcon
 import com.lezerv.app.ui.map.MAP_H
 import com.lezerv.app.ui.map.MAP_W
+import com.lezerv.app.ui.map.LocalGeoMap
 import com.lezerv.app.ui.map.MapCircle
+import com.lezerv.app.ui.map.MapCredit
 import com.lezerv.app.ui.map.MapPin
 import com.lezerv.app.ui.map.MapWorld
 import com.lezerv.app.ui.map.UserDot
@@ -80,9 +83,19 @@ internal val CssEase = CubicBezierEasing(.25f, .1f, .25f, 1f)
 /**
  * Shared pannable map used by the client Explore tab and the artisan Map tab.
  * The default view puts the user dot horizontally centred, 300dp from the top.
+ *
+ * Live on a phone it's the real map (MapLibre, [LocalGeoMap]); in the demo and in desktop
+ * previews it's the drawn Lekki map. [content] is the same either way: pins in map units.
  */
 @Composable
-internal fun PannableMap(s: LezervState, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
+internal fun PannableMap(s: LezervState, credit: MapCredit, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
+    val geo = LocalGeoMap.current
+    if (geo != null && s.isLive) geo.Show(s.plane, s.aim, interactive = true, grid = s.blueprintMap, credit = credit, modifier = Modifier.fillMaxSize(), overlay = content)
+    else DrawnPannableMap(s, content)
+}
+
+@Composable
+private fun DrawnPannableMap(s: LezervState, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
         val vw = maxWidth.value
         val vh = maxHeight.value
@@ -119,7 +132,7 @@ fun ExploreScreen(s: LezervState) {
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val vw = maxWidth.value
-        PannableMap(s) {
+        PannableMap(s, MapCredit(Alignment.BottomEnd, PaddingValues(end = 12.dp, bottom = sheetH + 8.dp))) {
             // 2.5 km ring around the user
             MapCircle(UX, UY, 300f, Lz.Accent, Lz.Accent.copy(alpha = .05f))
             Box(Modifier.at(330f, 210f).background(Lz.Bg).border(1.dp, Lz.Accent).padding(horizontal = 8.dp, vertical = 2.dp)) { Txt("2.5 KM", label(10, color = Lz.Accent700)) }
@@ -158,7 +171,8 @@ fun ExploreScreen(s: LezervState) {
             s.push(com.lezerv.app.state.Pushed.Track)
             if (s.job?.let { it.stage == it.lastStage } == true) s.openReview()
         }, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, end = 12.dp, bottom = sheetH + 12.dp))
-        else ScaleBar(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = sheetH + 12.dp))
+        else if (s.isLive && !s.originFromGps) UseMyLocation(s, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = sheetH + 12.dp))
+        else ScaleBar(s, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = sheetH + 12.dp))
 
         // bottom sheet
         Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(sheetH).shadow(12.dp).background(Lz.Bg).borderTop(2.dp, Lz.Ink).padding(top = 2.dp)) {
@@ -201,15 +215,35 @@ private fun SearchBar(s: LezervState) {
     }
 }
 
+/**
+ * Live, until the phone's location is allowed: the map is showing Lekki Phase 1, and this
+ * says so. Tapping asks Android for permission and moves the map to you.
+ */
 @Composable
-private fun ScaleBar(modifier: Modifier) {
+private fun UseMyLocation(s: LezervState, modifier: Modifier) {
+    Row(
+        modifier.shadow(2.dp).background(Lz.Bg).border(1.dp, Lz.Accent).tap { s.useMyLocation() }.padding(horizontal = 12.dp, vertical = 8.dp)
+            .semantics { contentDescription = "Use my location" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LzIcon("locate-fixed", 16, Lz.Accent)
+        Column {
+            Txt("SHOWING LEKKI PHASE 1", label(9, color = Lz.Neutral700))
+            Txt("USE MY LOCATION", heading(15, tracking = .04f, color = Lz.Accent800))
+        }
+    }
+}
+
+@Composable
+private fun ScaleBar(s: LezervState, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
             Box(Modifier.size(1.dp, 8.dp).background(Lz.Ink)); Box(Modifier.size(60.dp, 3.dp).background(Lz.Ink))
             Box(Modifier.size(1.dp, 8.dp).background(Lz.Ink)); Box(Modifier.size(60.dp, 3.dp).background(Lz.Bg).border(1.dp, Lz.Ink))
             Box(Modifier.size(1.dp, 8.dp).background(Lz.Ink))
         }
-        Txt("0 · 500 · 1000 M  ·  6.4478° N 3.4723° E", label(9, color = Lz.Neutral800))
+        Txt("0 · 500 · 1000 M  ·  ${coord(s.origin.lat, 'N', 'S')} ${coord(s.origin.lng, 'E', 'W')}", label(9, color = Lz.Neutral800))
     }
 }
 
@@ -260,7 +294,15 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                 Txt("${list.count { it.online }}", heading(30, 30, weight = 700, color = Lz.Accent))
                 Txt(" NEAR YOU", heading(30, 30, weight = 700))
             }
-            Txt(if (s.isLive) "Available $catL within $NEARBY_KM km" else "Available $catL within 2.5 km · Lekki Phase 1", body(13, color = Lz.Neutral700), Modifier.padding(top = 3.dp))
+            Txt(
+                when {
+                    !s.isLive -> "Available $catL within 2.5 km · Lekki Phase 1"
+                    s.originFromGps -> "Available $catL within $NEARBY_KM km of you"
+                    // The "Showing Lekki Phase 1 · use my location" button says where from.
+                    else -> "Available $catL within $NEARBY_KM km"
+                },
+                body(13, color = Lz.Neutral700), Modifier.padding(top = 3.dp),
+            )
         }
         val listOpen = s.sheet == Sheet.List
         OutlineButton(if (listOpen) "Map" else "List", { s.toggleSheet() }, icon = if (listOpen) "map" else "list", height = 40.dp, fontSize = 16)
@@ -308,3 +350,7 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
     }
 }
 
+
+/** 6.4478 → "6.4478° N": the scale bar's "you are here". Locale.US keeps the decimal point a point. */
+internal fun coord(v: Double, pos: Char, neg: Char): String =
+    String.format(java.util.Locale.US, "%.4f° %c", kotlin.math.abs(v), if (v < 0) neg else pos)

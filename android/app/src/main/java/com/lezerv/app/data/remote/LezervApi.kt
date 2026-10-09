@@ -60,6 +60,11 @@ interface LezervApi {
     /** set_artisan_availability(): online = clients can book you. */
     suspend fun setAvailability(online: Boolean)
     suspend fun setRadius(km: Int)
+    /**
+     * update_my_location() (0027): where the artisan is. The public map gets it rounded to
+     * ~550 m. False when ignored as too soon after the last one (30 s).
+     */
+    suspend fun updateMyLocation(lat: Double, lng: Double): Boolean
     /** my_artisan_jobs(): offers and accepted work, without the client's start code. */
     suspend fun artisanJobs(): List<ArtisanJobDto>
     suspend fun acceptOffer(jobId: String)

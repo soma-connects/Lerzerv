@@ -173,15 +173,12 @@ fun MapWorld(panX: Float, panY: Float, blueprint: Boolean, modifier: Modifier = 
     }
 }
 
-/** Places a child so that its top-left is at map point (x, y). */
-fun Modifier.at(x: Float, y: Float) = offset(x.dp, y.dp)
-
 /** Pulsing "you are here" dot at the client's position. */
 @Composable
 fun UserDot(at: Pt = Pt(UX, UY)) {
     val pulse = rememberInfiniteTransition(label = "pulse")
     val p by pulse.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart), label = "p")
-    Box(Modifier.at(at.x - 40, at.y - 40).size(80.dp)) {
+    Box(Modifier.at(at.x, at.y, (-40).dp, (-40).dp).size(80.dp)) {
         // ease-out: fast start, slow finish, like the CSS keyframes
         val e = 1f - (1f - p) * (1f - p)
         Box(Modifier.size(80.dp).scale(.25f + .75f * e).graphicsLayer { alpha = .9f * (1f - e) }.background(Lz.Accent.copy(alpha = .3f), CircleShape))
@@ -193,7 +190,7 @@ fun UserDot(at: Pt = Pt(UX, UY)) {
 @Composable
 fun MapPin(x: Float, y: Float, icon: String, size: Int = 28, bg: Color = Lz.Ink, fg: Color = Color.White, border: Color = bg, stem: Int = 10, label: String? = null, shadow: Boolean = false, modifier: Modifier = Modifier) {
     // Fixed-width column so a long name label overflows centred instead of shifting the pin.
-    Column(modifier.at(x - size / 2f, y - size - stem).width(size.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.at(x, y, (-size / 2f).dp, (-size - stem).dp).width(size.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(size.dp).then(if (shadow) Modifier.shadow(3.dp) else Modifier).background(bg).border(2.dp, border), contentAlignment = Alignment.Center) { LzIcon(icon, 18.coerceAtMost(size - 10), fg) }
         Box(Modifier.size(2.dp, stem.dp).background(border))
         if (label != null) Box(Modifier.wrapContentWidth(unbounded = true).padding(top = 4.dp).background(Lz.Ink).padding(horizontal = 8.dp, vertical = 3.dp)) { Txt(label.uppercase(), heading(14, tracking = .04f, color = Color.White)) }
@@ -204,16 +201,16 @@ fun MapPin(x: Float, y: Float, icon: String, size: Int = 28, bg: Color = Lz.Ink,
 @Composable
 fun CentredMarker(x: Float, y: Float, icon: String, size: Int, bg: Color, fg: Color, border: Color, borderW: Int = 2, iconSize: Int = size / 2, shadow: Boolean = false) {
     Box(
-        Modifier.at(x - size / 2f, y - size / 2f).size(size.dp).then(if (shadow) Modifier.shadow(4.dp) else Modifier).background(bg).border(borderW.dp, border),
+        Modifier.at(x, y, (-size / 2f).dp, (-size / 2f).dp).size(size.dp).then(if (shadow) Modifier.shadow(4.dp) else Modifier).background(bg).border(borderW.dp, border),
         contentAlignment = Alignment.Center,
     ) { LzIcon(icon, iconSize, fg) }
 }
 
-/** Dashed circle on the map in map units (coverage ring, approximate area). */
+/** Dashed circle on the map in map units (coverage ring, approximate area); it zooms with the map. */
 @Composable
 fun MapCircle(cx: Float, cy: Float, r: Float, stroke: Color, fill: Color = Color.Transparent, strokeW: Float = 1.5f, alpha: Float = 1f) {
     Box(
-        Modifier.at(cx - r, cy - r).size((r * 2).dp).graphicsLayer { this.alpha = alpha }.drawBehind {
+        Modifier.mapSquare(cx, cy, r).graphicsLayer { this.alpha = alpha }.drawBehind {
             val w = strokeW.dp.toPx()
             drawCircle(fill)
             drawCircle(stroke, radius = size.minDimension / 2 - w / 2, style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(w * 3, w * 3))))
@@ -225,7 +222,7 @@ fun MapCircle(cx: Float, cy: Float, r: Float, stroke: Color, fill: Color = Color
 @Composable
 fun DemandZone(cx: Float, cy: Float, r: Float, text: String) {
     Box(
-        Modifier.at(cx - r, cy - r).size((r * 2).dp).drawBehind {
+        Modifier.mapSquare(cx, cy, r).drawBehind {
             val circle = Path().apply { addOval(androidx.compose.ui.geometry.Rect(Offset.Zero, size)) }
             clipPath(circle) {
                 val step = 8.dp.toPx() * 1.4142f
