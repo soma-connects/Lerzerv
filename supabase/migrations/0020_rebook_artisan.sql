@@ -178,6 +178,14 @@ begin
   -- The outgoing artisan's quote goes with them: a price for their hands
   -- and their day says nothing about whoever picks this up next, and
   -- leaving it would show the replacement a number they never offered.
+  --
+  -- So does their site visit (0019). A visit belongs to the person who
+  -- stood in the room. If it survived the hand-over, `visited_at` would
+  -- still be set when the replacement quotes, and submit_job_quote derives
+  -- `quote_is_firm` from exactly that — so an artisan who has never seen
+  -- the place would send a price labelled FIRM, which is locked against
+  -- later revision. The visit fee snapshot would also be carried over to
+  -- someone who never made the trip.
   update public.service_jobs
   set assigned_artisan_id = null,
       assigned_at = null,
@@ -186,6 +194,10 @@ begin
       quote_note = null,
       quoted_at = null,
       quote_declined_at = null,
+      quote_is_firm = null,
+      visit_scheduled_for = null,
+      visited_at = null,
+      visit_fee = null,
       updated_at = now()
   where id = p_job_id
     and status = 'assigned'
