@@ -159,6 +159,10 @@ fun main(args: Array<String>) {
     // No job in progress (that hint comes first): online, but the map doesn't know where they are.
     liveApp(FakeBackend("art-user").apply { world.jobs.clear() }).apply { switchRole(Role.Artisan) }.let { shot("103-live-artisan-share-hint", it) }
 
+    // Store build: live text says only what's built (no escrow, masked calls, saved cards or referrals yet).
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.Safety) }.let { shot("104-live-safety", it) }
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.Legal(privacy = false)) }.let { shot("105-live-terms", it) }
+
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
     guest().apply {

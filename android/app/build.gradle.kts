@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -29,19 +30,17 @@ fun localProp(key: String): String = localProps.getProperty(key, "").trim()
 
 android {
     namespace = "com.lezerv.app"
-    compileSdk = 35
+    // Google Play requires new apps to target Android 16 (API 36) from 31 Aug 2026.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.lezerv.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        targetSdk = 36
+        // Every upload to Play needs a higher versionCode; versionName is what people see.
+        versionCode = 10
+        versionName = "1.0.0"
 
-        // Demo mode: sample data plus the prototype helpers (role switch in Account,
-        // "Prototype · skip ahead", "Demo: fill 4827", Reset). Turn off once the backend
-        // drives job stages and accounts.
-        buildConfigField("boolean", "DEMO_MODE", "true")
         buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.url")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProp("supabase.anonKey")}\"")
         buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${localProp("firebase.projectId")}\"")
@@ -51,17 +50,37 @@ android {
         buildConfigField("String", "MAP_STYLE_URL", "\"${localProp("map.styleUrl").ifEmpty { "https://tiles.openfreemap.org/styles/positron" }}\"")
     }
 
+    // The upload key that signs release builds for Google Play (see RELEASE.md). Its file
+    // and passwords live in local.properties, never in git:
+    //   release.storeFile=/path/to/lezerv-upload.jks
+    //   release.storePassword=…   release.keyAlias=lezerv-upload   release.keyPassword=…
+    signingConfigs {
+        if (localProp("release.storeFile").isNotEmpty()) create("release") {
+            storeFile = file(localProp("release.storeFile"))
+            storePassword = localProp("release.storePassword")
+            keyAlias = localProp("release.keyAlias")
+            keyPassword = localProp("release.keyPassword")
+        }
+    }
+
     buildTypes {
+        // Demo mode: the prototype helpers (role switch and Reset in Account, "Prototype ·
+        // skip ahead", "Demo: fill 4827"), and sample data when no backend is set.
+        // On for development builds, off for the store.
+        debug {
+            buildConfigField("boolean", "DEMO_MODE", "true")
+        }
         release {
+            buildConfigField("boolean", "DEMO_MODE", "false")
+            // Shrinking stays off for the first release: Supabase, Ktor and MapLibre would
+            // need keep rules, and an untested rule can break the app only in release.
             isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -90,4 +109,8 @@ dependencies {
     implementation(libs.firebase.messaging)
     // The real map: MapLibre Native (open source) drawing OpenStreetMap data.
     implementation(libs.maplibre)
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
 }

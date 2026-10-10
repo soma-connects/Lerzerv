@@ -138,7 +138,7 @@ private fun CurrentScreen(s: LezervState) {
         Pushed.Safety -> SafetyScreen(s)
         Pushed.Settings -> SettingsScreen(s)
         Pushed.EditProfile -> EditProfileScreen(s)
-        is Pushed.Legal -> LegalScreen(top.privacy)
+        is Pushed.Legal -> LegalScreen(s, top.privacy)
         Pushed.Invite -> InviteScreen(s)
         Pushed.Services -> ServicesScreen(s)
         null -> when (s.tab) {
@@ -230,7 +230,7 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
     Pushed.Safety -> "Safety" to "Tools for you and your home"
     Pushed.Settings -> "Settings" to "Notifications, language, account"
     Pushed.EditProfile -> "Edit profile" to "Name, phone and email"
-    is Pushed.Legal -> (if (p.privacy) "Privacy policy" else "Terms of service") to "Draft for review"
+    is Pushed.Legal -> (if (p.privacy) "Privacy policy" else "Terms of service") to (if (s.demo) "Draft for review" else "Lezerv")
     Pushed.Invite -> "Invite friends" to "Share Lezerv"
     Pushed.Services -> "Services and prices" to "What clients can book you for"
 }

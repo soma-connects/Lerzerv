@@ -214,6 +214,36 @@ val FAQS = listOf(
     Faq("Something went wrong with a job", "Open the job’s receipt and tap Report a problem. We pause the artisan’s payout while we look into it."),
 )
 
+/**
+ * The same three texts for the live app, describing only what's built: no escrow, no
+ * masked calls, no fees yet. DRAFT for legal review; payment wording follows whatever
+ * Lezerv decides for launch. The full privacy policy is lezerv.com/privacy.
+ */
+val LIVE_FAQS = listOf(
+    Faq("How do I book?", "Pick an available artisan on the map and send your request. They have about 30 seconds to accept. If they don’t, we offer your job to other artisans nearby."),
+    Faq("How do I pay?", "Agree the price with your artisan in chat before work starts. Paying in the app is coming soon."),
+    Faq("What is the start code?", "A 4-digit code on your job in the Jobs tab. Only read it out when the artisan is at your door: they can’t start the job without it."),
+    Faq("Can I cancel?", "Yes, from the Jobs tab, until work starts."),
+    Faq("How are artisans verified?", "Every artisan uploads a government ID, proof of address and a photo. Our team checks them before the artisan can take jobs."),
+    Faq("Will the artisan see my phone number?", "No. Chat hides phone numbers, emails and links. They see your street only after they accept your job."),
+    Faq("Something went wrong with a job", "Open Help and tap Report a problem, or chat with our support team. We reply within 24 hours."),
+)
+val LIVE_TERMS = listOf(
+    "Who we are" to "Lezerv connects people who need help at home with independent, verified artisans in Lagos. Lezerv is not the artisan’s employer.",
+    "Requests" to "When you book, the artisan you chose has a short time to accept. If they don’t, we may offer your job to other artisans nearby.",
+    "Prices and payment" to "Prices shown are typical starting prices. You and the artisan agree the final price in chat before work starts. Paying in the app is coming soon.",
+    "Cancellations" to "You can cancel a request until work starts.",
+    "Problems" to "Report a problem from Help within 48 hours of a job and our team will look into it.",
+    "Your account" to "Keep your details accurate and don’t share your start codes. You can delete your account at any time in Settings.",
+)
+val LIVE_PRIVACY = listOf(
+    "What we collect" to "Your name, phone number or email, saved addresses, job details, photos you add and chat messages. Artisans also give ID documents for verification.",
+    "Location" to "Only while you use the app. Your location finds artisans near you and is not stored. Artisans who go online share theirs so clients can find them; clients only ever see it rounded to about 550 m.",
+    "Who sees it" to "Artisans see your first name and area until they accept your job, then your street for that job. They never see your phone number.",
+    "Your rights" to "Under the Nigeria Data Protection Act 2023 you can ask for a copy of your data, correct it or delete your account.",
+    "Retention" to "When you delete your account we remove your personal data within 30 days, except records we must keep by law. Full policy: lezerv.com/privacy",
+)
+
 /** Placeholder legal copy. DRAFT: must be reviewed by a Nigerian lawyer before launch. */
 val TERMS = listOf(
     "Who we are" to "Lezerv connects people who need help at home with independent, verified artisans in Lagos. Lezerv is not the artisan’s employer.",

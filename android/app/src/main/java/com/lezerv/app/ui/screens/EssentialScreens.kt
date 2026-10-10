@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.lezerv.app.data.AREAS
 import com.lezerv.app.data.CANCEL_REASONS
 import com.lezerv.app.data.FAQS
+import com.lezerv.app.data.LIVE_FAQS
+import com.lezerv.app.data.LIVE_PRIVACY
+import com.lezerv.app.data.LIVE_TERMS
 import com.lezerv.app.data.LANGUAGES
 import com.lezerv.app.data.PRIVACY
 import com.lezerv.app.data.Pt
@@ -343,7 +346,7 @@ fun HelpScreen(s: LezervState) {
         if (s.role == Role.Client && recent != null) LinkRow("circle-alert", "Report a problem with ${recent.first}", if (s.isLive) "Our team reviews it and replies in support chat" else "Pauses the payout while we check", { s.startReport(recent.first, jobId = recent.second) })
         SectionRule("01", "Common questions", gutter = 0.dp)
         Column {
-            FAQS.forEachIndexed { i, f ->
+            (if (s.isLive) LIVE_FAQS else FAQS).forEachIndexed { i, f ->
                 Column(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { open = if (open == i) -1 else i }.padding(vertical = 14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Txt(f.q, body(15, 21, weight = 600), Modifier.weight(1f))
@@ -374,15 +377,19 @@ fun SafetyScreen(s: LezervState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) { Txt("CALL 112", heading(22, tracking = .05f), Modifier.weight(1f)); LzIcon("phone", 22) }
         }
-        SwitchRow("Share live jobs with a trusted contact", "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.", a.shareLiveJobs, { a.shareLiveJobs = !a.shareLiveJobs })
-        LinkRow("users", "Trusted contact", a.trustedContact, { s.toast("PROPOSAL: pick a contact from your phone") })
+        // Sharing a live job needs backend work (a link for the contact); live, it isn't offered yet.
+        if (!s.isLive) {
+            SwitchRow("Share live jobs with a trusted contact", "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.", a.shareLiveJobs, { a.shareLiveJobs = !a.shareLiveJobs })
+            LinkRow("users", "Trusted contact", a.trustedContact, { s.toast("PROPOSAL: pick a contact from your phone") })
+        }
         SectionRule("01", "How Lezerv keeps you safe", gutter = 0.dp)
         Column {
             listOf(
                 "badge-check" to "Every artisan’s ID and address are checked before they can work.",
                 "key-round" to "The start code means only the artisan you booked can begin the job.",
-                "eye-off" to "Calls and chat hide your number. Exact address only after booking.",
-                "lock" to "Your money stays with Lezerv until you confirm the job is done.",
+                // Live states only what's built: no masked calls or escrow yet.
+                "eye-off" to if (s.isLive) "Chat hides your number. Your street goes only to the artisan who accepts your job." else "Calls and chat hide your number. Exact address only after booking.",
+                "lock" to if (s.isLive) "Agree the price in chat before work starts, and pay when the job is done." else "Your money stays with Lezerv until you confirm the job is done.",
             ).forEach { (ic, t) ->
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     LzIcon(ic, 22, Lz.Accent700); Txt(t, body(14, 20))
@@ -461,16 +468,18 @@ fun EditProfileScreen(s: LezervState) {
 // ───────────────────────────── terms / privacy ─────────────────────────────
 
 @Composable
-fun LegalScreen(privacy: Boolean) {
+fun LegalScreen(s: LezervState, privacy: Boolean) {
     FormPage(bar = null) {
-        Note("DRAFT. This text is a starting point and must be reviewed by a Nigerian lawyer before launch.", "circle-alert")
-        (if (privacy) PRIVACY else TERMS).forEachIndexed { i, (h, t) ->
+        // The reminder is for us, not for people using the store app. Legal review is a launch
+        // blocker either way (see RELEASE.md).
+        if (s.demo) Note("DRAFT. This text is a starting point and must be reviewed by a Nigerian lawyer before launch.", "circle-alert")
+        (if (privacy) (if (s.isLive) LIVE_PRIVACY else PRIVACY) else (if (s.isLive) LIVE_TERMS else TERMS)).forEachIndexed { i, (h, t) ->
             Column {
                 Txt("0${i + 1}  ${h.uppercase()}", heading(20, 24), Modifier.padding(bottom = 6.dp))
                 Txt(t, body(14, 21, color = Lz.Neutral800))
             }
         }
-        Txt("Last updated 5 Oct 2026", body(12, color = Lz.Neutral700))
+        Txt(if (s.isLive) "Last updated 10 Oct 2026" + if (privacy) " · Full policy: lezerv.com/privacy" else "" else "Last updated 5 Oct 2026", body(12, color = Lz.Neutral700))
     }
 }
 

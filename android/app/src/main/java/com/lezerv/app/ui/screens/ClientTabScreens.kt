@@ -194,7 +194,7 @@ fun MessagesScreen(s: LezervState) {
         }
         Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LzIcon("eye-off", 18, Lz.Accent)
-            Txt("Phone numbers, emails and links are hidden in chat. Calls go through a Lezerv number.", body(12, 18, color = Lz.Neutral800))
+            Txt(if (s.isLive) "Phone numbers, emails and links are hidden in chat." else "Phone numbers, emails and links are hidden in chat. Calls go through a Lezerv number.", body(12, 18, color = Lz.Neutral800))
         }
     }
 }
@@ -323,9 +323,10 @@ fun ClientAccountScreen(s: LezervState) {
         AccountRows(
             listOfNotNull(
                 AccountRow("map-pin", "Saved addresses", acc.currentAddress?.title ?: "Add home or work") { acc.requireSignIn { s.push(Pushed.Addresses) } },
-                AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
-                AccountRow("shield-check", "Safety", "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
-                AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
+                // Live hides what has no backend yet: saved cards (Paystack) and referral rewards.
+                if (s.isLive) null else AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
+                AccountRow("shield-check", "Safety", if (s.isLive) "Emergency, start codes, privacy" else "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
+                if (s.isLive) null else AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
                 if (s.live?.me != null) null
                 else if (s.isLive) AccountRow("wrench", "Become an artisan", "Apply on lezerv.com: ID check and services") { s.toast("Apply on lezerv.com for now. Once approved, you switch to artisan here.") }
                 else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.requireSignIn { s.push(Pushed.Verify(onboarding = true)) } },

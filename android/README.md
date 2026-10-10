@@ -215,6 +215,11 @@ AndroidX, so a first build in Android Studio may still need a small fix.
 `docs/BACKEND_MAP.md` maps every screen to the backend (what's ready, what needs a
 migration, what's missing) and suggests a build order.
 
+### Releasing
+
+`RELEASE.md` covers the store build (demo off, signed with the upload key, API 36), testing
+it on a phone, and Play Console, including drafted Data safety and store listing answers.
+
 ### Checks
 
 ```
