@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { emailService } from '../services/emailService';
 import './Payment.css';
 
 type TPaymentMethod = 'bank_transfer' | 'card' | 'pod' | null;
@@ -73,16 +72,7 @@ const Payment: React.FC = () => {
 
     setIsConfirming(false);
     if (!error) {
-      // Notify Admin via email
-      try {
-        await emailService.sendPaymentNotificationEmail(
-          booking?.order_number || 'N/A',
-          booking?.customer?.name || 'Guest',
-          booking?.amount_due || 'Pending Quote'
-        );
-      } catch (err) {
-        console.warn('Failed to send admin payment email:', err);
-      }
+      // The database emails the team when the claim is recorded (migration 0026).
       alert('Payment notification sent! The admin will verify your transfer shortly.');
       navigate('/profile');
     } else {

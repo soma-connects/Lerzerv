@@ -23,7 +23,6 @@ import {
   type TReferral,
   type TAmbassadorApplication
 } from '../services/ambassadorService';
-import { emailService } from '../services/emailService';
 import './Ambassador.css';
 import { useSEO } from '../hooks/useSEO';
 
@@ -105,13 +104,8 @@ const Ambassador: React.FC = () => {
     if (response.success) {
       const activeAmbassador = response.data!;
       setAmbassador(activeAmbassador);
-
-      // Trigger welcome email notification
-      try {
-        await emailService.sendAmbassadorWelcomeEmail(appName, appEmail, activeAmbassador.referral_code);
-      } catch (emailErr) {
-        console.warn('Welcome email failed to send:', emailErr);
-      }
+      // The welcome email with the referral code is sent by the database to
+      // the account's address (migration 0026).
     } else {
       setSubmitError(response.error?.message || 'Something went wrong. Please try again.');
     }
