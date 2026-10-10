@@ -298,7 +298,7 @@ export const artisanService = {
 
     const { data, error } = await supabase
       .from('service_jobs')
-      .select('*, service_categories(name), service_areas(name), artisans(display_name, user_id), conversations(id)')
+      .select('*, service_categories(name), service_areas(name), artisans!assigned_artisan_id(display_name, user_id), conversations(id)')
       .order('created_at', { ascending: false });
     if (error) { console.warn('getDispatchJobs failed:', error); return { jobs: [], myUserId: user.id }; }
 
@@ -516,7 +516,7 @@ export const artisanService = {
   adminFetchJobs: async (): Promise<any[]> => {
     const { data, error } = await supabase
       .from('service_jobs')
-      .select('*, service_categories(name), service_areas(name), artisans(display_name)')
+      .select('*, service_categories(name), service_areas(name), artisans!assigned_artisan_id(display_name)')
       .order('created_at', { ascending: false });
     if (error) { console.warn('adminFetchJobs failed:', error); return []; }
     return (data || []).map((j: any) => ({
