@@ -30,6 +30,8 @@ const Contact = lazyWithRetry(() => import('./pages/Contact'));
 const Services = lazyWithRetry(() => import('./pages/Services'));
 const Login = lazyWithRetry(() => import('./pages/Login'));
 const Signup = lazyWithRetry(() => import('./pages/Signup'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 const Profile = lazyWithRetry(() => import('./pages/Profile'));
 const Admin = lazyWithRetry(() => import('./pages/Admin'));
 const Payment = lazyWithRetry(() => import('./pages/Payment'));
@@ -74,6 +76,8 @@ const App: React.FC = () => {
             <Route path="/services" element={<Services />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/payment/:bookingId" element={<Payment />} />
