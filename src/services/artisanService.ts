@@ -298,7 +298,7 @@ export const artisanService = {
 
     const { data, error } = await supabase
       .from('service_jobs')
-      .select('*, service_categories(name), service_areas(name), artisans(display_name, user_id), conversations(id)')
+      .select('*, service_categories(name), service_areas(name), artisans!assigned_artisan_id(display_name, user_id), conversations(id)')
       .order('created_at', { ascending: false });
     if (error) { console.warn('getDispatchJobs failed:', error); return { jobs: [], myUserId: user.id }; }
 
@@ -312,6 +312,84 @@ export const artisanService = {
       iAmAssigned: j.artisans?.user_id === user.id,
     }));
     return { jobs, myUserId: user.id };
+  },
+
+  /**
+   * Client: upload photos of the place, then record them on the job.
+   * Photos travel to a private bucket the assigned artisan can read —
+   * they cut out a good share of wasted trips across Lagos before
+   * anyone gets in a car.
+   */
+  uploadJobPhotos: async (jobId: string, files: File[]): Promise<IApiResponse<string[]>> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You need to be signed in.');
+      if (files.length > 10) throw new Error('You can attach up to 10 photos.');
+
+      const paths: string[] = [];
+      for (const [i, file] of files.entries()) {
+        // Path convention matters: the storage policy reads the job id
+        // out of the second folder segment to let the artisan see it.
+        const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_').slice(-60);
+        const path = `${user.id}/${jobId}/${Date.now()}-${i}-${safe}`;
+        const { error } = await supabase.storage.from('job-photos').upload(path, file, { upsert: true });
+        if (error) throw error;
+        paths.push(path);
+      }
+
+      const { error: attachError } = await supabase.rpc('attach_job_photos', {
+        p_job_id: jobId,
+        p_paths: paths,
+      });
+      if (attachError) throw attachError;
+
+      return { success: true, data: paths };
+    } catch (err: unknown) {
+      console.error('uploadJobPhotos failed:', err);
+      return {
+        success: false,
+        error: { code: 'STORAGE_ERROR', message: rpcErrorMessage(err) || 'Could not upload the photos.' },
+      };
+    }
+  },
+
+  /** A viewable URL for a job photo. The bucket is private, so sign it. */
+  getJobPhotoUrl: async (path: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage.from('job-photos').createSignedUrl(path, 3600);
+    if (error) { console.warn('getJobPhotoUrl failed:', error); return null; }
+    return data?.signedUrl ?? null;
+  },
+
+  /** Artisan: propose a time to come and see the place. */
+  scheduleSiteVisit: async (jobId: string, when: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('schedule_site_visit', { p_job_id: jobId, p_when: new Date(when).toISOString() })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('scheduleSiteVisit failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not schedule the visit.' },
+      };
+    }
+  },
+
+  /** Artisan: confirm they have seen the place. Unlocks a firm price. */
+  confirmSiteVisited: async (jobId: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase.rpc('confirm_site_visited', { p_job_id: jobId }).single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('confirmSiteVisited failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not record the visit.' },
+      };
+    }
   },
 
   /**
@@ -360,6 +438,66 @@ export const artisanService = {
     }
   },
 
+  /**
+   * Client: hire the same artisan again. Skips the pool and the dispatch
+   * queue — the client has already chosen — so the job arrives pre-assigned
+   * with the chat open. Category, area, address and contact carry over from
+   * the previous job unless overridden.
+   */
+  rebookArtisan: async (
+    previousJobId: string,
+    details: {
+      title: string;
+      description?: string;
+      addressText?: string;
+      scheduledFor?: string;
+      budgetNote?: string;
+      clientContact?: { name?: string; phone?: string };
+    }
+  ): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('rebook_artisan', {
+          p_previous_job_id: previousJobId,
+          p_title: details.title.trim(),
+          p_description: details.description?.trim() || null,
+          p_address_text: details.addressText?.trim() || null,
+          p_scheduled_for: details.scheduledFor || null,
+          p_budget_note: details.budgetNote?.trim() || null,
+          p_client_contact: details.clientContact ?? null,
+        })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('rebookArtisan failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not rebook that artisan.' },
+      };
+    }
+  },
+
+  /**
+   * Artisan: decline a job they were asked for by name. The job returns to
+   * the open pool rather than dying, so the client's request survives a no.
+   */
+  declineAssignedJob: async (jobId: string, reason?: string): Promise<IApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .rpc('decline_assigned_job', { p_job_id: jobId, p_reason: reason?.trim() || null })
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err: unknown) {
+      console.error('declineAssignedJob failed:', err);
+      return {
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: rpcErrorMessage(err) || 'Could not decline the job.' },
+      };
+    }
+  },
+
   /** Advance a dispatch job: in_progress / completed (artisan) or cancelled (client). */
   updateJobStatus: async (jobId: string, status: 'in_progress' | 'completed' | 'cancelled', reason?: string): Promise<void> => {
     await supabase.rpc('update_service_job_status', { p_job_id: jobId, p_status: status, p_reason: reason ?? null });
@@ -378,7 +516,7 @@ export const artisanService = {
   adminFetchJobs: async (): Promise<any[]> => {
     const { data, error } = await supabase
       .from('service_jobs')
-      .select('*, service_categories(name), service_areas(name), artisans(display_name)')
+      .select('*, service_categories(name), service_areas(name), artisans!assigned_artisan_id(display_name)')
       .order('created_at', { ascending: false });
     if (error) { console.warn('adminFetchJobs failed:', error); return []; }
     return (data || []).map((j: any) => ({

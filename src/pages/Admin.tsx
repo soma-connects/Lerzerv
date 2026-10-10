@@ -41,7 +41,6 @@ import { userService } from '../services/userService';
 import type { TUserProfile } from '../services/userService';
 import { ambassadorService } from '../services/ambassadorService';
 import { artisanService } from '../services/artisanService';
-import { emailService } from '../services/emailService';
 import { blogService, slugify, type IBlogPost } from '../services/blogService';
 import './Admin.css';
 
@@ -1657,13 +1656,8 @@ const Admin: React.FC = () => {
                                   onClick={async () => {
                                     const res = await artisanService.adminSetStatus(a.id, 'approved');
                                     if (res.success) {
+                                      // The database emails the artisan on approval (migration 0026).
                                       triggerToast('Artisan Approved', `${a.display_name} is now live.`);
-                                      const matchingUser = users.find(u => u.id === a.user_id);
-                                      if (matchingUser && matchingUser.email) {
-                                        emailService.sendArtisanApprovedEmail(a.display_name, matchingUser.email).catch((err) => {
-                                          console.error('Failed to send artisan approval email:', err);
-                                        });
-                                      }
                                       fetchData();
                                     } else {
                                       triggerToast('Error', res.error?.message || 'Failed.');

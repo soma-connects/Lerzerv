@@ -1,6 +1,5 @@
 import type { IBookingRequest, IApiResponse, IStoredBooking } from '../types/api';
 import { bookingStorage } from './bookingStorage';
-import { emailService } from './emailService';
 import { supabase } from '../lib/supabase';
 import { ambassadorService } from './ambassadorService';
 
@@ -39,12 +38,8 @@ export const bookingService = {
         localStorage.setItem('lezerv_recent_orders', JSON.stringify(recent.slice(0, 5)));
       }
 
-      // Send Email Notification
-      try {
-        await emailService.sendBookingEmail(request);
-      } catch (e) {
-        console.error('Email notification failed:', e);
-      }
+      // The customer's confirmation and the team's alert are emailed by the
+      // database when the booking is created (migration 0026).
 
       // Attribute referral if a code was provided or stored in localStorage
       try {
