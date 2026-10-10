@@ -27,6 +27,7 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `test_live_roles.py` | The live database's hand-made `profiles_role_check` ('user' / 'admin'): reproduces sign-ups getting no profile, and checks 0022 repairs it (or refuses clearly if roles are named differently) |
 | `test_locations.py` | 0027: artisans sharing their GPS position (rounded in public, exact in private), pinned addresses, and the job's pin reaching the artisan only once they accept |
 | `test_emails.py` | 0026: which actions send which email to whom, escaping, the per-address and hourly limits, retries keeping their recipients, and that nobody can send their own |
+| `test_visit_handover.py` | 0028: an artisan leaving a job (declining, a lapsed offer, the team moving it): the chat is handed over under real row-level security, and their site visit goes with them so the next price isn't wrongly labelled firm. Includes a declined rebook |
 
 The Edge Functions have their own tests, run with Node 22+:
 `node --experimental-strip-types supabase/functions/send-push/push.test.ts` and

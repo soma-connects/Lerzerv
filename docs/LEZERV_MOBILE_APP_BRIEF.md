@@ -1,6 +1,11 @@
 # Lezerv — Full Product, Data & Architecture Brief
 ### Hand-off document for designing the Lezerv mobile app (iOS + Android)
 
+> ## ⚠ OUT OF DATE IN PLACES — read before using
+> This brief was written on **3 Oct 2026**, from `main` as it stood then. On **10 Oct** PRs **#2** (site visits + photos), **#3** (rebook), **#4**, **#5** and **#6** were merged, adding migrations **0021–0027**: locked privileged columns, phone profiles + map privacy + app tickets (0022), **direct booking with offers and start codes (0023)**, **push notifications (0024)**, area map positions (0025), **server-side emails (0026)** and GPS locations (0027).
+> So these parts of the brief are **stale**: §2 (status map), §4.6 (bookings: a direct-booking path now exists), §7 (data model: new tables/columns), §8 (API: new RPCs, e.g. `book_artisan`, `accept_job_offer`, `start_job`, `register_device`), §8.4 (emails now go from the database, not the browser), §11 and §12 (push and several "gaps" are now built; **migration 0028 also fixes two job hand-over defects**). Everything about the **design tokens (§6)**, **roles (§3)** and the **core marketplace journey (§4.1–4.5)** still holds.
+> Ask for a refresh before handing this to a designer.
+
 > **How to use this:** paste this whole file into Claude Design (or any designer / developer).
 > Section 13 is a ready-to-paste prompt. Everything else is the reference it works from.
 
