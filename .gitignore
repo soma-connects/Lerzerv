@@ -30,3 +30,6 @@ skills-lock.json
 
 # Local Claude Code helpers
 .claude/
+
+# Python test cache (supabase/tests)
+__pycache__/
