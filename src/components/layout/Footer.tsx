@@ -64,6 +64,7 @@ export const Footer: React.FC = () => {
             <span className="footer-col-title">Legal</span>
             <Link to="/privacy" className="footer-link">Privacy policy</Link>
             <Link to="/terms" className="footer-link">Terms of service</Link>
+            <Link to="/delete-account" className="footer-link">Delete account</Link>
           </div>
         </div>
       </div>

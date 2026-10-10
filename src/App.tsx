@@ -36,6 +36,7 @@ const Payment = lazyWithRetry(() => import('./pages/Payment'));
 const TrackOrder = lazyWithRetry(() => import('./pages/TrackOrder'));
 const Terms = lazyWithRetry(() => import('./pages/Terms'));
 const Privacy = lazyWithRetry(() => import('./pages/Privacy'));
+const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount'));
 const Ambassador = lazyWithRetry(() => import('./pages/Ambassador'));
 const ArtisanOnboard = lazyWithRetry(() => import('./pages/ArtisanOnboard'));
 const FindArtisans = lazyWithRetry(() => import('./pages/FindArtisans'));
@@ -80,6 +81,7 @@ const App: React.FC = () => {
             <Route path="/track" element={<TrackOrder />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
             <Route path="/ambassador" element={<Ambassador />} />
             <Route path="/become-artisan" element={<ArtisanOnboard />} />
             <Route path="/find-artisans" element={<FindArtisans />} />
