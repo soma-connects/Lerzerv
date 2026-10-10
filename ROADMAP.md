@@ -57,6 +57,11 @@ exchange direct contact details). Reputation is built through two-sided reviews.
       so the platform never learned what a job was worth — which blocked commission, escrow
       (Paystack needs an amount to hold) and dispute evidence. Rate lives in `settings`,
       editable without a deploy; `admin_revenue_summary()` reports gross, commission and payouts.
+- [x] **Site visit before pricing** (migration 0019): scope only becomes real once an artisan
+      stands in the room, so a quote is labelled `estimate` (from the description) or `firm`
+      (after a recorded visit), derived from the visit itself so it cannot drift. Clients can
+      attach photos to a request (private bucket, readable by the assigned artisan) to cut
+      wasted trips, and the call-out fee is snapshotted on the visit like commission is on the quote.
 - [x] Pricing rebenchmarked to Lagos market rates (Aug 2026) and moved to "from" pricing —
       the old flat figures sat far below what artisans accept, so jobs went unfilled.
 - [ ] **Paystack escrow**: client pays in → held → released to artisan on completion − commission
