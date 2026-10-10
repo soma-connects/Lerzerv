@@ -14,6 +14,7 @@ to answer in Play Console's forms. Do the steps in order; ☐ marks the ones onl
 | ☐ | **Firebase** (`supabase/PUSH_NOTIFICATIONS.md`) | Artisans miss requests while the app is closed |
 | ☐ | **App icon**: send the logo file | The launcher icon is a placeholder |
 | ☐ | **Email domain** verified in Resend (`supabase/EMAILS.md` step 5) | Otherwise no emails reach customers |
+| ☐ | **Password reset**: merge website PR #8, then add `https://www.lezerv.com/reset-password` to Supabase → Authentication → URL Configuration → Redirect URLs | The app's "Forgot it?" link opens that page; until then reset links don't ask for a new password |
 
 ## 1. What a release build is
 
@@ -66,6 +67,7 @@ adb install app/build/outputs/apk/release/app-release.apk
 
 - [ ] The map loads around you after **Use my location**, with real streets
 - [ ] Sign in (email, or phone if SMS is set up)
+- [ ] **Forgot it?** on the email sign-in opens lezerv.com/forgot-password; the new password then works in the app
 - [ ] Save an address with **I'm here**, and book an available artisan
 - [ ] On a second phone as an artisan: go online, share location, accept, start with the code, complete
 - [ ] Chat both ways, and get notifications with the app closed (needs Firebase)

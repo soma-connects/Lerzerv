@@ -228,7 +228,7 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
     Pushed.Report -> "Report a problem" to s.reportJob
     Pushed.Help -> "Help" to "Answers and support"
     Pushed.Safety -> "Safety" to "Tools for you and your home"
-    Pushed.Settings -> "Settings" to "Notifications, language, account"
+    Pushed.Settings -> "Settings" to (if (s.isLive) "Notifications and account" else "Notifications, language, account")
     Pushed.EditProfile -> "Edit profile" to "Name, phone and email"
     is Pushed.Legal -> (if (p.privacy) "Privacy policy" else "Terms of service") to (if (s.demo) "Draft for review" else "Lezerv")
     Pushed.Invite -> "Invite friends" to "Share Lezerv"

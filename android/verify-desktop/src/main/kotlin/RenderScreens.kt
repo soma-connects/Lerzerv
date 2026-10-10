@@ -162,6 +162,9 @@ fun main(args: Array<String>) {
     // Store build: live text says only what's built (no escrow, masked calls, saved cards or referrals yet).
     live().apply { openTab(Tab.ClientAccount); push(Pushed.Safety) }.let { shot("104-live-safety", it) }
     live().apply { openTab(Tab.ClientAccount); push(Pushed.Legal(privacy = false)) }.let { shot("105-live-terms", it) }
+    // Live Settings: no toggles the server wouldn't keep, no unwritten languages, the real version.
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.Settings) }.let { shot("106-live-settings", it) }
+    live().apply { openTab(Tab.ClientAccount); push(Pushed.EditProfile) }.let { shot("107-live-edit-profile", it) }
 
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }

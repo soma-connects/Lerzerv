@@ -408,22 +408,30 @@ fun SettingsScreen(s: LezervState) {
     val a = s.account
     FormPage(bar = null) {
         SectionRule("01", "Notifications", gutter = 0.dp)
-        Column {
+        // Live, the server pushes every job update and message and has no per-person
+        // switches yet, so we say so instead of showing toggles that wouldn't be kept.
+        if (s.isLive) Column {
+            SwitchRow("Job updates and messages", "Bookings, arrivals and chat. To turn them off, open your phone’s Settings → Apps → Lezerv → Notifications.", true, { }, enabled = false)
+        } else Column {
             SwitchRow("Job updates", "Bookings, arrivals, payments. Always on so you don’t miss an artisan.", true, { }, enabled = false)
             SwitchRow("Messages", "When an artisan or support writes to you", a.notifyMessages, { a.notifyMessages = !a.notifyMessages })
             SwitchRow("Offers and news", "Discounts and new services. A few a month at most.", a.notifyOffers, { a.notifyOffers = !a.notifyOffers })
         }
-        SectionRule("02", "Language", gutter = 0.dp)
-        @OptIn(ExperimentalLayoutApi::class)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LANGUAGES.forEach { l -> ChoiceChip(l, a.language == l, { a.language = l; if (l != "English") s.toast("PROPOSAL: $l translations aren’t written yet") }) }
+        // Only English is written, so live builds don't offer the others yet.
+        if (!s.isLive) {
+            SectionRule("02", "Language", gutter = 0.dp)
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LANGUAGES.forEach { l -> ChoiceChip(l, a.language == l, { a.language = l; if (l != "English") s.toast("PROPOSAL: $l translations aren’t written yet") }) }
+            }
         }
-        SectionRule("03", "Account", gutter = 0.dp)
+        SectionRule(if (s.isLive) "02" else "03", "Account", gutter = 0.dp)
         Column {
             LinkRow("user", "Edit profile", "${a.name.ifBlank { "No name yet" }} · ${a.phoneMasked}", { s.push(Pushed.EditProfile) })
             LinkRow("file-text", "Terms of service", null, { s.push(Pushed.Legal(privacy = false)) })
             LinkRow("shield-check", "Privacy policy", null, { s.push(Pushed.Legal(privacy = true)) })
-            LinkRow("info", "About Lezerv", "Version 0.2.0", { s.toast("Lezerv 0.2.0 · Lagos") })
+            val version = s.live?.appVersion?.ifBlank { null } ?: "0.2.0"
+            LinkRow("info", "About Lezerv", "Version $version", { s.toast("Lezerv $version · Lagos") })
         }
         OutlineButton("Log out", { a.signOut() }, Modifier.fillMaxWidth(), icon = "log-out")
         Txt("DELETE MY ACCOUNT", label(12, .08f, Lz.Neutral700), Modifier.tap { a.deleting = true }.padding(vertical = 8.dp))
@@ -458,8 +466,8 @@ fun EditProfileScreen(s: LezervState) {
         Column { FormLabel("Full name"); LzField(a.name, { a.name = it.take(60) }, "First and last name", capitalizeWords = true) }
         Column {
             Row { FormLabel("Phone", Modifier.weight(1f)); if (a.phone.length == 10) Txt("VERIFIED", label(11, .08f, Lz.Accent700)) }
-            LzField(a.phoneMasked, { }, "", enabled = false)
-            Txt("To change your number we’ll text a code to the new one.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
+            LzField(if (s.isLive && a.phone.length != 10) "Not added" else a.phoneMasked, { }, "", enabled = false)
+            Txt(if (s.isLive) "To change your number, write to us from Help → Chat with Lezerv Support." else "To change your number we’ll text a code to the new one.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
         }
         Column { FormLabel("Email (for receipts)"); LzField(a.email, { a.email = it.trim().take(80) }, "you@example.com", keyboard = KeyboardType.Email) }
     }

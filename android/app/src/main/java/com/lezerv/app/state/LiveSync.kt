@@ -61,7 +61,8 @@ class LiveSync(
     private val api: LezervApi,
     private val scope: CoroutineScope,
     /** Sent with the push token, so the team can tell which app versions are out there. */
-    private val appVersion: String = "",
+    /** versionName from the build, for push registration and Settings → About. */
+    val appVersion: String = "",
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
     /** The signed-in Supabase user, or null. */

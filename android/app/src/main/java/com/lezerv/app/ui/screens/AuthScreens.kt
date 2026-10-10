@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -182,6 +183,9 @@ private fun DetailsStep(s: LezervState, a: AccountState) {
     }
 }
 
+/** The website's reset page: it emails a link, and the new password works here too. */
+private const val FORGOT_PASSWORD_URL = "https://www.lezerv.com/forgot-password"
+
 /** The website signs people up by email; they keep using that account here. */
 @Composable
 private fun EmailStep(s: LezervState, a: AccountState) {
@@ -192,7 +196,12 @@ private fun EmailStep(s: LezervState, a: AccountState) {
         LzField(a.emailDraft, { a.emailDraft = it.trim().take(80) }, "you@example.com", keyboard = KeyboardType.Email)
         FormLabel("Password", Modifier.padding(top = 18.dp))
         LzField(a.password, { a.password = it.take(72) }, "Your lezerv.com password", keyboard = KeyboardType.Password, transformation = Secret)
-        Txt("Forgot it? Reset it on lezerv.com, then come back.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
+        val uri = LocalUriHandler.current
+        Txt(
+            "Forgot it? Reset it at lezerv.com/forgot-password, then come back.",
+            body(12, 17, color = Lz.Neutral700).copy(textDecoration = TextDecoration.Underline),
+            Modifier.padding(top = 8.dp).tap { runCatching { uri.openUri(FORGOT_PASSWORD_URL) } },
+        )
     }
     Column(Modifier.padding(top = 28.dp)) {
         PrimaryWide("Sign in", "arrow-right", { a.signInWithEmail() }, alpha = ready(s, a.emailValid))
