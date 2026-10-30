@@ -539,7 +539,7 @@ fun ArtisanAccountScreen(s: LezervState) {
 
                 AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
             )) + listOf(
-                AccountRow("wrench", "Services and prices", "${s.live?.me?.categoryName ?: "Services"} · ${s.account.services.count { it.on }} active") { s.push(Pushed.Services) },
+                AccountRow("wrench", "Services and prices", "${s.account.services.count { it.on }} active") { s.push(Pushed.Services) },
                 AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
