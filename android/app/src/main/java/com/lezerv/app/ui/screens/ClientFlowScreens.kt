@@ -474,9 +474,17 @@ fun TrackScreen(s: LezervState) {
             if (!j.laundry && j.stage <= 2) StartCode(if (j.stage == 2) "$fn is here. Read out this code." else "Only share this when $fn is at your door.")
             Column(Modifier.padding(top = 16.dp)) {
                 JobSpec(j, if (j.laundry) "Laundry" else a.service.label)
-                // Ways out of a job: cancel (until arrival, see LezervState.canCancel) and help.
-                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                // Ways out of a job: cancel (until arrival, see LezervState.canCancel), share trip, and help.
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (s.canCancel) Txt("CANCEL BOOKING", label(12, .08f, Lz.Accent700), Modifier.tap { s.openCancel() }.padding(vertical = 10.dp))
+                    Txt("SHARE TRIP", label(12, .08f, Lz.Accent700), Modifier.tap {
+                        val live = s.live
+                        if (live != null) {
+                            live.shareTrip(j.id) { link -> s.shareText("Track my Lezerv job in real-time: $link") }
+                        } else {
+                            s.shareText("Track my Lezerv job with ${a.name}: https://lezerv.com/track/demo")
+                        }
+                    }.padding(vertical = 10.dp))
                     Txt("GET HELP", label(12, .08f, Lz.Accent700), Modifier.tap { s.push(com.lezerv.app.state.Pushed.Help) }.padding(vertical = 10.dp))
                 }
             }

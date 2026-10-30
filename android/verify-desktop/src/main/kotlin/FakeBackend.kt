@@ -617,4 +617,31 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
 
     override fun paymentUpdates(jobId: String): Flow<PaymentDto> = world.paymentFeed.filter { it.jobId == jobId }
+
+    override suspend fun updateTrustedContact(name: String, phone: String) {
+        log("updateTrustedContact $name $phone")
+    }
+
+    override suspend fun createShareTripLink(jobId: String): String {
+        log("createShareTripLink $jobId")
+        return "https://lezerv.com/track/fake-token-$jobId"
+    }
+
+    override suspend fun myNotificationPreferences(): com.lezerv.app.data.remote.NotificationPreferencesDto {
+        return com.lezerv.app.data.remote.NotificationPreferencesDto()
+    }
+
+    override suspend fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?) {
+        log("updateNotificationPreferences $messages $jobs $promos")
+    }
+
+    override suspend fun myReferralCode(): String = "LZ-FAKE01"
+
+    override suspend fun applyReferralCode(code: String) {
+        log("applyReferralCode $code")
+    }
+
+    override suspend fun deleteAccount() {
+        log("deleteAccount")
+    }
 }

@@ -100,9 +100,11 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     // ───────────── settings ─────────────
     var notifyMessages by mutableStateOf(true)
+    var notifyJobs by mutableStateOf(true)
     var notifyOffers by mutableStateOf(false)
     var language by mutableStateOf("English")
     var deleting by mutableStateOf(false)
+    var remoteReferralCode by mutableStateOf<String?>(null)
 
     // ───────────── safety ─────────────
     var shareLiveJobs by mutableStateOf(true)
@@ -415,7 +417,7 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     // ═════════════════════════════ referral ═════════════════════════════
 
-    val referralCode get() = (firstName.uppercase().take(5) + phone.takeLast(4)).ifBlank { "LEZERV" }
+    val referralCode get() = remoteReferralCode ?: (firstName.uppercase().take(5) + phone.takeLast(4)).ifBlank { "LEZERV" }
 
     companion object {
         private val EMAIL = Regex("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")

@@ -151,4 +151,19 @@ interface LezervApi {
     suspend fun paymentForJob(jobId: String): PaymentDto?
     /** Realtime changes to public.payments for [jobId]. */
     fun paymentUpdates(jobId: String): Flow<PaymentDto>
+
+    // ── safety & trusted contacts (0035, Segment S11) ──
+    suspend fun updateTrustedContact(name: String, phone: String)
+    suspend fun createShareTripLink(jobId: String): String
+
+    // ── notification preferences (0034, Segment S10) ──
+    suspend fun myNotificationPreferences(): NotificationPreferencesDto
+    suspend fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?)
+
+    // ── referrals (0036, Segment S13) ──
+    suspend fun myReferralCode(): String
+    suspend fun applyReferralCode(code: String)
+
+    // ── account deletion (0031, Segment S12) ──
+    suspend fun deleteAccount()
 }

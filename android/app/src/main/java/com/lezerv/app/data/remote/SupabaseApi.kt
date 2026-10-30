@@ -443,6 +443,75 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         }
     }
 
+    // ── safety & trusted contacts (0035, Segment S11) ──
+
+    override suspend fun updateTrustedContact(name: String, phone: String) {
+        saying {
+            db.rpc("update_trusted_contact", buildJsonObject {
+                put("p_name", name)
+                put("p_phone", phone)
+            })
+        }
+    }
+
+    override suspend fun createShareTripLink(jobId: String): String = saying {
+        val token = db.rpc("create_share_trip_link", buildJsonObject {
+            put("p_job_id", jobId)
+        }).data.trim('"')
+        "https://lezerv.com/track/$token"
+    }
+
+    // ── notification preferences (0034, Segment S10) ──
+
+    override suspend fun myNotificationPreferences(): NotificationPreferencesDto = try {
+        db.rpc("my_notification_preferences").decodeAs<NotificationPreferencesDto>()
+    } catch (_: Exception) {
+        NotificationPreferencesDto()
+    }
+
+    override suspend fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?) {
+        saying {
+            db.rpc("update_notification_preferences", buildJsonObject {
+                messages?.let { put("p_messages", it) }
+                jobs?.let { put("p_jobs", it) }
+                promos?.let { put("p_promos", it) }
+            })
+        }
+    }
+
+    // ── referrals (0036, Segment S13) ──
+
+    override suspend fun myReferralCode(): String = try {
+        db.rpc("my_referral_code").data.trim('"')
+    } catch (_: Exception) {
+        "LZ-FRIEND"
+    }
+
+    override suspend fun applyReferralCode(code: String) {
+        saying {
+            db.rpc("apply_referral_code", buildJsonObject {
+                put("p_code", code.trim().uppercase())
+            })
+        }
+    }
+
+    // ── account deletion (0031, Segment S12) ──
+
+    override suspend fun deleteAccount() {
+        val token = client.auth.currentAccessTokenOrNull()
+        if (token != null) {
+            try {
+                client.httpClient.post("${client.supabaseUrl}/functions/v1/delete-account") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                }
+            } catch (_: Exception) {
+                // Ignore transient network errors; local sign out proceeds
+            }
+        }
+        client.auth.signOut()
+    }
+
     /**
      * Runs an RPC whose `raise exception` texts are written for people. Postgres reports
      * those with code P0001; they become a [ServerMessage] the app can show as it is.

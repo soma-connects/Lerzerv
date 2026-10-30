@@ -358,3 +358,18 @@ data class PaymentDto(
     val isHeld get() = status == "held" || status == "released"
     val amountNaira get() = amountKobo / 100.0
 }
+
+/** 0034: Granular notification preferences for a user profile. */
+@Serializable
+data class NotificationPreferencesDto(
+    @SerialName("notify_messages") val notifyMessages: Boolean = true,
+    @SerialName("notify_jobs") val notifyJobs: Boolean = true,
+    @SerialName("notify_promos") val notifyPromos: Boolean = true,
+)
+
+/** 0035: Trusted emergency contact stored on a user profile. */
+@Serializable
+data class TrustedContactDto(
+    val name: String? = null,
+    val phone: String? = null,
+)

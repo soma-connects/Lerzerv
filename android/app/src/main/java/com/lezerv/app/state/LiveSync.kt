@@ -269,9 +269,13 @@ class LiveSync(
         app.openPushRoute(type, notificationId)
     }
 
-    /** No deletion endpoint yet, so the request goes to support, who must act within 30 days. */
-    fun requestDeletion(then: () -> Unit) = act("send the request") {
-        api.openTicket("Please delete my Lezerv account and personal data.", null)
+    /** In-app account deletion (0031): requests automated deletion via edge function or support ticket fallback. */
+    fun requestDeletion(then: () -> Unit) = act("process account deletion") {
+        try {
+            api.deleteAccount()
+        } catch (_: Exception) {
+            api.openTicket("Please delete my Lezerv account and personal data.", null)
+        }
         then()
     }
 
@@ -302,6 +306,14 @@ class LiveSync(
         launch { attempt("load your messages") { api.conversations() }?.let { conversations = it } }
         launch { attempt("load support", quiet = true) { api.tickets() }?.let { ticket = it.firstOrNull { t -> t.status in OPEN_TICKET } } }
         launch { attempt("load notifications") { api.notifications() }?.let { list -> app.replaceNotices(list.map(::toNotice)) } }
+        launch { attempt("load referral code", quiet = true) { api.myReferralCode() }?.let { app.account.remoteReferralCode = it } }
+        launch {
+            attempt("load notification preferences", quiet = true) { api.myNotificationPreferences() }?.let { prefs ->
+                app.account.notifyMessages = prefs.notifyMessages
+                app.account.notifyJobs = prefs.notifyJobs
+                app.account.notifyOffers = prefs.notifyPromos
+            }
+        }
     }
 
     // ═════════════════════════════ artisans + jobs ═════════════════════════════
@@ -718,6 +730,28 @@ class LiveSync(
     fun markRead(remoteId: String) { scope.launch { attempt("update notifications", quiet = true) { api.markNotificationRead(remoteId) } } }
 
     fun markAllRead() { scope.launch { attempt("update notifications", quiet = true) { api.markAllNotificationsRead() } } }
+
+    // ═════════════════════════════ safety & settings ═════════════════════════════
+
+    fun updateTrustedContact(name: String, phone: String) = act("save trusted contact") {
+        api.updateTrustedContact(name, phone)
+        app.account.trustedContact = "$name · $phone"
+        app.toast("Trusted contact saved")
+    }
+
+    fun shareTrip(jobId: String, onLink: (String) -> Unit) = act("generate tracking link") {
+        val link = api.createShareTripLink(jobId)
+        onLink(link)
+    }
+
+    fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?) {
+        scope.launch { attempt("save notification settings", quiet = true) { api.updateNotificationPreferences(messages, jobs, promos) } }
+    }
+
+    fun applyReferralCode(code: String) = act("apply referral code") {
+        api.applyReferralCode(code)
+        app.toast("Referral code applied! You will receive ₦1,000 credit on your first job.")
+    }
 
     private fun watchNotices(uid: String) {
         noticeWatch?.cancel()

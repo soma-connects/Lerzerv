@@ -21,10 +21,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.contentDescription
@@ -397,6 +399,10 @@ fun HelpScreen(s: LezervState) {
 @Composable
 fun SafetyScreen(s: LezervState) {
     val a = s.account
+    var showContactSheet by remember { mutableStateOf(false) }
+    if (showContactSheet) {
+        TrustedContactSheet(s) { showContactSheet = false }
+    }
     FormPage(bar = null) {
         Column(Modifier.fillMaxWidth().background(Lz.Ink).padding(16.dp)) {
             Txt("IN DANGER RIGHT NOW?", heading(28, 30, weight = 700, color = Lz.Bg))
@@ -406,11 +412,16 @@ fun SafetyScreen(s: LezervState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) { Txt("CALL 112", heading(22, tracking = .05f), Modifier.weight(1f)); LzIcon("phone", 22) }
         }
-        // Sharing a live job needs backend work (a link for the contact); live, it isn't offered yet.
-        if (!s.isLive) {
-            SwitchRow("Share live jobs with a trusted contact", "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.", a.shareLiveJobs, { a.shareLiveJobs = !a.shareLiveJobs })
-            LinkRow("users", "Trusted contact", a.trustedContact, { s.toast("Choose a trusted contact from your phone.") })
-        }
+        // Trusted emergency contact and live trip link
+        SwitchRow(
+            "Share live jobs with a trusted contact",
+            "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.",
+            a.shareLiveJobs,
+            { a.shareLiveJobs = !a.shareLiveJobs },
+        )
+        LinkRow("users", "Trusted contact", a.trustedContact, {
+            showContactSheet = true
+        })
         SectionRule("01", "How Lezerv keeps you safe", gutter = 0.dp)
         Column {
             listOf(
@@ -430,6 +441,41 @@ fun SafetyScreen(s: LezervState) {
     }
 }
 
+@Composable
+private fun TrustedContactSheet(s: LezervState, onDismiss: () -> Unit) {
+    val a = s.account
+    var contactName by remember { mutableStateOf(a.trustedContact.substringBefore(" ·").takeIf { it != "Not set" } ?: "") }
+    var contactPhone by remember { mutableStateOf(a.trustedContact.substringAfter(" ·", "").filter { it.isDigit() }.take(11)) }
+    Sheet(onDismiss) {
+        Txt("TRUSTED CONTACT", heading(26, 28, weight = 700))
+        Txt("Choose someone who can follow your live jobs or be contacted in an emergency.", body(14, 20, color = Lz.Neutral700), Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column {
+                FormLabel("Contact name")
+                LzField(contactName, { contactName = it.take(40) }, "e.g. Chidi Obi", capitalizeWords = true)
+            }
+            Column {
+                FormLabel("Phone number")
+                LzField(contactPhone, { contactPhone = it.filter(Char::isDigit).take(11) }, "e.g. 08035554417", keyboard = KeyboardType.Phone)
+            }
+        }
+        val valid = contactName.isNotBlank() && contactPhone.length in 10..11
+        Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlineButton("Cancel", onDismiss, Modifier.weight(1f))
+            PrimaryWide("Save contact", "check", {
+                if (valid) {
+                    val formatted = "$contactName · $contactPhone"
+                    a.trustedContact = formatted
+                    s.live?.updateTrustedContact(contactName, contactPhone)
+                    onDismiss()
+                } else {
+                    s.toast("Enter name and 11-digit phone")
+                }
+            }, alpha = if (valid) 1f else 0.5f, modifier = Modifier.weight(1.3f))
+        }
+    }
+}
+
 // ───────────────────────────── settings ─────────────────────────────
 
 @Composable
@@ -437,14 +483,19 @@ fun SettingsScreen(s: LezervState) {
     val a = s.account
     FormPage(bar = null) {
         SectionRule("01", "Notifications", gutter = 0.dp)
-        // Live, the server pushes every job update and message and has no per-person
-        // switches yet, so we say so instead of showing toggles that wouldn't be kept.
-        if (s.isLive) Column {
-            SwitchRow("Job updates and messages", "Bookings, arrivals and chat. To turn them off, open your phone’s Settings → Apps → Lezerv → Notifications.", true, { }, enabled = false)
-        } else Column {
-            SwitchRow("Job updates", "Bookings, arrivals, payments. Always on so you don’t miss an artisan.", true, { }, enabled = false)
-            SwitchRow("Messages", "When an artisan or support writes to you", a.notifyMessages, { a.notifyMessages = !a.notifyMessages })
-            SwitchRow("Offers and news", "Discounts and new services. A few a month at most.", a.notifyOffers, { a.notifyOffers = !a.notifyOffers })
+        Column {
+            SwitchRow("Job updates", "Bookings, arrivals, payments. Kept on so you don’t miss an artisan.", a.notifyJobs, {
+                a.notifyJobs = !a.notifyJobs
+                s.live?.updateNotificationPreferences(messages = null, jobs = a.notifyJobs, promos = null)
+            })
+            SwitchRow("Messages", "When an artisan or support writes to you", a.notifyMessages, {
+                a.notifyMessages = !a.notifyMessages
+                s.live?.updateNotificationPreferences(messages = a.notifyMessages, jobs = null, promos = null)
+            })
+            SwitchRow("Offers and news", "Discounts and new services. A few a month at most.", a.notifyOffers, {
+                a.notifyOffers = !a.notifyOffers
+                s.live?.updateNotificationPreferences(messages = null, jobs = null, promos = a.notifyOffers)
+            })
         }
         // Only English is written, so live builds don't offer the others yet.
         if (!s.isLive) {
@@ -471,19 +522,37 @@ fun SettingsScreen(s: LezervState) {
 @Composable
 fun DeleteAccountSheet(s: LezervState) {
     val a = s.account
+    val hasActiveJobs = s.isLive && s.liveActive.isNotEmpty()
     Sheet({ a.deleting = false }) {
         Txt("DELETE YOUR ACCOUNT?", heading(30, 30, weight = 700))
+        if (hasActiveJobs) {
+            Column(Modifier.fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).padding(12.dp)) {
+                Txt("ACTIVE JOBS IN PROGRESS", heading(18, 20, color = Lz.Accent800))
+                Txt("You have active jobs in progress. Please complete or cancel all open bookings before requesting account deletion.", body(13, 18, color = Lz.Accent800), Modifier.padding(top = 4.dp))
+            }
+        }
         Column(Modifier.padding(top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                if (s.isLive) "We send the request to our team; your profile and history are removed within 30 days." else "Your profile, saved addresses and cards are removed within 30 days.",
-                "Receipts we must keep by law are kept, without your contact details.",
+                if (s.isLive) "Your profile, active sessions, and personal data will be completely deleted." else "Your profile, saved addresses and cards are removed within 30 days.",
+                "Receipts and financial records required by Nigerian regulatory law are retained anonymously.",
                 if (s.job != null) "Your live booking is cancelled and refunded first." else "Any open support tickets are closed.",
-                "This can’t be undone. You can sign up again with the same number.",
+                "This action is permanent and cannot be undone.",
             ).forEach { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { Box(Modifier.padding(top = 7.dp).size(6.dp).background(Lz.Accent)); Txt(it, body(14, 20)) } }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlineButton("Keep account", { a.deleting = false }, Modifier.weight(1f))
-            OutlineButton("Delete account", { a.deleteAccount() }, Modifier.weight(1.4f), dashed = true)
+            OutlineButton(
+                "Delete account",
+                {
+                    if (hasActiveJobs) {
+                        s.toast("Cannot delete account while you have active jobs")
+                    } else {
+                        a.deleteAccount()
+                    }
+                },
+                modifier = Modifier.weight(1.4f).then(if (hasActiveJobs) Modifier.alpha(0.4f) else Modifier),
+                dashed = true,
+            )
         }
     }
 }
