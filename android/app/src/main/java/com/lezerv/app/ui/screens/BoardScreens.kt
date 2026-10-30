@@ -158,7 +158,7 @@ fun NotificationsScreen(s: LezervState) {
             Txt("MARK ALL READ", label(12, .08f, Lz.Accent700))
         }
         list.forEach { NoticeCard(it) { s.openNotice(it) } }
-        Txt("PROPOSAL: the same notices arrive as Android push (FCM) and open these screens as deep links.", body(12, 17, color = Lz.Neutral700))
+        Txt("Notifications are also delivered directly to your device via push.", body(12, 17, color = Lz.Neutral700))
     }
 }
 

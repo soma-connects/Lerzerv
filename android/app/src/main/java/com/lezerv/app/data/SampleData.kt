@@ -175,7 +175,7 @@ const val AVAILABLE_BALANCE = 48_200
 
 // ───────────── general app essentials: account, support, safety ─────────────
 
-/** Demo SMS code. PROPOSAL: real codes come from an SMS provider such as Termii. */
+/** Demo SMS code. Production verification codes are sent via Twilio SMS. */
 const val DEMO_OTP = "123456"
 
 /** Chat thread key for Lezerv Support. */
