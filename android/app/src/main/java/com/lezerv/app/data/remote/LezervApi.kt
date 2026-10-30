@@ -53,6 +53,8 @@ interface LezervApi {
     suspend fun cancelJob(jobId: String, reason: String)
     /** expire_job_offers(): unanswered offers go back to the pool. Anyone may call it. */
     suspend fun expireOffers()
+    /** submit_job_review(): client rates and reviews a completed job. */
+    suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>)
 
     // ── the artisan side ──
     /** The person's artisans row, or null if they aren't an artisan. */

@@ -174,6 +174,16 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         db.rpc("expire_job_offers")
     }
 
+    override suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>) {
+        saying {
+            db.rpc("submit_job_review", buildJsonObject {
+                put("p_job_id", jobId)
+                put("p_rating", rating)
+                if (comment != null) put("p_comment", comment)
+            })
+        }
+    }
+
     // ───────────────────────────── the artisan side ─────────────────────────────
 
     override suspend fun myArtisan(): MyArtisanDto? =

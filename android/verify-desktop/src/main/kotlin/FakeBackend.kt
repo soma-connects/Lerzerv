@@ -89,6 +89,9 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
 
+    data class SubmittedReview(val jobId: String, val artisanId: String, val clientId: String, val rating: Int, val comment: String?, val tags: List<String>, val created: String)
+    val submittedReviews = mutableListOf<SubmittedReview>()
+
     // Realtime
     val messageFeed = MutableSharedFlow<MessageDto>(extraBufferCapacity = 16)
     val ticketFeed = MutableSharedFlow<TicketMessageDto>(extraBufferCapacity = 16)
@@ -168,8 +171,15 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun artisanProfile(id: String): ArtisanPublicDto? {
         log("artisan $id")
         val a = world.artisans.firstOrNull { it.id == id } ?: return null
-        return ArtisanPublicDto(a.id, a.displayName, a.bio, a.isVerified, a.avgRating, a.totalReviews, a.completedJobs,
-            reviews = listOf(ReviewDto(5, "On time and tidy.", "2026-09-12T10:22:00+00:00", "Amaka"), ReviewDto(4, null, "2026-08-30T10:22:00+00:00", "Femi")))
+        val submitted = world.submittedReviews.filter { it.artisanId == id }.map {
+            ReviewDto(it.rating, it.comment, it.created, reviewer = "You")
+        }
+        val defaultReviews = listOf(
+            ReviewDto(5, "On time and tidy.", "2026-09-12T10:22:00+00:00", "Amaka"),
+            ReviewDto(4, null, "2026-08-30T10:22:00+00:00", "Femi")
+        )
+        return ArtisanPublicDto(a.id, a.displayName, a.bio, a.isVerified, a.avgRating, a.totalReviews + submitted.size, a.completedJobs,
+            reviews = submitted + defaultReviews)
     }
 
     // ── addresses ──
@@ -230,6 +240,17 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             world.notify(j.client, "job_offer_expired", "${first(world.artisanName(who))} didn't answer in time", "${j.title} — we are finding someone else for you")
             who?.let { world.notify(world.artisanUser.getValue(it), "job_offer_missed", "You missed a request", "${j.title} went to other artisans.") }
         }
+    }
+
+    override suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>) {
+        log("submitReview $jobId $rating* ${comment.orEmpty()} tags=$tags")
+        if (rating !in 1..5) throw ServerMessage("rating must be 1-5")
+        val j = world.jobs.firstOrNull { it.id == jobId } ?: throw ServerMessage("not your job")
+        if (j.client != me()) throw ServerMessage("not your job")
+        if (j.status != "completed") throw ServerMessage("can only review completed jobs")
+        val artId = j.artisan ?: throw ServerMessage("no artisan on this job")
+        world.submittedReviews.removeAll { it.jobId == jobId }
+        world.submittedReviews.add(FakeWorld.SubmittedReview(jobId, artId, me(), rating, comment, tags, world.iso(world.clock())))
     }
 
     // ── the artisan side ──

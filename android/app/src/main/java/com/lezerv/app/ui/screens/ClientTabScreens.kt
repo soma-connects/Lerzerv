@@ -374,7 +374,7 @@ fun ReviewSheet(s: LezervState) {
                 Txt("Release to ${a.first}", body(14), Modifier.weight(1f))
                 Txt(naira(j.total), body(14, weight = 700))
             }
-            PrimaryWide("Submit and release payment", "check", { s.submitReview() })
+            PrimaryWide(if (s.live != null) "Submit review" else "Submit and release payment", "check", { s.submitReview() })
         }
     }
 }

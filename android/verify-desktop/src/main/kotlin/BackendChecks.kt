@@ -70,7 +70,7 @@ fun main() = runBlocking {
                 """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null,"area_lat":6.445,"area_lng":3.49,"lat":null,"lng":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/accept_job_offer" -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
-            path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" -> respond("", HttpStatusCode.NoContent, json)
+            path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" || path == "/rest/v1/rpc/submit_job_review" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/start_job" -> respond("""{"started": false, "attempts_left": 3}""", HttpStatusCode.OK, json)
             path == "/rest/v1/conversations" -> respond(
                 """[{"id":"conv1","job_id":"j1","artisan_id":"7f3e","last_message_at":"2026-10-05T09:12:00+00:00","artisan":{"display_name":"Tunde Bakare"},"job":{"title":"Leak repair"}}]""", HttpStatusCode.OK, json)
@@ -147,6 +147,12 @@ fun main() = runBlocking {
     check("start codes are read from job_private", api.startCodes() == mapOf("j2" to "0427") && (sent.last().contains("select=job_id%2Cstart_code") || sent.last().contains("select=job_id,start_code")))
     api.expireOffers()
     check("expire_job_offers is a plain RPC call", sent.last().startsWith("POST /rest/v1/rpc/expire_job_offers"))
+    api.submitReview("j0", 5, "On time and tidy.", listOf("On time", "Tidy"))
+    check("submit_job_review sends job, rating and comment",
+        sent.last().startsWith("POST /rest/v1/rpc/submit_job_review") &&
+        sent.last().contains("\"p_job_id\":\"j0\"") &&
+        sent.last().contains("\"p_rating\":5") &&
+        sent.last().contains("\"p_comment\":\"On time and tidy.\""))
 
     // the artisan side
     val meA = api.myArtisan()
