@@ -133,7 +133,7 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     val phoneValid get() = phoneDraft.length == 10 && phoneDraft.first() in "789"
 
-    /** Live: Supabase texts the code (its SMS provider, e.g. Termii or Twilio). Demo: any number works. */
+    /** Live: Supabase texts the code via Twilio SMS. Demo: any number works. */
     fun sendCode() {
         if (!phoneValid) { app.toast("Enter a 10-digit mobile number, e.g. 803 555 4417"); return }
         viaEmail = false

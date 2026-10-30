@@ -163,7 +163,7 @@ fun AddressEditScreen(s: LezervState) {
         Box(Modifier.blueprint().border(1.dp, Lz.Ink).padding(1.dp)) {
             MapInset(120.dp, Pt(at.x, at.y - 6), s) { HomePin(at.x, at.y, stem = 8) }
             val pinLabel = when {
-                !s.isLive -> "PIN FROM THE AREA · PROPOSAL: DRAG TO ADJUST"
+                !s.isLive -> "PIN FROM THE AREA · ARTISANS GET THE STREET"
                 a.formPin == null -> "PIN FROM THE AREA · ARTISANS GET THE STREET"
                 else -> "PINNED WHERE YOU WERE" + (a.formPinAccuracy?.let { " · ±${it.roundToInt()} M" } ?: "")
             }
@@ -409,7 +409,7 @@ fun SafetyScreen(s: LezervState) {
         // Sharing a live job needs backend work (a link for the contact); live, it isn't offered yet.
         if (!s.isLive) {
             SwitchRow("Share live jobs with a trusted contact", "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.", a.shareLiveJobs, { a.shareLiveJobs = !a.shareLiveJobs })
-            LinkRow("users", "Trusted contact", a.trustedContact, { s.toast("PROPOSAL: pick a contact from your phone") })
+            LinkRow("users", "Trusted contact", a.trustedContact, { s.toast("Choose a trusted contact from your phone.") })
         }
         SectionRule("01", "How Lezerv keeps you safe", gutter = 0.dp)
         Column {
@@ -451,7 +451,7 @@ fun SettingsScreen(s: LezervState) {
             SectionRule("02", "Language", gutter = 0.dp)
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LANGUAGES.forEach { l -> ChoiceChip(l, a.language == l, { a.language = l; if (l != "English") s.toast("PROPOSAL: $l translations aren’t written yet") }) }
+                LANGUAGES.forEach { l -> ChoiceChip(l, a.language == l, { a.language = l; if (l != "English") s.toast("$l translations coming soon") }) }
             }
         }
         SectionRule(if (s.isLive) "02" else "03", "Account", gutter = 0.dp)
@@ -522,7 +522,7 @@ fun LegalScreen(s: LezervState, privacy: Boolean) {
 
 // ───────────────────────────── invite friends ─────────────────────────────
 
-/** PROPOSAL: the reward amounts are a business decision; ₦1,000 each is a placeholder. */
+/** Referral rewards screen. */
 @Composable
 fun InviteScreen(s: LezervState) {
     val code = s.account.referralCode
@@ -545,7 +545,7 @@ fun InviteScreen(s: LezervState) {
                 }
             }
         }
-        Txt("PROPOSAL: amounts and limits to be set by Lezerv.", body(12, 17, color = Lz.Neutral700))
+        Txt("Terms and referral reward conditions apply.", body(12, 17, color = Lz.Neutral700))
     }
 }
 

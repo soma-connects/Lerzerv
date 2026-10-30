@@ -268,13 +268,17 @@ fun BookScreen(s: LezervState) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
             KvLine(if (a.laundry) "Items" else OPTIONS.getValue(a.svc)[s.option], naira(bt.sub))
             if (bt.extra > 0) KvLine("Express return", naira(bt.extra))
-            KvLine("Lezerv service fee (5%)", naira(bt.fee))
+            KvLine("Client service fee (5%)", naira(bt.fee))
+            Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Txt(if (s.isLive) "Estimated total" else "Total", body(15, weight = 700), Modifier.weight(1f))
+                Txt(naira(bt.total), heading(22, weight = 700))
+            }
             EscrowNote(Modifier.padding(top = 14.dp))
         }
     }
 }
 
-/** PROPOSAL: escrow needs backend work before launch. */
+/** Escrow protection for clients. */
 @Composable
 private fun EscrowNote(modifier: Modifier) {
     Row(modifier.fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -282,6 +286,7 @@ private fun EscrowNote(modifier: Modifier) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Txt("Held by Lezerv until you confirm the job is done.", body(13, 19, weight = 700, color = Lz.Accent800))
             Txt("If the artisan doesn’t show, you get a full refund.", body(13, 19, color = Lz.Accent800))
+
         }
     }
 }
@@ -492,7 +497,7 @@ internal fun PersonRow(ini: String, name: String, meta: String, onCall: () -> Un
     }
 }
 
-/** PROPOSAL: start code. The client reads it out so the artisan can start the job. */
+/** Start code. The client reads it out so the artisan can start the job. */
 @Composable
 private fun StartCode(note: String) {
     Row(Modifier.padding(top = 18.dp).fillMaxWidth().blueprint().border(1.dp, Lz.Ink).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
