@@ -45,6 +45,7 @@ import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.REVIEWS
 import com.lezerv.app.data.Review
 import com.lezerv.app.data.remote.ArtisanJobDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.areaSlug
 import com.lezerv.app.data.remote.LezervApi
@@ -242,6 +243,7 @@ class LezervState(
     /** Everyone on the map: sample artisans, or the backend's once LiveSync loads them. */
     var artisans by mutableStateOf(ARTISANS); private set
     fun artisan(id: String?): Artisan? = artisans.firstOrNull { it.id == id }
+    fun servicesFor(artisanId: String): List<ArtisanServiceDto>? = live?.artisanServices?.get(artisanId)
     fun replaceArtisans(list: List<Artisan>) { artisans = list; if (selected != null && artisan(selected) == null) selected = null }
     var category by mutableStateOf("all")
     var query by mutableStateOf("")
@@ -429,7 +431,13 @@ class LezervState(
 
     fun push(p: Pushed) {
         stack = stack + p
-        if (p is Pushed.Profile) live?.loadReviews(p.artisanId)
+        if (p is Pushed.Profile) {
+            live?.loadReviews(p.artisanId)
+            live?.loadArtisanServices(p.artisanId)
+        }
+        if (p is Pushed.Services && live?.isArtisan == true) {
+            live?.me?.id?.let { live?.loadArtisanServices(it, force = true) }
+        }
     }
 
     /** True while system back should stay inside the app; false lets Android close it. */
@@ -475,6 +483,7 @@ class LezervState(
     /** Tap on a pin or list row: select it and pan the map so it sits above the sheet. */
     fun pick(id: String, viewportW: Float) {
         val a = artisan(id) ?: return
+        live?.loadArtisanServices(id)
         selected = id; sheet = Sheet.Peek
         panX = viewportW / 2 - a.x
         panY = 230f - a.y
@@ -544,6 +553,7 @@ class LezervState(
     fun startBooking(id: String) {
         bookArtisan = id; option = 0; whenIdx = 0; slot = 1; note = ""
         laundryCounts = listOf(5, 3, 1, 0); pickupWindow = 0; express = false
+        live?.loadArtisanServices(id)
         push(Pushed.Book)
     }
 
@@ -554,7 +564,14 @@ class LezervState(
         if (a.laundry) {
             sub = laundryCounts.withIndex().sumOf { (i, n) -> n * LAUNDRY_ITEMS[i].second }
             extra = if (express) EXPRESS_FEE else 0
-        } else sub = optionPrice(a, option)
+        } else {
+            val custom = servicesFor(a.id)?.filter { it.active }
+            sub = if (!custom.isNullOrEmpty()) {
+                custom.getOrNull(option)?.fromPriceNaira ?: optionPrice(a, option)
+            } else {
+                optionPrice(a, option)
+            }
+        }
         return BookTotal(sub, extra, ((sub + extra) * SERVICE_FEE).roundToInt())
     }
 
@@ -583,7 +600,14 @@ class LezervState(
         val a = artisan(bookArtisan) ?: return@requireSignIn
         val ad = account.currentAddress
         if (ad == null) { toast("Add where the artisan should come"); account.editAddress(null); return@requireSignIn }
-        val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+        val custom = servicesFor(a.id)?.filter { it.active }
+        val title = if (a.laundry) {
+            "Laundry · ${laundryCounts.sum()} items"
+        } else if (!custom.isNullOrEmpty()) {
+            custom.getOrNull(option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        } else {
+            OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        }
         val estimate = naira(bookTotal().total)
         val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
         val details = buildMap {
@@ -664,7 +688,14 @@ class LezervState(
         paying = false
         val a = artisan(bookArtisan) ?: return
         val b = bookTotal()
-        val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+        val custom = servicesFor(a.id)?.filter { it.active }
+        val title = if (a.laundry) {
+            "Laundry · ${laundryCounts.sum()} items"
+        } else if (!custom.isNullOrEmpty()) {
+            custom.getOrNull(option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        } else {
+            OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        }
         val whenLabel = if (a.laundry) PICKUP_WINDOWS[pickupWindow] else if (whenIdx == 0) "Now" else SLOTS[slot]
         job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express, "J-0${nextJobNo++}", payMethodLabel, b.sub + b.extra, b.fee)
         system(a.id, "You booked ${a.first} for ${title.lowercase()}. ${naira(b.total)} is held by Lezerv until you confirm the job is done.")

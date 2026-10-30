@@ -160,7 +160,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         db.rpc("delete_artisan_service", buildJsonObject { put("p_service_id", serviceId) })
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ saved addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ───────────────────────────── saved addresses ─────────────────────────────
 
     override suspend fun addresses(): List<AddressDto> =
         db.from("client_addresses").select(Columns.list(ADDRESS_COLUMNS)) { order("created_at", Order.ASCENDING) }.decodeList()

@@ -94,6 +94,18 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
     /** device_tokens: token â†’ user. */
     val devices = mutableMapOf<String, String>()
+    val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
+        "7f3e" to mutableListOf(
+            ArtisanServiceDto("as-1", "cat-plumb", "Leak repair", 500000, true, 0, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-2", "cat-plumb", "Pipe replacement", 1200000, true, 1, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-3", "cat-plumb", "Drain clearing", 800000, true, 2, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-4", "cat-plumb", "Water heater repair", 1500000, false, 3, "Plumbing", "plumbing"),
+        ),
+        "c1a0" to mutableListOf(
+            ArtisanServiceDto("as-5", "cat-clean", "Deep cleaning", 4200000, true, 0, "Cleaning", "cleaning"),
+            ArtisanServiceDto("as-6", "cat-clean", "Move-in cleaning", 6500000, true, 1, "Cleaning", "cleaning"),
+        ),
+    )
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
 
@@ -218,6 +230,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
 
     override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
         log("artisanServices $artisanId")
+    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
+        log("artisanServices $artisanId")
         val list = world.artisanServices[artisanId].orEmpty()
         val isOwner = world.artisanUser[artisanId] == sessionUser
         return if (isOwner) list.toList() else list.filter { it.active }
@@ -246,8 +260,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             fromPriceKobo = fromPriceKobo,
             active = active,
             sort = sort,
-            categoryName = "Plumbing",
-            categorySlug = "plumbing",
+            categoryName = if (categoryId == "cat-plumb") "Plumbing" else "Services",
+            categorySlug = if (categoryId == "cat-plumb") "plumbing" else "services"
         )
         if (existingIndex >= 0) {
             list[existingIndex] = item
@@ -263,7 +277,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         world.artisanServices[artisanId]?.removeAll { it.id == serviceId }
     }
 
-    // â”€â”€ addresses â”€â”€
+    // ───────────────────────────── addresses ─────────────────────────────
     override suspend fun addresses(): List<AddressDto> { log("addresses"); return world.addresses[me()].orEmpty().toList() }
     override suspend fun saveAddress(a: AddressDto): AddressDto {
         log("saveAddress ${a.id.ifBlank { "new" }} ${a.label} | ${a.street} | ${a.area} | ${a.areaSlug} | ${a.note}" + (if (a.lat != null) " @ ${a.lat},${a.lng}" else ""))

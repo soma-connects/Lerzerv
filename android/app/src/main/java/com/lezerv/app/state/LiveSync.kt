@@ -241,6 +241,7 @@ class LiveSync(
         userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null; startCodes = emptyMap()
         me = null; artisanJobs = emptyList(); arrived = emptySet(); justCompleted = null; expiring.clear()
         earnings = null
+        artisanServices = emptyMap()
         scope.launch {
             // Unregister first: once signed out, the server can't tell whose phone this is.
             if (token != null) attempt("turn off notifications", quiet = true) { api.unregisterDevice(token) }
@@ -294,7 +295,7 @@ class LiveSync(
             me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
             me?.let {
                 app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm)
-                loadArtisanServices(it.id)
+                loadArtisanServices(it.id, force = true)
             }
             refreshArtisanJobs()
         }
@@ -313,6 +314,7 @@ class LiveSync(
         }
     }
 
+    /** Active/all services for an artisan. Clients see active services; the artisan sees all of theirs. */
     fun loadArtisanServices(artisanId: String, force: Boolean = false) {
         if (!force && artisanId in artisanServices) return
         scope.launch {
@@ -329,6 +331,9 @@ class LiveSync(
                         sort = dto.sort,
                     )
                 })
+            }
+        }
+    }
             }
         }
     }

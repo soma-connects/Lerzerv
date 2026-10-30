@@ -36,6 +36,7 @@ interface LezervApi {
     /** map_artisans() (0022); falls back to search_artisans() if 0022 isn't applied yet. */
     suspend fun artisansNear(lat: Double, lng: Double, radiusKm: Int): List<MapArtisanDto>
     /** get_artisan_public(): bio, stats and recent reviews. */
+    /** get_artisan_public(): bio, stats and recent reviews. */
     suspend fun artisanProfile(id: String): ArtisanPublicDto?
     /** artisan_services_public() (0028): active services for clients, all for owning artisan. */
     suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto>
