@@ -38,6 +38,7 @@ import com.lezerv.app.data.SPLASH_MS
 import com.lezerv.app.data.CANCEL_FEE
 import com.lezerv.app.data.CANCEL_REASONS
 import com.lezerv.app.data.REPORT_REASONS
+import com.lezerv.app.data.remote.CancellationRefundDto
 import com.lezerv.app.data.SEED_MESSAGES
 import com.lezerv.app.data.SEED_PAST
 import com.lezerv.app.data.SUPPORT
@@ -214,6 +215,8 @@ class LezervState(
     var share: ((String) -> Unit)? = null
     /** Opens a maps app (Google Maps) for directions: at the pin when there is one, else the address. */
     var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
+    /** Opens a web browser (e.g. for Paystack checkout). */
+    var openBrowser: ((String) -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -293,6 +296,10 @@ class LezervState(
     // ── pay-into-escrow sheet (first design, slide 8) ──
     var paying by mutableStateOf(false); private set
     var payMethod by mutableIntStateOf(0)
+    var payingJobId by mutableStateOf<String?>(null)
+    var paymentProcessing by mutableStateOf(false)
+    var paymentWaitingReference by mutableStateOf<String?>(null)
+    var liveCancellationRefund by mutableStateOf<CancellationRefundDto?>(null); private set
 
     // ── review sheet ──
     var reviewing by mutableStateOf(false); private set
@@ -346,6 +353,37 @@ class LezervState(
     var artisanJob by mutableStateOf<ArtisanJob?>(null); private set
     var code by mutableStateOf("")
     var earnedToday by mutableIntStateOf(6400); private set
+    val earnedTodayAmount: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.availableKobo?.div(100))?.toInt() ?: 0
+        }
+        return earnedToday
+    }
+
+    val availableBalance: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.availableKobo?.div(100))?.toInt() ?: 0
+        }
+        return 38400
+    }
+
+    val inEscrow: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.inEscrowKobo?.div(100))?.toInt() ?: 0
+        }
+        return 12500
+    }
+
+    val paidOut: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.paidOutKobo?.div(100))?.toInt() ?: 0
+        }
+        return 84000
+    }
     var radiusKm by mutableIntStateOf(5)
     var artisanPast by mutableStateOf(listOf(ArtisanPast("Blocked shower drain", "Femi A. · Ikate · Yesterday", 8000), ArtisanPast("Water heater fix", "Ngozi E. · Lekki · Wed", 12000))); private set
 
@@ -465,7 +503,10 @@ class LezervState(
     }
 
     /** Back on screen: people move between visits, so look again (quietly, never asking). */
-    fun onForeground() { if (locator?.allowed() == true) useMyLocation(ask = false) }
+    fun onForeground() {
+        if (locator?.allowed() == true) useMyLocation(ask = false)
+        live?.checkPendingPayment()
+    }
 
     /**
      * Finds the phone and centres the app on it. With [ask] (someone tapped "my location"),
@@ -520,8 +561,17 @@ class LezervState(
 
     /** Opens the "Pay into escrow" sheet to pick bank transfer, card or USSD. */
     /** Guests can look around freely; paying is the moment we ask them to sign in (Board 1g). */
-    fun openPay() = account.requireSignIn { payMethod = if (account.defaultCard != null) 1 else 0; paying = true }
-    fun closePay() { paying = false }
+    fun openPay(jobId: String? = null) = account.requireSignIn {
+        payingJobId = jobId
+        payMethod = if (account.defaultCard != null) 1 else 0
+        paying = true
+    }
+    fun closePay() {
+        paying = false
+        payingJobId = null
+        paymentProcessing = false
+        paymentWaitingReference = null
+    }
 
     /**
      * Live mode's "Send request" (no payments on the backend yet): posts the job with what
@@ -574,8 +624,42 @@ class LezervState(
     /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
     fun artisanTakeHome(b: BookTotal) = ((b.sub + b.extra) * 0.8).roundToInt()
 
-    /** PROPOSAL: escrow. Payment is held by Lezerv until the client confirms the job is done. */
+    /** Escrow: payment is held by Lezerv until the client confirms the job is done. */
     fun pay() {
+        val live = live
+        if (live != null) {
+            val jId = payingJobId
+            if (jId != null) {
+                live.startPayment(jId)
+                return
+            }
+            val a = artisan(bookArtisan) ?: return
+            val ad = account.currentAddress
+            if (ad == null) {
+                toast("Add where the artisan should come")
+                account.editAddress(null)
+                return
+            }
+            val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+            val estimate = naira(bookTotal().total)
+            val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
+            val details = buildMap {
+                put("estimate", estimate)
+                put("when", if (a.laundry) PICKUP_WINDOWS[pickupWindow] else whenLabel())
+                if (a.laundry) { put("items", items); put("return", if (express) "Express, 24 hours" else "Standard, 48 hours") }
+            }
+            live.bookAndPay(
+                Booking(
+                    artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = ad.id,
+                    description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
+                        .joinToString("\n").ifBlank { null },
+                    scheduledFor = scheduledFor(a), budgetNote = "App estimate $estimate", details = details,
+                ),
+                a.first,
+            )
+            return
+        }
+
         paying = false
         val a = artisan(bookArtisan) ?: return
         val b = bookTotal()
@@ -771,7 +855,7 @@ class LezervState(
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
         showPrime = false; primed = false; notices = fresh.notices; declining = false; offline = false
-        paying = false; nextJobNo = 142; reviewComment = ""; payoutSaved = true; cancelling = false; reportJob = ""
+        paying = false; payingJobId = null; paymentProcessing = false; paymentWaitingReference = null; liveCancellationRefund = null; cancellingJobId = null; nextJobNo = 142; reviewComment = ""; payoutSaved = true; cancelling = false; reportJob = ""
         idType = 0; idNumber = ""; docsUploaded = fresh.docsUploaded; payoutBank = fresh.payoutBank; payoutAccount = fresh.payoutAccount; bvn = ""
     }
 
@@ -780,15 +864,63 @@ class LezervState(
 
     // ───────────────────────────── cancel booking ─────────────────────────────
 
+    var cancellingJobId by mutableStateOf<String?>(null); private set
+
     /** Cancelling is allowed until the artisan arrives (or the laundry is picked up). */
-    val canCancel get() = job?.let { it.stage <= 1 } == true
+    val canCancel get() = cancellingJobId != null || (job?.let { it.stage <= 1 } == true)
 
-    /** PROPOSAL policy: free while confirming; once they're on the way the call-out fee is kept. */
-    val cancelFee: Int get() = job?.let { if (it.stage == 0) 0 else CANCEL_FEE.coerceAtMost(it.total) } ?: 0
+    val cancelFee: Int get() {
+        val liveRefund = liveCancellationRefund
+        if (live != null && liveRefund != null) {
+            return (liveRefund.cancellationFeeKobo / 100).toInt()
+        }
+        return job?.let { if (it.stage == 0) 0 else CANCEL_FEE.coerceAtMost(it.total) } ?: 0
+    }
 
-    fun openCancel() { if (canCancel) { cancelReason = 0; cancelling = true } }
+    val cancelRefundAmount: Int get() {
+        val liveRefund = liveCancellationRefund
+        if (live != null && liveRefund != null) {
+            return (liveRefund.refundableAmountKobo / 100).toInt()
+        }
+        return job?.let { it.total - cancelFee } ?: 0
+    }
+
+    val cancelPolicyReason: String? get() = liveCancellationRefund?.policyReason
+
+    internal fun onCancellationRefundLoaded(refund: CancellationRefundDto) {
+        liveCancellationRefund = refund
+    }
+
+    fun openCancel(jobId: String? = null) {
+        cancellingJobId = jobId
+        liveCancellationRefund = null
+        if (jobId != null && live != null) {
+            live?.loadCancellationRefund(jobId)
+            cancelReason = 0
+            cancelling = true
+            return
+        }
+        if (canCancel) {
+            cancelReason = 0
+            cancelling = true
+        }
+    }
 
     fun confirmCancel() {
+        val cJobId = cancellingJobId
+        if (cJobId != null && live != null) {
+            val refund = cancelRefundAmount
+            live?.cancel(cJobId)
+            cancelling = false
+            cancellingJobId = null
+            liveCancellationRefund = null
+            if (refund > 0) {
+                toast("Cancelled. ${naira(refund)} refund on its way.")
+            } else {
+                toast("Booking cancelled.")
+            }
+            return
+        }
         val j = job ?: return
         val a = jobArtisan ?: return
         val refund = j.total - cancelFee

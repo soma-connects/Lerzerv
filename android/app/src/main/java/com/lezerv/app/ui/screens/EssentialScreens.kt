@@ -224,7 +224,7 @@ fun PaymentsScreen(s: LezervState) {
                 }
             }
         }
-        Note("PROPOSAL: cards are saved by Paystack. Lezerv keeps only the brand and last 4 digits.", "lock")
+        Note("Cards are saved securely by Paystack. Lezerv keeps only the brand and last 4 digits.", "lock")
     }
 }
 
@@ -240,7 +240,7 @@ fun AddCardScreen(s: LezervState) {
             Column(Modifier.weight(1f)) { FormLabel("Expiry"); LzField(a.cardExpiry, a::onCardExpiry, "MM/YY", keyboard = KeyboardType.Number, style = body(18), transformation = ExpiryTransformation) }
             Column(Modifier.weight(1f)) { FormLabel("CVV"); LzField(a.cardCvv, a::onCardCvv, "123", keyboard = KeyboardType.NumberPassword, style = body(18), transformation = Secret) }
         }
-        Note("Your card is checked by Paystack with a small charge that is refunded straight away. PROPOSAL until Paystack keys are connected.", "shield-check")
+        Note("Your card is verified securely by Paystack with a small charge that is refunded straight away.", "shield-check")
     }
 }
 
@@ -248,23 +248,52 @@ fun AddCardScreen(s: LezervState) {
 
 @Composable
 fun CancelSheet(s: LezervState) {
-    val j = s.job ?: return
-    val a = s.jobArtisan ?: return
+    val liveJob = s.cancellingJobId?.let { id -> s.live?.jobs?.firstOrNull { it.id == id } }
+    val artisanName: String
+    val total: Int
+    val payMethod: String
+
+    if (liveJob != null) {
+        artisanName = liveJob.artisan?.displayName?.substringBefore(' ') ?: "The artisan"
+        total = (liveJob.agreedAmount ?: liveJob.quotedAmount ?: 0.0).roundToInt()
+        payMethod = "original payment method"
+    } else {
+        val j = s.job ?: return
+        val a = s.jobArtisan ?: return
+        artisanName = a.first
+        total = j.total
+        payMethod = j.payMethod
+    }
+
     val fee = s.cancelFee
+    val refund = s.cancelRefundAmount
+    val reason = s.cancelPolicyReason
+
     Sheet({ s.back() }) {
         Txt("CANCEL THIS BOOKING?", heading(30, 30, weight = 700))
-        Txt(if (fee == 0) "${a.first} hasn’t set off yet, so it’s free to cancel." else "${a.first} is already on the way. The call-out fee goes to them for their time.",
-            body(13, 19, color = Lz.Neutral800), Modifier.padding(top = 6.dp, bottom = 12.dp))
+        val explain = when {
+            reason != null -> reason
+            fee == 0 -> "$artisanName hasn’t set off yet, so it’s free to cancel."
+            else -> "$artisanName is already on the way. The call-out fee goes to them for their time."
+        }
+        Txt(explain, body(13, 19, color = Lz.Neutral800), Modifier.padding(top = 6.dp, bottom = 12.dp))
         CANCEL_REASONS.forEachIndexed { i, r -> RadioRow(r, s.cancelReason == i, { s.cancelReason = i }, { }, 48.dp) }
         Column(Modifier.padding(top = 14.dp).borderTop(2.dp, Lz.Ink)) {
-            KvLine("You paid", naira(j.total))
-            KvLine("Call-out fee", if (fee == 0) "₦0" else "−${naira(fee)}")
-            Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                Txt("Refund", body(15, weight = 700), Modifier.weight(1f))
-                Txt(naira(j.total - fee), heading(24, weight = 700, color = Lz.Accent700))
+            if (total > 0) {
+                KvLine("You paid", naira(total))
+                KvLine("Call-out fee", if (fee == 0) "₦0" else "−${naira(fee)}")
+                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                    Txt("Refund", body(15, weight = 700), Modifier.weight(1f))
+                    Txt(naira(refund), heading(24, weight = 700, color = Lz.Accent700))
+                }
+            } else {
+                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                    Txt("Cancellation fee", body(15, weight = 700), Modifier.weight(1f))
+                    Txt(if (fee == 0) "Free" else naira(fee), heading(24, weight = 700, color = Lz.Accent700))
+                }
             }
         }
-        Txt("Refunds go back the way you paid (${j.payMethod}) within 1–3 working days. PROPOSAL policy.", body(12, 17, color = Lz.Neutral700))
+        Txt("Refunds go back the way you paid ($payMethod) within 1–3 working days.", body(12, 17, color = Lz.Neutral700))
         Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlineButton("Keep booking", { s.back() }, Modifier.weight(1f))
             OutlineButton("Cancel booking", { s.confirmCancel() }, Modifier.weight(1.4f), dashed = true)
@@ -525,7 +554,7 @@ fun InviteScreen(s: LezervState) {
 @Composable
 fun ServicesScreen(s: LezervState) {
     val a = s.account
-    FormPage(bar = { PrimaryWide("Save prices", "check", { a.saveServices() }) }) {
+    FormPage(bar = { PrimaryWide("Save prices", "check", { a.saveServices() }, alpha = if (s.live?.busy == true) 0.5f else 1f) }) {
         Txt("Turn on what you do and set a starting price. You confirm the final price with the client before work starts.", body(14, 20, color = Lz.Neutral800))
         Column {
             a.services.forEachIndexed { i, sv ->

@@ -59,7 +59,7 @@ import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 
-// ───────────────────────────── jobs ─────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ jobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 fun ClientJobsScreen(s: LezervState) {
@@ -70,7 +70,7 @@ fun ClientJobsScreen(s: LezervState) {
         val a = s.jobArtisan
         if (j != null && a != null) {
             val c = trackCopy(j, a)
-            val eta = if (j.moving) " · ${com.lezerv.app.data.pad2(etaMinutes(j, a))} min" else ""
+            val eta = if (j.moving) " Â· ${com.lezerv.app.data.pad2(etaMinutes(j, a))} min" else ""
             Row(
                 Modifier.padding(horizontal = 20.dp).fillMaxWidth().blueprint().background(Lz.Accent100).border(1.dp, Lz.Accent).tap { s.push(Pushed.Track) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -80,7 +80,7 @@ fun ClientJobsScreen(s: LezervState) {
                 Column(Modifier.weight(1f)) {
                     Txt(c.kicker.uppercase(), label(color = Lz.Accent800))
                     Txt(j.title.uppercase(), heading(22, 24, weight = 700))
-                    Txt("${a.name} · ${c.status}$eta", body(13, color = Lz.Accent800))
+                    Txt("${a.name} Â· ${c.status}$eta", body(13, color = Lz.Accent800))
                 }
                 LzIcon("chevron-right", 20)
             }
@@ -94,7 +94,7 @@ fun ClientJobsScreen(s: LezervState) {
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.push(Pushed.Receipt(p.number)) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(p.title.uppercase(), heading(20, 22))
-                        Txt("${p.number} · ${pa.name} · ${p.date} · " + if (p.cancelled) "Cancelled, ${naira(p.refund)} refunded" else naira(p.total), body(12, color = Lz.Neutral800))
+                        Txt("${p.number} Â· ${pa.name} Â· ${p.date} Â· " + if (p.cancelled) "Cancelled, ${naira(p.refund)} refunded" else naira(p.total), body(12, color = Lz.Neutral800))
                     }
                     OutlineButton("Book again", { s.startBooking(pa.id) }, icon = "refresh-cw", height = 40.dp, fontSize = 15)
                 }
@@ -104,7 +104,7 @@ fun ClientJobsScreen(s: LezervState) {
 }
 
 /**
- * Live Jobs tab: the person's service_jobs. Each one moves open → assigned → in progress →
+ * Live Jobs tab: the person's service_jobs. Each one moves open â†’ assigned â†’ in progress â†’
  * completed as Lezerv's team and the artisan act on it; realtime notifications refresh it.
  */
 @Composable
@@ -125,7 +125,7 @@ private fun LiveJobsScreen(s: LezervState) {
                     ) {
                         LzIcon(SERVICE[j.category?.slug?.let(::appCategory) ?: "repair"]?.icon ?: "wrench", 26, Lz.Accent700)
                         Column(Modifier.weight(1f)) {
-                            Txt(listOfNotNull(j.category?.name ?: "Request", jobRef(j.jobNumber)).joinToString(" · ").uppercase(), label(color = Lz.Accent800))
+                            Txt(listOfNotNull(j.category?.name ?: "Request", jobRef(j.jobNumber)).joinToString(" Â· ").uppercase(), label(color = Lz.Accent800))
                             Txt(j.title.uppercase(), heading(22, 24, weight = 700))
                             Txt(jobStatus(j, s.now), body(13, color = Lz.Accent800))
                         }
@@ -142,8 +142,31 @@ private fun LiveJobsScreen(s: LezervState) {
                         }
                         Txt(code, heading(36, 36, weight = 700, tracking = .2f), Modifier.semantics { contentDescription = "Start code ${code.toList().joinToString(" ")}" })
                     }
+                    val price = j.agreedAmount ?: j.quotedAmount
+                    if ((j.status == "assigned" || j.status == "in_progress") && price != null && price > 0) {
+                        Row(
+                            Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.openPay(j.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            LzIcon("lock", 16, Lz.Accent700)
+                            Column(Modifier.weight(1f)) {
+                                Txt("PAY INTO ESCROW", label(12, .08f, Lz.Accent700))
+                                Txt("Deposit ${naira(price)} securely. Released when completed.", body(12, color = Lz.Accent800))
+                            }
+                            Txt(naira(price), heading(18, weight = 700, color = Lz.Accent700))
+                        }
+                    }
+                    if ((j.status == "assigned" && !j.offerPending) || j.status == "in_progress") Box(
+                        Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.push(Pushed.Track) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LzIcon("navigation", 16, Lz.Accent700)
+                            Txt(if (j.enRouteAt != null) "LIVE TRACKING · EN ROUTE" else "LIVE TRACKING", label(12, .08f, Lz.Accent700))
+                        }
+                    }
                     if (j.status == "open" || j.status == "assigned") Box(
-                        Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.live?.cancel(j.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                        Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.openCancel(j.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
                     ) { Txt("CANCEL REQUEST", label(12, .08f, Lz.Accent700)) }
                 }
             }
@@ -155,7 +178,7 @@ private fun LiveJobsScreen(s: LezervState) {
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(j.title.uppercase(), heading(20, 22))
-                        Txt(listOfNotNull(jobRef(j.jobNumber), j.artisan?.displayName, shortDate(j.createdAt), jobStatus(j, s.now)).joinToString(" · "), body(12, color = Lz.Neutral800))
+                        Txt(listOfNotNull(jobRef(j.jobNumber), j.artisan?.displayName, shortDate(j.createdAt), jobStatus(j, s.now)).joinToString(" Â· "), body(12, color = Lz.Neutral800))
                     }
                     if (again != null) OutlineButton("Book again", { s.startBooking(again.id) }, icon = "refresh-cw", height = 40.dp, fontSize = 15)
                 }
@@ -165,7 +188,7 @@ private fun LiveJobsScreen(s: LezervState) {
     }
 }
 
-// ───────────────────────────── messages ─────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 fun MessagesScreen(s: LezervState) {
@@ -224,8 +247,8 @@ fun ChatScreen(s: LezervState) {
                         val fg = if (m.me && !m.pending) Color.White else Lz.Ink
                         Txt(m.text, body(14, 20, color = fg))
                         if (m.pending) Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            LzIcon("clock", 12, Lz.Neutral700); Txt("Not sent · sends when you’re back online", body(10, color = Lz.Neutral700))
-                        } else Txt(m.at + if (m.masked) " · details hidden" else "", body(10, color = fg.copy(alpha = .7f)), Modifier.padding(top = 3.dp))
+                            LzIcon("clock", 12, Lz.Neutral700); Txt("Not sent Â· sends when youâ€™re back online", body(10, color = Lz.Neutral700))
+                        } else Txt(m.at + if (m.masked) " Â· details hidden" else "", body(10, color = fg.copy(alpha = .7f)), Modifier.padding(top = 3.dp))
                     }
                 }
             }
@@ -261,7 +284,7 @@ private fun SupportThreadRow(last: String, at: String, onTap: () -> Unit) {
     }
 }
 
-// ───────────────────────────── account ─────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 internal data class AccountRow(val icon: String, val title: String, val sub: String, val onTap: (() -> Unit)? = null)
 
@@ -296,10 +319,10 @@ internal fun AccountHeader(ini: String, name: String, sub: @Composable () -> Uni
 /** Demo-only rows: switch role and reset, replacing the prototype's side panel. */
 internal fun demoRows(s: LezervState): List<AccountRow> = liveSwitchRow(s) + if (!s.demo) emptyList() else listOfNotNull(
     // Live, the artisan side is real, so only real artisans get to it (see liveSwitchRow).
-    if (s.isLive) null else AccountRow("refresh-cw", "Demo · switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
-    AccountRow("wifi-off", "Demo · ${if (s.offline) "go back online" else "simulate offline"}", "Shows the offline banner and queued messages") { s.toggleOfflineDemo() },
+    if (s.isLive) null else AccountRow("refresh-cw", "Demo Â· switch to ${if (s.role == Role.Client) "artisan" else "client"}", "See the other side of a job") { s.switchRole(if (s.role == Role.Client) Role.Artisan else Role.Client) },
+    AccountRow("wifi-off", "Demo Â· ${if (s.offline) "go back online" else "simulate offline"}", "Shows the offline banner and queued messages") { s.toggleOfflineDemo() },
 ) + if (s.isLive) emptyList() else listOf( // live, a reset would wipe real data and sign in a sample user
-    AccountRow("refresh-cw", "Demo · reset", "Start the demo from the beginning") { s.reset(); s.account.loadDemoUser() },
+    AccountRow("refresh-cw", "Demo Â· reset", "Start the demo from the beginning") { s.reset(); s.account.loadDemoUser() },
 )
 
 /** Live: approved artisans switch between booking help and doing jobs. */
@@ -313,10 +336,10 @@ fun ClientAccountScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         val acc = s.account
         if (acc.signedIn) Box(Modifier.tap { s.push(Pushed.EditProfile) }) {
-            AccountHeader(acc.initials, acc.name) { Txt("${acc.phoneMasked} · ${acc.currentAddress?.area ?: "No address yet"}", body(13, color = Lz.Neutral800)) }
+            AccountHeader(acc.initials, acc.name) { Txt("${acc.phoneMasked} Â· ${acc.currentAddress?.area ?: "No address yet"}", body(13, color = Lz.Neutral800)) }
         } else Column(Modifier.padding(20.dp)) {
             // Guests can browse; this is their way in (Board flow 1g).
-            Txt("YOU’RE LOOKING AROUND", heading(28, 28, weight = 700))
+            Txt("YOUâ€™RE LOOKING AROUND", heading(28, 28, weight = 700))
             Txt("Sign in with your phone to book, chat and save addresses.", body(14, 20, color = Lz.Neutral800), Modifier.padding(top = 4.dp, bottom = 14.dp))
             PrimaryWide("Sign in or sign up", "phone", { acc.requireSignIn { } })
         }
@@ -324,13 +347,13 @@ fun ClientAccountScreen(s: LezervState) {
             listOfNotNull(
                 AccountRow("map-pin", "Saved addresses", acc.currentAddress?.title ?: "Add home or work") { acc.requireSignIn { s.push(Pushed.Addresses) } },
                 // Live hides what has no backend yet: saved cards (Paystack) and referral rewards.
-                if (s.isLive) null else AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
+                AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
                 AccountRow("shield-check", "Safety", if (s.isLive) "Emergency, start codes, privacy" else "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
-                if (s.isLive) null else AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
+                if (s.isLive) null else AccountRow("users", "Invite friends", "Give â‚¦1,000, get â‚¦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
                 if (s.live?.me != null) null
                 else if (s.isLive) AccountRow("wrench", "Become an artisan", "Apply on lezerv.com: ID check and services") { s.toast("Apply on lezerv.com for now. Once approved, you switch to artisan here.") }
                 else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.requireSignIn { s.push(Pushed.Verify(onboarding = true)) } },
-                AccountRow("bell", "Notifications", if (s.primed) "On · jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
+                AccountRow("bell", "Notifications", if (s.primed) "On Â· jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
                 AccountRow("life-buoy", "Help", "Questions, support chat, report a problem") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, privacy, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
@@ -339,7 +362,7 @@ fun ClientAccountScreen(s: LezervState) {
     }
 }
 
-// ───────────────────────────── review + release payment ─────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ review + release payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 fun ReviewSheet(s: LezervState) {

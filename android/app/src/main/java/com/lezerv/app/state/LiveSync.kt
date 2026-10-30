@@ -10,13 +10,19 @@ import com.lezerv.app.data.Review
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.ArtisanJobDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
+import com.lezerv.app.data.remote.CancellationRefundDto
 import com.lezerv.app.data.remote.ConversationDto
+import com.lezerv.app.data.remote.EarningsDto
 import com.lezerv.app.data.remote.JobDto
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.MessageDto
 import com.lezerv.app.data.remote.MyArtisanDto
 import com.lezerv.app.data.remote.NotificationDto
+import com.lezerv.app.data.remote.PaymentDto
+import com.lezerv.app.data.remote.PaymentInitDto
+import com.lezerv.app.data.remote.PaymentMethodDto
 import com.lezerv.app.data.remote.ServerMessage
 import com.lezerv.app.data.remote.TicketDto
 import com.lezerv.app.data.remote.TicketMessageDto
@@ -41,20 +47,9 @@ const val NEARBY_KM = 10
  * The app's connection to the real backend (soma-connects/Lerzerv on Supabase).
  *
  * [LezervState] still holds everything the screens draw. LiveSync fills it from [api] and
- * sends the actions that need the server: signing in, posting a job, sending a message.
+ * sends the actions that need the server: signing in, posting a job, sending a message,
+ * paying into escrow, and retrieving earnings.
  * Without a LiveSync (demo mode) the app runs on sample data exactly as before.
- *
- * Coroutines: everything runs in [scope], the ViewModel's, on the main thread. A network
- * call *suspends*: the function pauses without blocking the thread, so the UI keeps
- * drawing while it waits, and state is only ever written from that one thread.
- *
- * Booking (0023): "Book" offers the job to the chosen artisan, who has a short window to
- * accept; their app shows it as an incoming request. Still demo-only when live: paying into
- * escrow, live tracking, earnings and payouts.
- *
- * Location (0027): the map looks around the phone's GPS once allowed (the client's position
- * is only ever a search point, never stored). An online artisan's phone reports where they
- * are when they go online and every [SHARE_MS] after, so clients nearby find them.
  */
 class LiveSync(
     private val app: LezervState,
@@ -80,6 +75,8 @@ class LiveSync(
     var reviews by mutableStateOf(mapOf<String, List<Review>>()); private set
     /** Start codes of the client's jobs, by job id. Only the client can read them (0023). */
     var startCodes by mutableStateOf(mapOf<String, String>()); private set
+    /** Active/all services per artisan id (0028). */
+    var artisanServices by mutableStateOf(mapOf<String, List<ArtisanServiceDto>>()); private set
 
     // ── the artisan side ──
     /** The person's own artisan profile, if they have one. */
@@ -90,6 +87,8 @@ class LiveSync(
     var arrived by mutableStateOf(setOf<String>()); private set
     /** The job they just finished, for the "Job complete" screen. */
     var justCompleted by mutableStateOf<ArtisanJobDto?>(null); private set
+    /** Real-time earnings from public.my_earnings() (0032). */
+    var earnings by mutableStateOf<EarningsDto?>(null); private set
 
     val isArtisan get() = me?.status == "approved"
     /** The offer to show on the artisan's map: the newest one still inside its window. */
@@ -119,6 +118,7 @@ class LiveSync(
     // Realtime subscriptions. Cancelling the coroutine leaves the channel (see SupabaseApi.inserts).
     private var chatWatch: Job? = null
     private var noticeWatch: Job? = null
+    private var paymentWatch: Job? = null
 
     // ═════════════════════════════ start-up ═════════════════════════════
 
@@ -237,9 +237,10 @@ class LiveSync(
     fun signOut() {
         val token = pushToken
         pendingPush = null
-        chatWatch?.cancel(); noticeWatch?.cancel(); radiusSave?.cancel()
+        chatWatch?.cancel(); noticeWatch?.cancel(); radiusSave?.cancel(); paymentWatch?.cancel(); paymentWatch = null
         userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null; startCodes = emptyMap()
         me = null; artisanJobs = emptyList(); arrived = emptySet(); justCompleted = null; expiring.clear()
+        earnings = null
         scope.launch {
             // Unregister first: once signed out, the server can't tell whose phone this is.
             if (token != null) attempt("turn off notifications", quiet = true) { api.unregisterDevice(token) }
@@ -288,9 +289,13 @@ class LiveSync(
         launch { attempt("load your jobs") { api.myJobs() }?.let { jobs = it } }
         launch { attempt("load your start codes", quiet = true) { api.startCodes() }?.let { startCodes = it } }
         launch { attempt("load your addresses") { api.addresses() }?.let { list -> app.account.setAddresses(list.map(::toAddress)) } }
+        launch { attempt("load saved payment methods", quiet = true) { api.savedPaymentMethods() }?.let { app.account.setPaymentMethods(it) } }
         launch {
             me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
-            me?.let { app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm) }
+            me?.let {
+                app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm)
+                loadArtisanServices(it.id)
+            }
             refreshArtisanJobs()
         }
         launch { attempt("load your messages") { api.conversations() }?.let { conversations = it } }
@@ -305,6 +310,26 @@ class LiveSync(
         scope.launch {
             val p = attempt("load reviews", quiet = true) { api.artisanProfile(artisanId) } ?: return@launch
             reviews = reviews + (artisanId to p.reviews.map { it.toReview() })
+        }
+    }
+
+    fun loadArtisanServices(artisanId: String, force: Boolean = false) {
+        if (!force && artisanId in artisanServices) return
+        scope.launch {
+            val list = attempt("load services", quiet = true) { api.artisanServices(artisanId) } ?: return@launch
+            artisanServices = artisanServices + (artisanId to list)
+            if (artisanId == me?.id) {
+                app.account.setServicesFromBackend(list.map { dto ->
+                    ServicePrice(
+                        name = dto.name,
+                        price = dto.fromPriceNaira,
+                        on = dto.active,
+                        id = dto.id,
+                        categoryId = dto.categoryId,
+                        sort = dto.sort,
+                    )
+                })
+            }
         }
     }
 
@@ -339,7 +364,158 @@ class LiveSync(
         launch { attempt("load your start codes", quiet = true) { api.startCodes() }?.let { startCodes = it } }
     }
 
+    // ═════════════════════════════ payments & escrow (0032) ═════════════════════════════
+
+    /** Initializes checkout for [jobId] via payments-init and opens Paystack in browser. */
+    fun startPayment(jobId: String) {
+        if (busy) return
+        busy = true
+        scope.launch {
+            try {
+                app.paymentProcessing = true
+                val init = attempt("initialize payment") { api.initializePayment(jobId) }
+                if (init == null) {
+                    app.paymentProcessing = false
+                    return@launch
+                }
+                app.paymentWaitingReference = init.reference
+                app.toast("Opening Paystack checkout...")
+                app.openBrowser?.invoke(init.authorizationUrl)
+
+                watchPayment(jobId, init.reference)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    /** Submits booking and immediately proceeds to payment initialization. */
+    fun bookAndPay(b: Booking, artisanFirst: String) {
+        if (busy) return
+        busy = true
+        scope.launch {
+            try {
+                app.paymentProcessing = true
+                val job = attempt("send your request") { api.bookArtisan(b) }
+                if (job == null) {
+                    app.paymentProcessing = false
+                    return@launch
+                }
+                refreshJobs()
+                app.onRequestSent(artisanFirst)
+
+                val init = attempt("initialize payment") { api.initializePayment(job.id) }
+                if (init != null) {
+                    app.payingJobId = job.id
+                    app.paymentWaitingReference = init.reference
+                    app.toast("Opening Paystack checkout...")
+                    app.openBrowser?.invoke(init.authorizationUrl)
+                    watchPayment(job.id, init.reference)
+                } else {
+                    app.paymentProcessing = false
+                }
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun watchPayment(jobId: String, reference: String) {
+        paymentWatch?.cancel()
+        paymentWatch = scope.launch {
+            listen {
+                api.paymentUpdates(jobId).collect { p ->
+                    if ((p.paystackReference == reference || p.jobId == jobId) && p.isHeld) {
+                        onPaymentHeld(p)
+                    }
+                }
+            }
+        }
+    }
+
+    fun checkPendingPayment() {
+        val jobId = app.payingJobId ?: return
+        if (app.paymentWaitingReference == null) return
+        scope.launch {
+            val p = attempt("check payment status", quiet = true) { api.paymentForJob(jobId) }
+            if (p != null && p.isHeld) {
+                onPaymentHeld(p)
+            }
+        }
+    }
+
+    internal fun onPaymentHeld(p: PaymentDto) {
+        paymentWatch?.cancel()
+        paymentWatch = null
+        app.paymentProcessing = false
+        app.paymentWaitingReference = null
+        app.payingJobId = null
+        app.closePay()
+        app.toast("Payment confirmed · Held in escrow")
+        scope.launch {
+            refreshJobs()
+            attempt("update payment methods", quiet = true) { api.savedPaymentMethods() }?.let {
+                app.account.setPaymentMethods(it)
+            }
+        }
+    }
+
+    fun loadCancellationRefund(jobId: String) {
+        scope.launch {
+            attempt("calculate cancellation refund", quiet = true) { api.computeCancellationRefund(jobId) }?.let {
+                app.onCancellationRefundLoaded(it)
+            }
+        }
+    }
+
+    fun deletePaymentMethod(remoteId: String) = act("remove the card") {
+        api.deletePaymentMethod(remoteId)
+        attempt("load payment methods", quiet = true) { api.savedPaymentMethods() }?.let {
+            app.account.setPaymentMethods(it)
+        }
+        app.toast("Card removed")
+    }
+
     // ═════════════════════════════ the artisan side ═════════════════════════════
+
+    fun saveServices(services: List<ServicePrice>) = act("save your services and prices") {
+        val artisanId = me?.id ?: return@act
+        services.forEachIndexed { idx, s ->
+            val kobo = s.price * 100
+            api.upsertArtisanService(
+                serviceId = s.id.ifBlank { null },
+                categoryId = s.categoryId.ifBlank { "cat-plumb" },
+                name = s.name,
+                fromPriceKobo = kobo,
+                active = s.on,
+                sort = if (s.sort != 0) s.sort else idx
+            )
+        }
+        loadArtisanServices(artisanId, force = true)
+        if (app.top == Pushed.Services) app.back()
+        app.toast("Prices updated. Clients see them as starting prices.")
+    }
+
+    fun toggleService(serviceId: String, active: Boolean) = act("update service") {
+        val artisanId = me?.id ?: return@act
+        val existing = artisanServices[artisanId]?.firstOrNull { it.id == serviceId } ?: return@act
+        api.upsertArtisanService(
+            serviceId = existing.id,
+            categoryId = existing.categoryId,
+            name = existing.name,
+            fromPriceKobo = existing.fromPriceKobo,
+            active = active,
+            sort = existing.sort
+        )
+        loadArtisanServices(artisanId, force = true)
+    }
+
+    fun deleteService(serviceId: String) = act("remove service") {
+        val artisanId = me?.id ?: return@act
+        api.deleteArtisanService(serviceId)
+        loadArtisanServices(artisanId, force = true)
+        app.toast("Service removed")
+    }
 
     /** Online = clients can book you (set_artisan_availability). */
     fun setOnline(on: Boolean) = act(if (on) "go online" else "go offline") {
@@ -402,6 +578,7 @@ class LiveSync(
     private suspend fun refreshArtisanJobs() {
         if (me == null) return
         attempt("load your requests", quiet = true) { api.artisanJobs() }?.let { artisanJobs = it }
+        attempt("load your earnings", quiet = true) { api.myEarnings() }?.let { earnings = it }
     }
 
     /**

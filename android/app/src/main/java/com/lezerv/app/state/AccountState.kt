@@ -10,6 +10,7 @@ import com.lezerv.app.data.DEMO_OTP
 import com.lezerv.app.data.GeoFix
 import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.remote.AddressDto
+import com.lezerv.app.data.remote.PaymentMethodDto
 import com.lezerv.app.data.remote.areaSlug
 
 /** Steps of the sign-in flow, shown full screen over the app. [Email] is for existing lezerv.com accounts (live only). */
@@ -24,12 +25,19 @@ data class Address(val id: String, val label: String, val street: String, val ar
     val sub get() = "$area, Lagos" + if (note.isNotBlank()) " · $note" else ""
 }
 
-/** Only the last 4 digits are kept. PROPOSAL: Paystack tokenises the card; the app never stores the number. */
-data class SavedCard(val id: Int, val brand: String, val last4: String, val expiry: String) {
+/** Only the last 4 digits are kept. Paystack tokenises the card; the app never stores the number. */
+data class SavedCard(val id: Int, val brand: String, val last4: String, val expiry: String, val remoteId: String? = null) {
     val label get() = "$brand ••$last4"
 }
 
-data class ServicePrice(val name: String, val price: Int, val on: Boolean)
+data class ServicePrice(
+    val name: String,
+    val price: Int,
+    val on: Boolean,
+    val id: String = "",
+    val categoryId: String = "",
+    val sort: Int = 0,
+)
 
 /**
  * Everything about the person using the app: sign-in, profile, addresses, cards, settings,
@@ -327,6 +335,20 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
 
     // ═════════════════════════════ cards ═════════════════════════════
 
+    /** Live: saved card authorizations from public.payment_methods. */
+    internal fun setPaymentMethods(list: List<PaymentMethodDto>) {
+        cards = list.mapIndexed { idx, pm ->
+            SavedCard(
+                id = idx + 1,
+                brand = pm.brand.replaceFirstChar { it.uppercase() },
+                last4 = pm.last4,
+                expiry = pm.expiry.ifBlank { "••/••" },
+                remoteId = pm.id,
+            )
+        }
+        if (cards.none { it.id == defaultCardId }) defaultCardId = cards.firstOrNull()?.id ?: 0
+    }
+
     fun startAddCard() { cardNumber = ""; cardExpiry = ""; cardCvv = ""; app.push(Pushed.AddCard) }
 
     fun onCardNumber(v: String) { cardNumber = v.filter(Char::isDigit).take(19) }
@@ -356,15 +378,34 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     }
 
     fun makeDefault(id: Int) { defaultCardId = id }
-    fun removeCard(id: Int) { cards = cards.filterNot { it.id == id }; if (defaultCardId == id) defaultCardId = cards.firstOrNull()?.id ?: 0 }
+
+    fun removeCard(id: Int) {
+        val card = cards.firstOrNull { it.id == id }
+        cards = cards.filterNot { it.id == id }
+        if (defaultCardId == id) defaultCardId = cards.firstOrNull()?.id ?: 0
+        val live = app.live
+        if (live != null && card?.remoteId != null) {
+            live.deletePaymentMethod(card.remoteId)
+        }
+    }
 
     // ═════════════════════════════ artisan services ═════════════════════════════
 
+    fun setServicesFromBackend(list: List<ServicePrice>) {
+        if (list.isNotEmpty()) services = list
+    }
+
     fun toggleService(i: Int) { services = services.toMutableList().also { it[i] = it[i].copy(on = !it[i].on) } }
-    fun changePrice(i: Int, d: Int) { services = services.toMutableList().also { it[i] = it[i].copy(price = (it[i].price + d).coerceIn(1000, 500_000)) } }
+    fun changePrice(i: Int, d: Int) { services = services.toMutableList().also { it[i] = it[i].copy(price = (it[i].price + d).coerceIn(500, 500_000)) } }
     fun saveServices() {
         if (services.none { it.on }) { app.toast("Keep at least one service on"); return }
-        app.back(); app.toast("Prices updated. Clients see them as starting prices.")
+        val live = app.live
+        if (live != null) {
+            live.saveServices(services)
+        } else {
+            if (app.top == Pushed.Services) app.back()
+            app.toast("Prices updated. Clients see them as starting prices.")
+        }
     }
 
     // ═════════════════════════════ referral ═════════════════════════════

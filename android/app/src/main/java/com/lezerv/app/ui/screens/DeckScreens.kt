@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.alpha
+import kotlin.math.roundToInt
 import com.lezerv.app.data.PAY_METHODS
 import com.lezerv.app.data.naira
 import com.lezerv.app.state.ClientJob
@@ -41,29 +43,44 @@ import com.lezerv.app.ui.theme.label
 
 // ───────────────────────────── pay into escrow (slide 8) ─────────────────────────────
 
-/** PROPOSAL: Paystack isn't connected yet, so the chosen method is recorded but not charged. */
+/** Escrow payment sheet: initiates checkout via Paystack or demo escrow. */
 @Composable
 fun PaySheet(s: LezervState) {
-    val a = s.artisan(s.bookArtisan) ?: return
-    val b = s.bookTotal()
-    Box(Modifier.fillMaxSize().background(Lz.Scrim).tap { s.closePay() }, contentAlignment = Alignment.BottomCenter) {
+    val liveJob = s.payingJobId?.let { jId -> s.live?.jobs?.firstOrNull { it.id == jId } }
+    val artisanName: String
+    val totalAmount: Int
+    val takeHomeAmount: Int
+
+    if (liveJob != null) {
+        artisanName = liveJob.artisan?.displayName?.substringBefore(' ') ?: "Your artisan"
+        totalAmount = (liveJob.agreedAmount ?: liveJob.quotedAmount ?: 0.0).roundToInt()
+        takeHomeAmount = (totalAmount * 0.8).roundToInt()
+    } else {
+        val a = s.artisan(s.bookArtisan) ?: return
+        val b = s.bookTotal()
+        artisanName = a.first
+        totalAmount = b.total
+        takeHomeAmount = s.artisanTakeHome(b)
+    }
+
+    Box(Modifier.fillMaxSize().background(Lz.Scrim).tap { if (!s.paymentProcessing) s.closePay() }, contentAlignment = Alignment.BottomCenter) {
         Column(Modifier.fillMaxWidth().background(Lz.Bg).borderTop(2.dp, Lz.Ink).tap { }.verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Txt("PAY INTO ESCROW", heading(34, 34, weight = 700), Modifier.weight(1f))
-                IconBox("x", { s.closePay() }, size = 40, iconSize = 22, border = null, modifier = Modifier.semantics { contentDescription = "Close" })
+                IconBox("x", { if (!s.paymentProcessing) s.closePay() }, size = 40, iconSize = 22, border = null, modifier = Modifier.semantics { contentDescription = "Close" })
             }
             Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Txt("NGN", heading(20, weight = 700), Modifier.padding(bottom = 8.dp))
-                Txt(naira(b.total).removePrefix("₦"), heading(60, 56, weight = 700))
+                Txt(naira(totalAmount).removePrefix("₦"), heading(60, 56, weight = 700))
             }
-            Txt("Held by Lezerv until you confirm the job is done. ${a.first} receives ${naira(s.artisanTakeHome(b))} after 20% commission.",
+            Txt("Held by Lezerv until you confirm the job is done. $artisanName receives ${naira(takeHomeAmount)} after 20% commission.",
                 body(14, 20, color = Lz.Neutral800), Modifier.padding(top = 6.dp, bottom = 16.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PAY_METHODS.forEachIndexed { i, m ->
                     val on = s.payMethod == i
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 60.dp).background(if (on) Lz.Accent100 else Color.Transparent).border(1.dp, if (on) Lz.Accent else Lz.Divider)
-                            .tap { s.payMethod = i }.padding(horizontal = 14.dp, vertical = 10.dp),
+                            .tap { if (!s.paymentProcessing) s.payMethod = i }.padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
@@ -77,12 +94,21 @@ fun PaySheet(s: LezervState) {
                 }
             }
             Row(Modifier.padding(top = 14.dp).fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LzIcon("info", 16, Lz.Accent800)
-                Txt("Preview. Card and escrow switch on when Paystack is connected.", body(12, 17, color = Lz.Accent800))
+                LzIcon("shield-check", 16, Lz.Accent800)
+                Txt("Secured by Paystack. Funds are held in escrow until you confirm the job is done.", body(12, 17, color = Lz.Accent800))
             }
-            PrimaryButton({ s.pay() }, Modifier.padding(top = 16.dp).fillMaxWidth(), minHeight = 54.dp) {
-                Txt("PAY ${naira(b.total)}", heading(20, tracking = .05f, color = Color.White), Modifier.weight(1f))
-                LzIcon("lock", 22, Color.White)
+            PrimaryButton(
+                { if (!s.paymentProcessing) s.pay() },
+                Modifier.padding(top = 16.dp).fillMaxWidth().alpha(if (s.paymentProcessing) .6f else 1f),
+                minHeight = 54.dp
+            ) {
+                if (s.paymentProcessing) {
+                    Txt("CONNECTING TO PAYSTACK...", heading(18, tracking = .05f, color = Color.White), Modifier.weight(1f))
+                    LzIcon("refresh-cw", 22, Color.White)
+                } else {
+                    Txt("PAY ${naira(totalAmount)}", heading(20, tracking = .05f, color = Color.White), Modifier.weight(1f))
+                    LzIcon("lock", 22, Color.White)
+                }
             }
         }
     }

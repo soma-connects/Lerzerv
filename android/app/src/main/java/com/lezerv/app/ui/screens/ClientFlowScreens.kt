@@ -231,11 +231,10 @@ fun BookScreen(s: LezervState) {
     val a = s.artisan(s.bookArtisan) ?: return
     val bt = s.bookTotal()
     ScrollWithBar(bar = {
-        // Live there are no payments yet: the request goes to Lezerv, who confirm artisan and price.
-        BarFigure(if (s.isLive) "Estimate" else "Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
-        PrimaryButton({ if (s.isLive) s.sendRequest() else s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
-            Txt(if (s.isLive) "SEND REQUEST" else "PAY", heading(20, tracking = .05f, color = Color.White))
-            LzIcon(if (s.isLive) "send" else "arrow-right", 20, Color.White)
+        BarFigure("Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
+        PrimaryButton({ s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
+            Txt("PAY", heading(20, tracking = .05f, color = Color.White))
+            LzIcon("lock", 20, Color.White)
         }
     }) {
         if (a.laundry) LaundryForm(s) else ServiceForm(s, a)
@@ -270,7 +269,7 @@ fun BookScreen(s: LezervState) {
             KvLine(if (a.laundry) "Items" else OPTIONS.getValue(a.svc)[s.option], naira(bt.sub))
             if (bt.extra > 0) KvLine("Express return", naira(bt.extra))
             KvLine("Lezerv service fee (5%)", naira(bt.fee))
-            if (s.isLive) RequestNote(a.first, Modifier.padding(top = 14.dp)) else EscrowNote(Modifier.padding(top = 14.dp))
+            EscrowNote(Modifier.padding(top = 14.dp))
         }
     }
 }
@@ -283,7 +282,6 @@ private fun EscrowNote(modifier: Modifier) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Txt("Held by Lezerv until you confirm the job is done.", body(13, 19, weight = 700, color = Lz.Accent800))
             Txt("If the artisan doesn’t show, you get a full refund.", body(13, 19, color = Lz.Accent800))
-            Box(Modifier.border(1.dp, Lz.Accent700).padding(horizontal = 5.dp, vertical = 1.dp)) { Txt("PROPOSAL", label(10, .1f, Lz.Accent800)) }
         }
     }
 }

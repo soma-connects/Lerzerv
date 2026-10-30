@@ -47,6 +47,11 @@ fun main() = runBlocking {
             path == "/rest/v1/rpc/search_artisans" -> respond(
                 """[{"id":"7f3e","display_name":"Tunde Bakare","bio":null,"city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":156,"completed_jobs":228,"distance_km":0.9,"categories":["plumbing","borehole-water"]}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/get_artisan_public" && bodyOf(r).contains("missing") -> respond("null", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/artisan_services_public" -> respond(
+                """[{"id":"as-1","artisan_id":"7f3e","category_id":"c2","category_name":"Plumbing","category_slug":"plumbing","name":"Leak repair","from_price_kobo":800000,"from_price_naira":8000,"active":true,"sort":0},{"id":"as-2","artisan_id":"7f3e","category_id":"c2","category_name":"Plumbing","category_slug":"plumbing","name":"Unblock a drain","from_price_kobo":1500000,"from_price_naira":15000,"active":true,"sort":1}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/upsert_artisan_service" -> respond(
+                """{"id":"as-new","artisan_id":"7f3e","category_id":"c2","name":"Borehole installation","from_price_kobo":5000000,"active":true,"sort":4}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/delete_artisan_service" -> respond("true", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/get_artisan_public" -> respond(
                 """{"id":"7f3e","display_name":"Tunde Bakare","bio":"Leaks.","city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":2,"completed_jobs":228,"categories":[{"slug":"plumbing","name":"Plumbing"}],"reviews":[{"rating":5,"comment":"On time.","created_at":"2026-09-12T10:22:00+00:00","reviewer":"Amaka"}]}""", HttpStatusCode.OK, json)
             path == "/rest/v1/service_jobs" -> respond(
@@ -193,6 +198,14 @@ fun main() = runBlocking {
     check("open_support_ticket links the job", t.jobId == "j1" && sent.last().contains("\"p_job_id\":\"j1\""))
     val refused = runCatching { api.openTicket("Hi", null) }.exceptionOrNull()
     check("a database 'raise exception' (P0001) arrives as a readable ServerMessage", refused is ServerMessage && refused.message == "please describe the issue in a few more words")
+
+    // artisan services
+    val svcs = api.artisanServices("7f3e")
+    check("artisan_services_public returns active services with prices", svcs.size == 2 && svcs[1].fromPriceNaira == 15000 && sent.last().contains("\"p_artisan_id\":\"7f3e\""))
+    val upserted = api.upsertArtisanService(null, "c2", "Borehole installation", 5000000, true, 4)
+    check("upsert_artisan_service returns saved service", upserted.name == "Borehole installation" && upserted.fromPriceKobo == 5000000 && sent.last().contains("\"p_name\":\"Borehole installation\""))
+    api.deleteArtisanService("as-4")
+    check("delete_artisan_service sends service id", sent.last().startsWith("POST /rest/v1/rpc/delete_artisan_service") && sent.last().contains("\"p_service_id\":\"as-4\""))
 
     println("\nAll ${sent.size} requests looked as the backend expects.")
 }
