@@ -53,6 +53,22 @@ data class MapArtisanDto(
 @Serializable
 data class SlugName(val slug: String = "", val name: String = "")
 
+/** artisan_services row (0028) or artisan_services_public() result. */
+@Serializable
+data class ArtisanServiceDto(
+    val id: String = "",
+    @SerialName("category_id") val categoryId: String = "",
+    val name: String = "",
+    @SerialName("from_price_kobo") val fromPriceKobo: Int = 0,
+    val active: Boolean = true,
+    val sort: Int = 0,
+    @SerialName("category_name") val categoryName: String? = null,
+    @SerialName("category_slug") val categorySlug: String? = null,
+    @SerialName("from_price_naira") val fromPriceNairaField: Double? = null,
+) {
+    val fromPriceNaira: Int get() = fromPriceNairaField?.toInt() ?: (fromPriceKobo / 100)
+}
+
 @Serializable
 data class ReviewDto(
     val rating: Int,

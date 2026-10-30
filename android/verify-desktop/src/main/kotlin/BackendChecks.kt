@@ -83,6 +83,11 @@ fun main() = runBlocking {
                 """[{"id":"n1","user_id":"user-1","type":"job_assigned","title":"Artisan assigned","body":"We matched an artisan to \"Leak repair\".","link":"/my-jobs","read":false,"created_at":"2026-10-05T09:10:00+00:00"}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/open_support_ticket" && bodyOf(r).contains("\"p_subject\":\"Hi\"") -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"please describe the issue in a few more words"}""", HttpStatusCode.BadRequest, json)
+            path == "/rest/v1/rpc/artisan_services_public" -> respond(
+                """[{"id":"as-1","category_id":"c2","name":"Leak repair","from_price_kobo":500000,"active":true,"sort":0,"category_name":"Plumbing","category_slug":"plumbing"}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/upsert_artisan_service" -> respond(
+                """{"id":"as-1","category_id":"c2","name":"Leak repair","from_price_kobo":500000,"active":true,"sort":0}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/delete_artisan_service" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/open_support_ticket" -> respond(
                 """{"id":"t1","user_id":"user-1","name":"Amaka Obi","email":null,"phone":"2348035554417","subject":"Work not finished: still dripping","topic":"job","source":"app","status":"open","transcript":[],"page_path":null,"last_reply_at":null,"created_at":"2026-10-05T09:20:00+00:00","updated_at":"2026-10-05T09:20:00+00:00","job_id":"j1"}""", HttpStatusCode.OK, json)
             else -> respond("""{"message":"unexpected $path"}""", HttpStatusCode.NotFound, json)
@@ -171,6 +176,14 @@ fun main() = runBlocking {
     check("a late accept comes back in the server's words", late is ServerMessage && late.message == "too late — this request has expired")
     val start = api.startJob("j2", "1111")
     check("a wrong start code is a result, not an error", !start.started && start.attemptsLeft == 3 && sent.last().contains("\"p_code\":\"1111\""))
+
+    // artisan services (0028)
+    val svcs = api.artisanServices("7f3e")
+    check("artisan_services_public returns services", svcs.single().name == "Leak repair" && svcs.single().fromPriceNaira == 5000 && sent.last().contains("\"p_artisan_id\":\"7f3e\""))
+    val upserted = api.upsertArtisanService("as-1", "c2", "Leak repair", 500000, true, 0)
+    check("upsert_artisan_service sends service details in kobo", upserted.id == "as-1" && sent.last().contains("\"p_from_price_kobo\":500000"))
+    api.deleteArtisanService("as-1")
+    check("delete_artisan_service names the service id", sent.last().contains("delete_artisan_service") && sent.last().contains("\"p_service_id\":\"as-1\""))
 
     // chat
     val conv = api.conversations().single()

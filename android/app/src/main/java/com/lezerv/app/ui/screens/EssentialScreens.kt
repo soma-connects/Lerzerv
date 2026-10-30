@@ -525,7 +525,7 @@ fun InviteScreen(s: LezervState) {
 @Composable
 fun ServicesScreen(s: LezervState) {
     val a = s.account
-    FormPage(bar = { PrimaryWide("Save prices", "check", { a.saveServices() }) }) {
+    FormPage(bar = { PrimaryWide("Save prices", "check", { a.saveServices() }, alpha = if (s.live?.busy == true) .5f else 1f) }) {
         Txt("Turn on what you do and set a starting price. You confirm the final price with the client before work starts.", body(14, 20, color = Lz.Neutral800))
         Column {
             a.services.forEachIndexed { i, sv ->

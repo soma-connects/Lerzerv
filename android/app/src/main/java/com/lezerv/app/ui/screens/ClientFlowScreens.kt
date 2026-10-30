@@ -150,7 +150,8 @@ internal fun HomePin(x: Float, y: Float, stem: Int = 10) = com.lezerv.app.ui.map
 fun ProfileScreen(s: LezervState, id: String) {
     val a = s.artisan(id) ?: return
     ScrollWithBar(bar = {
-        BarFigure("From", naira(a.from), a.unit, modifier = Modifier.weight(1f))
+        val fromPrice = s.servicesFor(a.id)?.filter { it.active }?.minOfOrNull { it.fromPriceNaira } ?: a.from
+        BarFigure("From", naira(fromPrice), a.unit, modifier = Modifier.weight(1f))
         PrimaryButton({ s.startBooking(a.id) }) {
             Txt((if (a.laundry) "Book pickup" else "Book").uppercase(), heading(20, tracking = .05f, color = Color.White))
             LzIcon("arrow-right", 20, Color.White)
@@ -190,7 +191,14 @@ fun ProfileScreen(s: LezervState, id: String) {
         Txt(a.bio, body(15, 23), Modifier.padding(horizontal = 20.dp))
         SectionRule("02", "Services and prices", Modifier.padding(top = 26.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
-            val opts = if (a.laundry) LAUNDRY_ITEMS.map { it.first to naira(it.second) } else OPTIONS.getValue(a.svc).mapIndexed { i, l -> l to naira(optionPrice(a, i)) }
+            val customServices = s.servicesFor(a.id)?.filter { it.active }
+            val opts = if (a.laundry) {
+                LAUNDRY_ITEMS.map { it.first to naira(it.second) }
+            } else if (!customServices.isNullOrEmpty()) {
+                customServices.map { it.name to naira(it.fromPriceNaira) }
+            } else {
+                OPTIONS.getValue(a.svc).mapIndexed { i, l -> l to naira(optionPrice(a, i)) }
+            }
             opts.forEach { (l, p) ->
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Txt(l, body(15), Modifier.weight(1f)); Txt(p, heading(20))
@@ -267,7 +275,9 @@ fun BookScreen(s: LezervState) {
         )
         SectionRule(if (a.laundry) "05" else "04", if (s.isLive) "Estimate" else "Payment", Modifier.padding(top = 24.dp, bottom = 4.dp))
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
-            KvLine(if (a.laundry) "Items" else OPTIONS.getValue(a.svc)[s.option], naira(bt.sub))
+            val custom = s.servicesFor(a.id)?.filter { it.active }
+            val optTitle = if (a.laundry) "Items" else if (!custom.isNullOrEmpty()) custom.getOrNull(s.option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(s.option) { "Service" } else OPTIONS.getValue(a.svc).getOrElse(s.option) { "Service" }
+            KvLine(optTitle, naira(bt.sub))
             if (bt.extra > 0) KvLine("Express return", naira(bt.extra))
             KvLine("Lezerv service fee (5%)", naira(bt.fee))
             if (s.isLive) RequestNote(a.first, Modifier.padding(top = 14.dp)) else EscrowNote(Modifier.padding(top = 14.dp))
@@ -304,8 +314,15 @@ private fun RequestNote(first: String, modifier: Modifier) {
 private fun ServiceForm(s: LezervState, a: Artisan) {
     SectionRule("01", "What do you need", Modifier.padding(top = 20.dp, bottom = 4.dp))
     Column(Modifier.padding(horizontal = 20.dp)) {
-        OPTIONS.getValue(a.svc).forEachIndexed { i, l ->
-            RadioRow(l, s.option == i, { s.option = i }, { Txt(naira(optionPrice(a, i)), heading(19)) })
+        val custom = s.servicesFor(a.id)?.filter { it.active }
+        if (!custom.isNullOrEmpty()) {
+            custom.forEachIndexed { i, svc ->
+                RadioRow(svc.name, s.option == i, { s.option = i }, { Txt(naira(svc.fromPriceNaira), heading(19)) })
+            }
+        } else {
+            OPTIONS.getValue(a.svc).forEachIndexed { i, l ->
+                RadioRow(l, s.option == i, { s.option = i }, { Txt(naira(optionPrice(a, i)), heading(19)) })
+            }
         }
     }
     SectionRule("02", "When", Modifier.padding(top = 24.dp, bottom = 12.dp))

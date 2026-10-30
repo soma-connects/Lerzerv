@@ -36,7 +36,21 @@ interface LezervApi {
     /** map_artisans() (0022); falls back to search_artisans() if 0022 isn't applied yet. */
     suspend fun artisansNear(lat: Double, lng: Double, radiusKm: Int): List<MapArtisanDto>
     /** get_artisan_public(): bio, stats and recent reviews. */
+    /** get_artisan_public(): bio, stats and recent reviews. */
     suspend fun artisanProfile(id: String): ArtisanPublicDto?
+    /** artisan_services_public() (0028): active services for clients, all for owning artisan. */
+    suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto>
+    /** upsert_artisan_service() (0028): create or update a custom service offering. */
+    suspend fun upsertArtisanService(
+        serviceId: String?,
+        categoryId: String,
+        name: String,
+        fromPriceKobo: Int,
+        active: Boolean = true,
+        sort: Int = 0
+    ): ArtisanServiceDto
+    /** delete_artisan_service() (0028): remove a custom service offering. */
+    suspend fun deleteArtisanService(serviceId: String)
 
     // ── saved addresses (client_addresses, 0023) ──
     suspend fun addresses(): List<AddressDto>

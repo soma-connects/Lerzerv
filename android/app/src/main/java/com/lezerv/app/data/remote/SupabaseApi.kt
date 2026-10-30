@@ -119,6 +119,34 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         return if (result.data.isBlank() || result.data.trim() == "null") null else result.decodeAs<ArtisanPublicDto>()
     }
 
+    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
+        val result = db.rpc("artisan_services_public", buildJsonObject { put("p_artisan_id", artisanId) })
+        return if (result.data.isBlank() || result.data.trim() == "null") emptyList() else result.decodeList()
+    }
+
+    override suspend fun upsertArtisanService(
+        serviceId: String?,
+        categoryId: String,
+        name: String,
+        fromPriceKobo: Int,
+        active: Boolean,
+        sort: Int
+    ): ArtisanServiceDto {
+        val args = buildJsonObject {
+            serviceId?.let { put("p_service_id", it) }
+            put("p_category_id", categoryId)
+            put("p_name", name)
+            put("p_from_price_kobo", fromPriceKobo)
+            put("p_active", active)
+            put("p_sort", sort)
+        }
+        return db.rpc("upsert_artisan_service", args).decodeAs()
+    }
+
+    override suspend fun deleteArtisanService(serviceId: String) {
+        db.rpc("delete_artisan_service", buildJsonObject { put("p_service_id", serviceId) })
+    }
+
     // ───────────────────────────── saved addresses ─────────────────────────────
 
     override suspend fun addresses(): List<AddressDto> =

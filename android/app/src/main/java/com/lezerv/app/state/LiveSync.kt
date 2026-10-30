@@ -10,6 +10,7 @@ import com.lezerv.app.data.Review
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.ArtisanJobDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.ConversationDto
 import com.lezerv.app.data.remote.JobDto
@@ -80,6 +81,8 @@ class LiveSync(
     var reviews by mutableStateOf(mapOf<String, List<Review>>()); private set
     /** Start codes of the client's jobs, by job id. Only the client can read them (0023). */
     var startCodes by mutableStateOf(mapOf<String, String>()); private set
+    /** Active/all services per artisan id (0028). */
+    var artisanServices by mutableStateOf(mapOf<String, List<ArtisanServiceDto>>()); private set
 
     // ── the artisan side ──
     /** The person's own artisan profile, if they have one. */
@@ -240,6 +243,7 @@ class LiveSync(
         chatWatch?.cancel(); noticeWatch?.cancel(); radiusSave?.cancel()
         userId = null; jobs = emptyList(); conversations = emptyList(); ticket = null; startCodes = emptyMap()
         me = null; artisanJobs = emptyList(); arrived = emptySet(); justCompleted = null; expiring.clear()
+        artisanServices = emptyMap()
         scope.launch {
             // Unregister first: once signed out, the server can't tell whose phone this is.
             if (token != null) attempt("turn off notifications", quiet = true) { api.unregisterDevice(token) }
@@ -290,7 +294,10 @@ class LiveSync(
         launch { attempt("load your addresses") { api.addresses() }?.let { list -> app.account.setAddresses(list.map(::toAddress)) } }
         launch {
             me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
-            me?.let { app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm) }
+            me?.let {
+                app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm)
+                loadArtisanServices(it.id, force = true)
+            }
             refreshArtisanJobs()
         }
         launch { attempt("load your messages") { api.conversations() }?.let { conversations = it } }
@@ -305,6 +312,30 @@ class LiveSync(
         scope.launch {
             val p = attempt("load reviews", quiet = true) { api.artisanProfile(artisanId) } ?: return@launch
             reviews = reviews + (artisanId to p.reviews.map { it.toReview() })
+        }
+    }
+
+    /** Active/all services for an artisan. Clients see active services; the artisan sees all of theirs. */
+    fun loadArtisanServices(artisanId: String, force: Boolean = false) {
+        if (!force && artisanServices.containsKey(artisanId)) return
+        scope.launch {
+            attempt("load services", quiet = true) { api.artisanServices(artisanId) }?.let { list ->
+                artisanServices = artisanServices + (artisanId to list)
+                if (me?.id == artisanId) {
+                    app.account.setServicesFromBackend(
+                        list.map {
+                            ServicePrice(
+                                name = it.name,
+                                price = it.fromPriceNaira,
+                                on = it.active,
+                                id = it.id,
+                                categoryId = it.categoryId,
+                                sort = it.sort,
+                            )
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -355,6 +386,45 @@ class LiveSync(
     }
 
     // ═════════════════════════════ the artisan side ═════════════════════════════
+
+    fun saveServices(services: List<ServicePrice>) = act("save your services and prices") {
+        val artisanId = me?.id ?: return@act
+        services.forEachIndexed { idx, s ->
+            val kobo = s.price * 100
+            api.upsertArtisanService(
+                serviceId = s.id.ifBlank { null },
+                categoryId = s.categoryId.ifBlank { "cat-plumb" },
+                name = s.name,
+                fromPriceKobo = kobo,
+                active = s.on,
+                sort = if (s.sort != 0) s.sort else idx
+            )
+        }
+        loadArtisanServices(artisanId, force = true)
+        if (app.top == Pushed.Services) app.back()
+        app.toast("Prices updated. Clients see them as starting prices.")
+    }
+
+    fun toggleService(serviceId: String, active: Boolean) = act("update service") {
+        val artisanId = me?.id ?: return@act
+        val existing = artisanServices[artisanId]?.firstOrNull { it.id == serviceId } ?: return@act
+        api.upsertArtisanService(
+            serviceId = existing.id,
+            categoryId = existing.categoryId,
+            name = existing.name,
+            fromPriceKobo = existing.fromPriceKobo,
+            active = active,
+            sort = existing.sort
+        )
+        loadArtisanServices(artisanId, force = true)
+    }
+
+    fun deleteService(serviceId: String) = act("remove service") {
+        val artisanId = me?.id ?: return@act
+        api.deleteArtisanService(serviceId)
+        loadArtisanServices(artisanId, force = true)
+        app.toast("Service removed")
+    }
 
     /** Online = clients can book you (set_artisan_availability). */
     fun setOnline(on: Boolean) = act(if (on) "go online" else "go offline") {

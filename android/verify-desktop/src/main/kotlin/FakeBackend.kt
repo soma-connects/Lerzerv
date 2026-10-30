@@ -4,6 +4,7 @@ import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.ArtisanJobDto
 import com.lezerv.app.data.remote.ArtisanPublicDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.CategoryDto
 import com.lezerv.app.data.remote.ConversationDto
@@ -86,6 +87,18 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
     /** device_tokens: token → user. */
     val devices = mutableMapOf<String, String>()
+    val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
+        "7f3e" to mutableListOf(
+            ArtisanServiceDto("as-1", "cat-plumb", "Leak repair", 500000, true, 0, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-2", "cat-plumb", "Pipe replacement", 1200000, true, 1, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-3", "cat-plumb", "Drain clearing", 800000, true, 2, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-4", "cat-plumb", "Water heater repair", 1500000, false, 3, "Plumbing", "plumbing"),
+        ),
+        "c1a0" to mutableListOf(
+            ArtisanServiceDto("as-5", "cat-clean", "Deep cleaning", 4200000, true, 0, "Cleaning", "cleaning"),
+            ArtisanServiceDto("as-6", "cat-clean", "Move-in cleaning", 6500000, true, 1, "Cleaning", "cleaning"),
+        ),
+    )
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
 
@@ -180,6 +193,52 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         )
         return ArtisanPublicDto(a.id, a.displayName, a.bio, a.isVerified, a.avgRating, a.totalReviews + submitted.size, a.completedJobs,
             reviews = submitted + defaultReviews)
+    }
+
+    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
+        log("artisanServices $artisanId")
+        val all = world.artisanServices[artisanId].orEmpty()
+        val isSelf = world.artisanUser[artisanId] == user
+        return if (isSelf) all else all.filter { it.active }
+    }
+
+    override suspend fun upsertArtisanService(
+        serviceId: String?,
+        categoryId: String,
+        name: String,
+        fromPriceKobo: Int,
+        active: Boolean,
+        sort: Int
+    ): ArtisanServiceDto {
+        log("upsertArtisanService $serviceId | $categoryId | $name | $fromPriceKobo | $active | $sort")
+        val artisanId = world.artisanUser.entries.firstOrNull { it.value == me() }?.key
+            ?: throw ServerMessage("not an artisan")
+        val list = world.artisanServices.getOrPut(artisanId) { mutableListOf() }
+        val id = serviceId?.ifBlank { null } ?: world.next("as-")
+        val existingIndex = list.indexOfFirst { it.id == id }
+        val dto = ArtisanServiceDto(
+            id = id,
+            categoryId = categoryId,
+            name = name,
+            fromPriceKobo = fromPriceKobo,
+            active = active,
+            sort = sort,
+            categoryName = if (categoryId == "cat-plumb") "Plumbing" else "Services",
+            categorySlug = if (categoryId == "cat-plumb") "plumbing" else "services"
+        )
+        if (existingIndex >= 0) {
+            list[existingIndex] = dto
+        } else {
+            list.add(dto)
+        }
+        return dto
+    }
+
+    override suspend fun deleteArtisanService(serviceId: String) {
+        log("deleteArtisanService $serviceId")
+        val artisanId = world.artisanUser.entries.firstOrNull { it.value == me() }?.key
+            ?: throw ServerMessage("not an artisan")
+        world.artisanServices[artisanId]?.removeAll { it.id == serviceId }
     }
 
     // ── addresses ──

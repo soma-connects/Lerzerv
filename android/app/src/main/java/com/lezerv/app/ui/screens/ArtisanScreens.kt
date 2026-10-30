@@ -510,12 +510,13 @@ fun ArtisanAccountScreen(s: LezervState) {
         }
         SectionRule("02", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
         AccountRows(
-            // Verification, services and payouts are still sample screens; live hides them.
+            // Verification and payouts are still sample screens; live hides them.
             (if (s.isLive) emptyList() else listOf(
                 AccountRow("badge-check", "Verification", "ID and address verified") { s.push(Pushed.Verify(onboarding = false)) },
-                AccountRow("wrench", "Services and prices", "Plumbing · ${s.account.services.count { it.on }} services") { s.push(Pushed.Services) },
+
                 AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
             )) + listOf(
+                AccountRow("wrench", "Services and prices", "${s.live?.me?.categoryName ?: "Services"} · ${s.account.services.count { it.on }} active") { s.push(Pushed.Services) },
                 AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
