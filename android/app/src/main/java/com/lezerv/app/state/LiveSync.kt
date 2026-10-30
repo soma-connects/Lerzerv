@@ -359,6 +359,21 @@ class LiveSync(
         app.toast("Request cancelled")
     }
 
+    fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>, fallbackArtisanId: String? = null) = act("submit your review") {
+        api.submitReview(jobId, rating, comment, tags)
+        val j = jobs.firstOrNull { it.id == jobId }
+        val artisanId = j?.assignedArtisanId ?: j?.requestedArtisanId ?: fallbackArtisanId ?: app.job?.artisanId
+        if (artisanId != null) {
+            val reviewText = comment?.takeIf { it.isNotBlank() } ?: "No comment."
+            val reviewerName = app.account.name.ifBlank { "You" }
+            val newReview = Review(name = reviewerName, stars = rating, text = reviewText, ago = "Today")
+            val existing = reviews[artisanId].orEmpty()
+            reviews = reviews + (artisanId to listOf(newReview) + existing)
+        }
+        refreshJobs()
+        app.toast("Thanks for the review.")
+    }
+
     private suspend fun refreshJobs() = coroutineScope {
         launch { attempt("load your jobs", quiet = true) { api.myJobs() }?.let { jobs = it } }
         launch { attempt("load your start codes", quiet = true) { api.startCodes() }?.let { startCodes = it } }

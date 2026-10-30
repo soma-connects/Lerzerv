@@ -142,6 +142,7 @@ data class ClientJob(
     val number: String = "", val payMethod: String = "",
     /** Price before Lezerv's 5% fee, and the fee itself, for the receipt. */
     val sub: Int = 0, val fee: Int = 0,
+    val id: String = "",
 ) {
     val lastStage get() = if (laundry) 5 else 4
     /** Stages where someone is driving: the artisan to you, or the laundry rider both ways. */
@@ -681,11 +682,50 @@ class LezervState(
         job = j.copy(stage = j.stage + 1, t = 0f).also(::onStage)
     }
 
-    fun openReview() { reviewing = true; stars = 5; reviewTags = listOf("On time"); reviewComment = "" }
+    var reviewJobId by mutableStateOf<String?>(null)
+
+    fun openReview() = openReview(null)
+
+    fun openReview(jobId: String?) {
+        val live = live
+        if (live != null && jobId != null && job == null) {
+            val j = live.jobs.firstOrNull { it.id == jobId }
+            val artId = j?.assignedArtisanId ?: j?.requestedArtisanId ?: "7f3e"
+            val total = (j?.agreedAmount ?: j?.quotedAmount ?: 0.0).toInt()
+            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j?.title ?: "Job", whenLabel = "Done", express = false, number = j?.jobNumber?.let { "J-0$it" } ?: "", id = jobId)
+        } else if (job != null && jobId != null) {
+            job = job?.copy(id = jobId)
+        }
+        reviewJobId = jobId
+        reviewing = true
+        stars = 5
+        reviewTags = listOf("On time")
+        reviewComment = ""
+    }
 
     fun toggleTag(t: String) { reviewTags = if (t in reviewTags) reviewTags - t else reviewTags + t }
 
-    fun submitReview() {
+    fun submitReview() = submitReview(null)
+
+    fun submitReview(jobId: String?) {
+        val live = live
+        if (live != null) {
+            val j = job
+            val targetId = jobId
+                ?: reviewJobId
+                ?: j?.id?.takeIf { it.isNotBlank() }
+                ?: live.jobs.firstOrNull { it.status == "completed" }?.id
+                ?: live.jobs.firstOrNull()?.id
+                ?: j?.number.orEmpty()
+            val comment = reviewComment.trim().ifBlank { null }
+            val tags = reviewTags
+            val rating = stars
+            val artId = j?.artisanId ?: live.jobs.firstOrNull { it.id == targetId }?.assignedArtisanId
+            reviewing = false; job = null; reviewJobId = null
+            live.submitReview(targetId, rating, comment, tags, artId)
+            stack = emptyList(); tab = Tab.ClientJobs
+            return
+        }
         val j = job ?: return
         val a = artisan(j.artisanId) ?: return
         reviewing = false; job = null
@@ -851,7 +891,7 @@ class LezervState(
     fun reset(withHistory: Boolean = true) {
         val fresh = LezervState(demo, clock, splash = false, signedIn = withHistory)
         role = fresh.role; tab = fresh.tab; stack = fresh.stack; category = fresh.category; query = ""; selected = null; sheet = Sheet.Peek
-        panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; messages = fresh.messages
+        panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; reviewJobId = null; messages = fresh.messages
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
         showPrime = false; primed = false; notices = fresh.notices; declining = false; offline = false

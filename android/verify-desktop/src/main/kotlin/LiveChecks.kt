@@ -227,6 +227,17 @@ fun main() {
         tunde.finishArtisanJob()
         check("back to the map afterwards", tunde.top == null && tunde.tab == Tab.ArtisanMap && tunde.live!!.justCompleted == null)
         check("the finished job is in Tunde's completed list", tunde.live!!.artisanJobs.any { it.id == tj.id && it.status == "completed" })
+
+        // Amaka reviews Tunde
+        amaka.openReview(tj.id)
+        amaka.stars = 5
+        amaka.reviewComment = "Quick and clean"
+        amaka.reviewTags = listOf("On time", "Tidy")
+        amaka.submitReview()
+        check("review submitted for completed job", "submitReview ${tj.id} 5* Quick and clean tags=[On time, Tidy]" in amakaApi.calls)
+        check("artisan's reviews cache updated immediately", amaka.reviewsFor("7f3e")?.first()?.text == "Quick and clean" && amaka.reviewsFor("7f3e")?.first()?.stars == 5)
+        check("reviewing sheet dismissed and feedback toasted", !amaka.reviewing && amaka.snack == "Thanks for the review.")
+
         tunde.openArtisanJob("j1")
         check("opening another job from the list shows that job", tunde.top == Pushed.Navigate && tunde.liveArtisanJob?.id == "j1")
         tunde.back()
