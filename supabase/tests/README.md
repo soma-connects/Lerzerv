@@ -29,6 +29,7 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `test_emails.py` | 0026: which actions send which email to whom, escaping, the per-address and hourly limits, retries keeping their recipients, and that nobody can send their own |
 | `test_artisan_services.py` | 0028: category default services, per-artisan services, integer kobo bounds (₦500 to ₦500,000), owner-only editing, inactive service filtering |
 | `test_booking_details.py` | 0029: booking details, option_service_id, scheduling policy, sequential job numbers (J-0001), server-side 5% client fee and 20% artisan commission calculations |
+| `test_job_tracking.py` | 0030: en-route / arrived tracking milestones, job_locations telemetry table, coordinate validation, RLS, ephemeral privacy purge on completion/cancellation |
 
 The Edge Functions have their own tests, run with Node 22+:
 `node --experimental-strip-types supabase/functions/send-push/push.test.ts` and
