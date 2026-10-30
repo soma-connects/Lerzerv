@@ -1,5 +1,10 @@
 package com.lezerv.app.ui.screens
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +26,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -49,6 +57,7 @@ import com.lezerv.app.state.Notice
 import com.lezerv.app.state.Pushed
 import com.lezerv.app.ui.components.IconBox
 import com.lezerv.app.ui.components.OutlineButton
+import com.lezerv.app.ui.components.PrimaryButton
 import com.lezerv.app.ui.components.PrimaryWide
 import com.lezerv.app.ui.components.Segments
 import com.lezerv.app.ui.components.Txt
@@ -256,21 +265,28 @@ private val PhotoHatch = Brush.linearGradient(
 @Composable
 fun VerifyScreen(s: LezervState, onboarding: Boolean) {
     Column(Modifier.fillMaxSize()) {
-        // four-step progress, this is step 2
-        Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            ONBOARDING_STEPS.forEachIndexed { i, l ->
-                val done = i < 2
-                Column(Modifier.weight(1f)) {
-                    Box(Modifier.fillMaxWidth().height(3.dp).background(if (done) Lz.Accent800 else Lz.Neutral300))
-                    Txt("0${i + 1} ${l.uppercase()}", label(10, color = if (done) Lz.Ink else Lz.Neutral700), Modifier.padding(top = 6.dp))
+        if (onboarding) {
+            // four-step progress, this is step 2
+            Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ONBOARDING_STEPS.forEachIndexed { i, l ->
+                    val done = i < 2
+                    Column(Modifier.weight(1f)) {
+                        Box(Modifier.fillMaxWidth().height(3.dp).background(if (done) Lz.Accent800 else Lz.Neutral300))
+                        Txt("0${i + 1} ${l.uppercase()}", label(10, color = if (done) Lz.Ink else Lz.Neutral700), Modifier.padding(top = 6.dp))
+                    }
                 }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Txt("VERIFICATION DETAILS", heading(22, 24, weight = 700))
+                Txt("Update your government ID and required verification documents.", body(13, 18, color = Lz.Neutral700), Modifier.padding(top = 2.dp))
             }
         }
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Column {
                 FieldLabel("ID type")
                 Segments(ID_TYPES.indices.toList(), { it == s.idType }, { s.idType = it; s.idNumber = "" }) { i, fg ->
-                    Txt(ID_TYPES[i].first.uppercase(), heading(17, tracking = .05f, color = fg))
+                    Txt(ID_TYPES[i].first.uppercase(), heading(13, tracking = .02f, color = fg))
                 }
             }
             Column {
@@ -307,9 +323,30 @@ fun VerifyScreen(s: LezervState, onboarding: Boolean) {
                 Txt("Stored privately. Only Lezerv’s verification team can open them.", body(12, 17, color = Lz.Neutral700))
             }
         }
+        val isBusy = s.live?.busy == true
         Row(Modifier.fillMaxWidth().background(Lz.Bg).borderTop(1.dp, Lz.Ink).padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconBox("arrow-left", { s.back() }, size = 54, iconSize = 22, modifier = Modifier.semantics { contentDescription = "Back" })
-            PrimaryWide(if (onboarding) "Continue" else "Save", onClick = { s.submitVerification(onboarding) }, modifier = Modifier.weight(1f), alpha = if (s.verifyReady) 1f else .5f)
+            IconBox("arrow-left", { if (!isBusy) s.back() }, size = 54, iconSize = 22, modifier = Modifier.semantics { contentDescription = "Back" })
+            PrimaryButton(
+                onClick = { if (!isBusy && s.verifyReady) s.submitVerification(onboarding) },
+                modifier = Modifier.weight(1f).alpha(if (s.verifyReady && !isBusy) 1f else .5f),
+                minHeight = 54.dp,
+                enabled = !isBusy && s.verifyReady,
+            ) {
+                val labelText = if (isBusy) "SUBMITTING..." else if (onboarding) "CONTINUE" else "SAVE"
+                Txt(labelText, heading(20, tracking = 0.05f, color = Lz.White), Modifier.weight(1f))
+                if (isBusy) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "spin")
+                    val angle by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(animation = tween(1000, easing = LinearEasing)),
+                        label = "spinAngle"
+                    )
+                    LzIcon("refresh-cw", 22, Lz.White, modifier = Modifier.rotate(angle))
+                } else {
+                    LzIcon(if (onboarding) "arrow-right" else "check", 22, Lz.White)
+                }
+            }
         }
     }
 }

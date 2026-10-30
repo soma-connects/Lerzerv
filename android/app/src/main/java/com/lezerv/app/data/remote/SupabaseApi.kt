@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -231,6 +233,30 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         db.from("artisans").select(Columns.list("id", "display_name", "status", "is_available", "service_radius_km", "avg_rating", "is_verified")) {
             filter { eq("user_id", uid()) }
         }.decodeSingleOrNull()
+
+    override suspend fun upsertArtisanProfile(
+        bio: String?,
+        experienceYears: Int,
+        businessName: String?,
+        idType: String,
+        idNumber: String,
+        lat: Double?,
+        lng: Double?,
+        categories: List<String>,
+    ) {
+        saying {
+            db.rpc("upsert_artisan_profile", buildJsonObject {
+                if (bio != null) put("p_bio", bio)
+                put("p_experience_years", experienceYears)
+                if (businessName != null) put("p_business_name", businessName)
+                put("p_id_type", idType)
+                put("p_id_number", idNumber)
+                if (lat != null) put("p_lat", lat)
+                if (lng != null) put("p_lng", lng)
+                put("p_categories", JsonArray(categories.map { JsonPrimitive(it) }))
+            })
+        }
+    }
 
     override suspend fun setAvailability(online: Boolean) {
         db.rpc("set_artisan_availability", buildJsonObject { put("p_available", online) })

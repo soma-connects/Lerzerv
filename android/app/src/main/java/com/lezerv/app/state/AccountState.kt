@@ -389,7 +389,12 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         }
     }
 
-    // ═════════════════════════════ artisan services ═════════════════════════════
+    // ═════════════════════════════ artisan onboarding & services ═════════════════════════════
+
+    /** Opens in-app artisan onboarding & KYC verification. */
+    fun applyAsArtisan() {
+        requireSignIn { app.push(Pushed.Verify(onboarding = true)) }
+    }
 
     fun setServicesFromBackend(list: List<ServicePrice>) {
         if (list.isNotEmpty()) services = list

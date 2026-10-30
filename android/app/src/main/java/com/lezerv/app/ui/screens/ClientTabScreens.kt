@@ -327,7 +327,13 @@ internal fun demoRows(s: LezervState): List<AccountRow> = liveSwitchRow(s) + if 
 
 /** Live: approved artisans switch between booking help and doing jobs. */
 private fun liveSwitchRow(s: LezervState): List<AccountRow> =
-    if (s.live?.isArtisan != true) emptyList()
+    if (s.live?.isArtisan != true) {
+        if (s.live?.me?.status == "pending") {
+            listOf(AccountRow("clock", "Artisan application pending", "We’re reviewing your verification details") {
+                s.toast("Your application is under review. We’ll notify you once approved.")
+            })
+        } else emptyList()
+    }
     else if (s.role == Role.Client) listOf(AccountRow("wrench", "Switch to artisan", "Go online and take requests") { s.switchRole(Role.Artisan) })
     else listOf(AccountRow("user", "Switch to client", "Book help for yourself") { s.switchRole(Role.Client) })
 
@@ -351,8 +357,7 @@ fun ClientAccountScreen(s: LezervState) {
                 AccountRow("shield-check", "Safety", if (s.isLive) "Emergency, start codes, privacy" else "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
                 if (s.isLive) null else AccountRow("users", "Invite friends", "Give â‚¦1,000, get â‚¦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
                 if (s.live?.me != null) null
-                else if (s.isLive) AccountRow("wrench", "Become an artisan", "Apply on lezerv.com: ID check and services") { s.toast("Apply on lezerv.com for now. Once approved, you switch to artisan here.") }
-                else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.requireSignIn { s.push(Pushed.Verify(onboarding = true)) } },
+                else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.applyAsArtisan() },
                 AccountRow("bell", "Notifications", if (s.primed) "On Â· jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
                 AccountRow("life-buoy", "Help", "Questions, support chat, report a problem") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, privacy, log out") { s.push(Pushed.Settings) },

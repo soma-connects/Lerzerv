@@ -230,8 +230,6 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
 
     override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
         log("artisanServices $artisanId")
-    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
-        log("artisanServices $artisanId")
         val list = world.artisanServices[artisanId].orEmpty()
         val isOwner = world.artisanUser[artisanId] == sessionUser
         return if (isOwner) list.toList() else list.filter { it.active }
@@ -356,6 +354,40 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         val a = world.artisans.first { it.id == id }
         return MyArtisanDto(id, a.displayName, "approved", world.available[id] == true, world.radius[id] ?: 5, a.avgRating, a.isVerified)
     }
+
+    override suspend fun upsertArtisanProfile(
+        bio: String?,
+        experienceYears: Int,
+        businessName: String?,
+        idType: String,
+        idNumber: String,
+        lat: Double?,
+        lng: Double?,
+        categories: List<String>,
+    ) {
+        log("upsertArtisanProfile businessName=$businessName idType=$idType idNumber=$idNumber")
+        val uid = sessionUser ?: throw ServerMessage("must be logged in")
+        val artId = myArtisanId() ?: run {
+            val newId = world.next("a-")
+            world.artisanUser[newId] = uid
+            val name = businessName?.ifBlank { null } ?: "Artisan"
+            world.artisans.add(
+                MapArtisanDto(
+                    id = newId,
+                    displayName = name,
+                    service = categories.firstOrNull() ?: "plumbing",
+                    rating = 5.0,
+                    reviewCount = 0,
+                    lat = lat ?: 6.45,
+                    lng = lng ?: 3.47,
+                    isVerified = false,
+                    isAvailable = false,
+                )
+            )
+            newId
+        }
+    }
+
     override suspend fun setAvailability(online: Boolean) { log("available $online"); world.available[myArtisanId()!!] = online }
     override suspend fun setRadius(km: Int) { log("radius $km"); world.radius[myArtisanId()!!] = km }
 

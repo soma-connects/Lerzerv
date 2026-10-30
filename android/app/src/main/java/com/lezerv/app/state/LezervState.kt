@@ -219,6 +219,10 @@ class LezervState(
     var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
     /** Opens a web browser (e.g. for Paystack checkout). */
     var openBrowser: ((String) -> Unit)? = null
+    /** Starts foreground GPS tracking while an artisan is en route to an active job. */
+    var startLocationTracking: ((jobId: String, clientName: String, dest: String) -> Unit)? = null
+    /** Stops foreground GPS tracking when artisan arrives or job concludes. */
+    var stopLocationTracking: (() -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -1164,9 +1168,24 @@ class LezervState(
     val idDigits get() = ID_TYPES[idType].second
     val verifyReady get() = idNumber.length == idDigits && docsUploaded.all { it }
 
-    /** PROPOSAL: documents go to a private bucket and the team reviews them. */
+    /** Documents go to private KYC storage bucket and team reviews them (Segment S9). */
     fun submitVerification(onboarding: Boolean) {
         if (!verifyReady) { toast(if (idNumber.length != idDigits) "Enter your ${idDigits}-character ${ID_TYPES[idType].first}" else "Add all three documents"); return }
+        val mappedId = when (idType) {
+            0 -> "nin"
+            1 -> "voters_card"
+            2 -> "intl_passport"
+            3 -> "drivers_license"
+            else -> "nin"
+        }
+        val liveSync = live
+        if (isLive && liveSync != null) {
+            liveSync.submitKyc(mappedId, idNumber) {
+                stack = stack.dropLast(1)
+                toast(if (onboarding) "Verification submitted for review. We’ll notify you once approved." else "Verification details updated")
+            }
+            return
+        }
         if (onboarding && demo) {
             switchRole(Role.Artisan)
             payoutSaved = false; payoutAccount = "" // a new artisan has no bank details yet

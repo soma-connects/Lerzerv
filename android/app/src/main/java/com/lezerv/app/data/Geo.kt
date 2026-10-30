@@ -44,10 +44,28 @@ data class LocalPlane(val origin: GeoPoint) {
 }
 
 /**
- * Where a map should look: [target] (map units) placed [fromTop] dp below the top edge and
- * centred across. A new [seq] asks again, e.g. "my location" tapped twice.
+ * Bounding-box framing for live tracking (enclosing artisan and client destination pins).
  */
-data class MapAim(val target: Pt, val fromTop: Float, val seq: Int = 0)
+data class CameraFraming(
+    val sw: GeoPoint,
+    val ne: GeoPoint,
+    val paddingLeftDp: Int = 32,
+    val paddingTopDp: Int = 64,
+    val paddingRightDp: Int = 32,
+    val paddingBottomDp: Int = 180,
+)
+
+/**
+ * Where a map should look: [target] (map units) placed [fromTop] dp below the top edge and
+ * centred across. If [framing] is set, frames the bounding box instead.
+ * A new [seq] asks again, e.g. "my location" tapped twice.
+ */
+data class MapAim(
+    val target: Pt,
+    val fromTop: Float,
+    val seq: Int = 0,
+    val framing: CameraFraming? = null,
+)
 
 /**
  * Centre points of the backend's service areas the app's address form offers, the same

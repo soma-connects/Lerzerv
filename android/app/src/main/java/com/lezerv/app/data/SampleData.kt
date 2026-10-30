@@ -142,8 +142,13 @@ val SEED_NOTICES = listOf(
     com.lezerv.app.state.Notice(4, com.lezerv.app.state.Role.Artisan, "₦8,000 released", "Blocked shower drain · Femi A. confirmed", "Yesterday", com.lezerv.app.state.Route.Earnings, "View earnings", read = true),
 )
 
-/** ID type → required length (NIN 11 digits, voter's card VIN 19 chars, passport 9 chars). */
-val ID_TYPES = listOf("NIN" to 11, "Voter’s card" to 19, "Passport" to 9)
+/** ID type → required length (NIN 11 digits, voter's card VIN 19 chars, passport 9 chars, driver's license 11 chars). */
+val ID_TYPES = listOf(
+    "NIN" to 11,
+    "Voter’s card" to 19,
+    "Passport" to 9,
+    "Driver’s license" to 11,
+)
 
 data class KycDoc(val title: String, val hint: String, val icon: String)
 val KYC_DOCS = listOf(

@@ -70,9 +70,20 @@ interface LezervApi {
     /** submit_job_review(): client rates and reviews a completed job. */
     suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>)
 
-    // â”€â”€ the artisan side â”€â”€
+    // ── the artisan side ──
     /** The person's artisans row, or null if they aren't an artisan. */
     suspend fun myArtisan(): MyArtisanDto?
+    /** upsert_artisan_profile() (0033): in-app artisan onboarding and KYC details. */
+    suspend fun upsertArtisanProfile(
+        bio: String?,
+        experienceYears: Int,
+        businessName: String?,
+        idType: String,
+        idNumber: String,
+        lat: Double?,
+        lng: Double?,
+        categories: List<String> = emptyList(),
+    )
     /** set_artisan_availability(): online = clients can book you. */
     suspend fun setAvailability(online: Boolean)
     suspend fun setRadius(km: Int)

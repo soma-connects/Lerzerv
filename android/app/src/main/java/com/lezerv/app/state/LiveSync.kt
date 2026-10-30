@@ -568,7 +568,19 @@ class LiveSync(
         app.toast("Declined · ${reason.lowercase()}. The job goes to other artisans.")
     }
 
-    fun markArrived(jobId: String) { arrived = arrived + jobId }
+    fun markEnRoute(jobId: String) = act("update status") {
+        val j = artisanJobs.firstOrNull { it.id == jobId }
+        api.markEnRoute(jobId)
+        app.startLocationTracking?.invoke(jobId, j?.clientFirstName ?: "Client", j?.addressText ?: "Destination")
+        refreshArtisanJobs()
+    }
+
+    fun markArrived(jobId: String) = act("update status") {
+        api.markArrived(jobId)
+        app.stopLocationTracking?.invoke()
+        arrived = arrived + jobId
+        refreshArtisanJobs()
+    }
 
     fun start(jobId: String, code: String) = act("start the job") {
         val r = api.startJob(jobId, code)
@@ -582,6 +594,7 @@ class LiveSync(
     }
 
     fun complete(jobId: String) = act("mark the job complete") {
+        app.stopLocationTracking?.invoke()
         val job = artisanJobs.firstOrNull { it.id == jobId }
         api.completeJob(jobId)
         refreshArtisanJobs()
@@ -589,6 +602,33 @@ class LiveSync(
     }
 
     fun clearCompleted() { justCompleted = null; focusedJob = null }
+
+    /** Submits artisan onboarding and KYC verification details (Segment S9). */
+    fun submitKyc(idType: String, idNumber: String, onDone: () -> Unit) = act("submit verification") {
+        val lat = app.origin.lat
+        val lng = app.origin.lng
+        val name = app.account.name.ifBlank { null }
+        api.upsertArtisanProfile(
+            bio = null,
+            experienceYears = 0,
+            businessName = name,
+            idType = idType,
+            idNumber = idNumber,
+            lat = lat,
+            lng = lng,
+            categories = emptyList(),
+        )
+        attempt("load your profile", quiet = true) { api.myProfile() }?.let { p ->
+            app.account.onLiveSignIn(p.fullName.orEmpty(), p.email.orEmpty(), p.phone?.let(::localPhone), restored = true)
+        }
+        me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
+        me?.let {
+            app.onArtisanProfile(it.isAvailable, it.serviceRadiusKm)
+            loadArtisanServices(it.id, force = true)
+        }
+        refreshArtisanJobs()
+        onDone()
+    }
 
     fun refreshArtisan() { scope.launch { refreshArtisanJobs() } }
 
