@@ -107,10 +107,10 @@ class MainActivity : ComponentActivity() {
         state.attachLocator(AndroidLocator(this))
         // Foreground service for streaming live GPS while an artisan is en route to an active job.
         state.startLocationTracking = { jobId, clientName, dest ->
-            com.lezerv.app.service.LocationTrackingService.start(this, jobId, clientName, dest)
+            LocationTrackingService.start(this, jobId, clientName, dest)
         }
         state.stopLocationTracking = {
-            com.lezerv.app.service.LocationTrackingService.stop(this)
+            LocationTrackingService.stop(this)
         }
         // Android's share sheet: WhatsApp, SMS, email…
         state.share = { text ->

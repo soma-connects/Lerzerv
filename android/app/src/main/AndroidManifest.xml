@@ -51,7 +51,7 @@
 
         <!-- Foreground service for streaming live GPS telemetry while en route to a client -->
         <service
-            android:name=".service.LocationTrackingService"
+            android:name=".android.LocationTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
         <meta-data

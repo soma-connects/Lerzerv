@@ -176,7 +176,7 @@ fun main() {
 
     // ── delete account ──
     s.account.deleteAccount()
-    check("delete sends a request to support and signs out", api.calls.any { it.startsWith("openTicket Please delete my Lezerv account") } && !s.account.signedIn && s.snack!!.startsWith("Deletion requested"))
+    check("delete calls the delete-account function and signs out", api.calls.any { it == "deleteAccount" } && api.calls.none { it.startsWith("openTicket Please delete my Lezerv account") } && !s.account.signedIn && s.snack!!.startsWith("Deletion requested"))
 
     // ══ two phones, one backend: Amaka books, Tunde takes the job ══
     run {
@@ -421,31 +421,31 @@ fun main() {
         amaka.push(Pushed.Profile("7f3e"))
         check("opening profile loads artisan services", amakaApi.calls.any { it.startsWith("artisanServices 7f3e") })
         val clientServices = amaka.servicesFor("7f3e")
-        check("client sees only active custom services", clientServices?.map { it.name } == listOf("Leak repair", "Pipe replacement", "Drain clearing"))
-        check("starting prices in Naira are parsed correctly from kobo", clientServices?.map { it.fromPriceNaira } == listOf(5000, 12000, 8000))
+        check("client sees only active custom services", clientServices?.map { it.name } == listOf("Leak repair", "Unblock a drain", "Water heater fix"))
+        check("starting prices in Naira are parsed correctly from kobo", clientServices?.map { it.fromPriceNaira } == listOf(8000, 15000, 21000))
 
         // Amaka books Tunde using custom service
         amaka.startBooking("7f3e")
-        amaka.option = 1 // Pipe replacement, ₦12,000
+        amaka.option = 1 // Unblock a drain, ₦15,000
         val total = amaka.bookTotal()
-        check("bookTotal calculates with custom service starting price", total.sub == 12000)
+        check("bookTotal calculates with custom service starting price", total.sub == 15000)
 
         // Tunde manages his services
         tunde.switchRole(Role.Artisan)
         tunde.push(Pushed.Services)
-        check("artisan sees all their services including inactive", tunde.account.services.map { it.name } == listOf("Leak repair", "Pipe replacement", "Drain clearing", "Water heater repair"))
+        check("artisan sees all their services including inactive", tunde.account.services.map { it.name } == listOf("Leak repair", "Unblock a drain", "Water heater fix", "Borehole pump"))
         check("active state is reflected in artisan state", tunde.account.services.map { it.on } == listOf(true, true, true, false))
 
         // Tunde raises price of Leak repair by ₦500 and saves
-        tunde.account.changePrice(0, 500) // 5000 -> 5500
-        check("price updated locally", tunde.account.services[0].price == 5500)
+        tunde.account.changePrice(0, 500) // 8000 -> 8500
+        check("price updated locally", tunde.account.services[0].price == 8500)
         tunde.account.saveServices()
-        check("saveServices updates backend with kobo price", tundeApi.calls.any { it.startsWith("upsertArtisanService") && it.contains("550000") })
+        check("saveServices updates backend with kobo price", tundeApi.calls.any { it.startsWith("upsertArtisanService") && it.contains("850000") })
 
         // Amaka sees the updated price
         amaka.live?.loadArtisanServices("7f3e", force = true)
         val updatedServices = amaka.servicesFor("7f3e")
-        check("client gets updated starting price", updatedServices?.firstOrNull { it.name == "Leak repair" }?.fromPriceNaira == 5500)
+        check("client gets updated starting price", updatedServices?.firstOrNull { it.name == "Leak repair" }?.fromPriceNaira == 8500)
     }
 
     // ── time labels ──

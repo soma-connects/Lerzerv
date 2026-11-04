@@ -1,4 +1,4 @@
-package com.lezerv.app.service
+package com.lezerv.app.android
 
 import android.Manifest
 import android.annotation.SuppressLint

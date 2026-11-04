@@ -50,14 +50,14 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
         "user-1" to ProfileDto("user-1", null, "Amaka Obi", "2348035554417"),
         "art-user" to ProfileDto("art-user", "tunde@example.com", "Tunde Bakare", null),
     )
-    val artisans = listOf(
+    val artisans = mutableListOf(
         MapArtisanDto("7f3e", "Tunde Bakare", "Leaks and drains.", "Lagos", 9, true, true, 4.83, 156, 228, 0.9, 6.45, 3.48, listOf("plumbing")),
         // Signed up on the website, so no location: placed at the Lekki area centre (0025).
         MapArtisanDto("c1a0", "Chinwe Okafor", null, "Lagos", 6, true, true, 4.9, 212, 340, 2.0, 6.445, 3.49, listOf("cleaning"), areaName = "Lekki", approximate = true),
         MapArtisanDto("b9d2", "Bisi Laundromat", null, "Lagos", 4, true, false, 4.8, 205, 880, 2.0, 6.465, 3.47, listOf("laundry")),
     )
     /** Which user each artisan profile belongs to. */
-    val artisanUser = mapOf("7f3e" to "art-user", "c1a0" to "art-user-2", "b9d2" to "art-user-3")
+    val artisanUser = mutableMapOf("7f3e" to "art-user", "c1a0" to "art-user-2", "b9d2" to "art-user-3")
     val available = artisans.associate { it.id to it.isAvailable }.toMutableMap()
     val radius = mutableMapOf("7f3e" to 5)
     /** update_my_location (0027): each artisan's exact point and when it was shared. */
@@ -94,18 +94,6 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
     /** device_tokens: token → user. */
     val devices = mutableMapOf<String, String>()
-    val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
-        "7f3e" to mutableListOf(
-            ArtisanServiceDto("as-1", "cat-plumb", "Leak repair", 500000, true, 0, "Plumbing", "plumbing"),
-            ArtisanServiceDto("as-2", "cat-plumb", "Pipe replacement", 1200000, true, 1, "Plumbing", "plumbing"),
-            ArtisanServiceDto("as-3", "cat-plumb", "Drain clearing", 800000, true, 2, "Plumbing", "plumbing"),
-            ArtisanServiceDto("as-4", "cat-plumb", "Water heater repair", 1500000, false, 3, "Plumbing", "plumbing"),
-        ),
-        "c1a0" to mutableListOf(
-            ArtisanServiceDto("as-5", "cat-clean", "Deep cleaning", 4200000, true, 0, "Cleaning", "cleaning"),
-            ArtisanServiceDto("as-6", "cat-clean", "Move-in cleaning", 6500000, true, 1, "Cleaning", "cleaning"),
-        ),
-    )
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
 
@@ -375,15 +363,16 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
                 MapArtisanDto(
                     id = newId,
                     displayName = name,
-                    service = categories.firstOrNull() ?: "plumbing",
-                    rating = 5.0,
-                    reviewCount = 0,
+                    bio = bio,
+                    yearsExperience = experienceYears,
                     lat = lat ?: 6.45,
                     lng = lng ?: 3.47,
                     isVerified = false,
                     isAvailable = false,
+                    categories = categories,
                 )
             )
+            world.available[newId] = false
             newId
         }
     }
