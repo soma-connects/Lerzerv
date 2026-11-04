@@ -220,6 +220,8 @@ class LezervState(
     var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
     /** Opens a web browser (e.g. for Paystack checkout). */
     var openBrowser: ((String) -> Unit)? = null
+    /** Opens a web page in the phone's browser (desktop renders: a note instead). */
+    fun openWeb(url: String) { openBrowser?.invoke(url) ?: toast("Open $url in your browser") }
     /** Starts foreground GPS tracking while an artisan is en route to an active job. */
     var startLocationTracking: ((jobId: String, clientName: String, dest: String) -> Unit)? = null
     /** Stops foreground GPS tracking when artisan arrives or job concludes. */
@@ -605,29 +607,36 @@ class LezervState(
         val a = artisan(bookArtisan) ?: return@requireSignIn
         val ad = account.currentAddress
         if (ad == null) { toast("Add where the artisan should come"); account.editAddress(null); return@requireSignIn }
-        val custom = servicesFor(a.id)?.filter { it.active }
-        val title = if (a.laundry) {
-            "Laundry · ${laundryCounts.sum()} items"
-        } else if (!custom.isNullOrEmpty()) {
-            custom.getOrNull(option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
-        } else {
-            OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        live.book(liveBooking(a, ad.id), a.first)
+    }
+
+    /**
+     * What a live booking sends. 0029 prices it on the server: from the artisan's own service
+     * when the client picked one (its id), otherwise from [Booking.estimateKobo], the price
+     * before Lezerv's fee. Laundry details use the keys 0029 accepts (items, pickup_window,
+     * express); the time travels as scheduled_for.
+     */
+    private fun liveBooking(a: Artisan, addressId: String): Booking {
+        val chosen = if (a.laundry) null else servicesFor(a.id)?.filter { it.active }?.getOrNull(option)
+        val title = when {
+            a.laundry -> "Laundry · ${laundryCounts.sum()} items"
+            chosen != null -> chosen.name
+            else -> OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
         }
-        val estimate = naira(bookTotal().total)
+        val b = bookTotal()
         val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
-        val details = buildMap {
-            put("estimate", estimate)
-            put("when", if (a.laundry) PICKUP_WINDOWS[pickupWindow] else whenLabel())
-            if (a.laundry) { put("items", items); put("return", if (express) "Express, 24 hours" else "Standard, 48 hours") }
-        }
-        live.book(
-            Booking(
-                artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = ad.id,
-                description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
-                    .joinToString("\n").ifBlank { null },
-                scheduledFor = scheduledFor(a), budgetNote = "App estimate $estimate", details = details,
-            ),
-            a.first,
+        val details = if (!a.laundry) emptyMap() else mapOf(
+            "items" to items,
+            "pickup_window" to PICKUP_WINDOWS[pickupWindow],
+            "express" to express.toString(),
+        )
+        return Booking(
+            artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = addressId,
+            description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
+                .joinToString("\n").ifBlank { null },
+            scheduledFor = scheduledFor(a), budgetNote = "App estimate ${naira(b.total)} incl. Lezerv's 5% fee", details = details,
+            optionServiceId = chosen?.id?.ifBlank { null },
+            estimateKobo = if (chosen == null) (b.sub + b.extra) * 100 else null,
         )
     }
 
@@ -670,23 +679,7 @@ class LezervState(
                 account.editAddress(null)
                 return
             }
-            val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
-            val estimate = naira(bookTotal().total)
-            val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
-            val details = buildMap {
-                put("estimate", estimate)
-                put("when", if (a.laundry) PICKUP_WINDOWS[pickupWindow] else whenLabel())
-                if (a.laundry) { put("items", items); put("return", if (express) "Express, 24 hours" else "Standard, 48 hours") }
-            }
-            live.bookAndPay(
-                Booking(
-                    artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = ad.id,
-                    description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
-                        .joinToString("\n").ifBlank { null },
-                    scheduledFor = scheduledFor(a), budgetNote = "App estimate $estimate", details = details,
-                ),
-                a.first,
-            )
+            live.bookAndPay(liveBooking(a, ad.id), a.first)
             return
         }
 
@@ -726,9 +719,10 @@ class LezervState(
         val live = live
         if (live != null && jobId != null && job == null) {
             val j = live.jobs.firstOrNull { it.id == jobId }
-            val artId = j?.assignedArtisanId ?: j?.requestedArtisanId ?: "7f3e"
-            val total = (j?.agreedAmount ?: j?.quotedAmount ?: 0.0).toInt()
-            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j?.title ?: "Job", whenLabel = "Done", express = false, number = jobRef(j?.jobNumber) ?: "", id = jobId)
+            val artId = j?.assignedArtisanId ?: j?.requestedArtisanId
+            if (j == null || artId == null) { toast("That job isn't in your list yet. Pull to refresh and try again."); return }
+            val total = (j.agreedAmount ?: j.quotedAmount ?: 0.0).toInt()
+            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j.title, whenLabel = "Done", express = false, number = jobRef(j.jobNumber) ?: "", id = jobId)
         } else if (job != null && jobId != null) {
             job = job?.copy(id = jobId)
         }
@@ -747,12 +741,9 @@ class LezervState(
         val live = live
         if (live != null) {
             val j = job
-            val targetId = jobId
-                ?: reviewJobId
-                ?: j?.id?.takeIf { it.isNotBlank() }
-                ?: live.jobs.firstOrNull { it.status == "completed" }?.id
-                ?: live.jobs.firstOrNull()?.id
-                ?: j?.number.orEmpty()
+            // Only the job the review was opened for: never a guess at "some completed job".
+            val targetId = jobId ?: reviewJobId ?: j?.id?.takeIf { it.isNotBlank() }
+            if (targetId == null) { reviewing = false; toast("Open the review from the finished job in Jobs."); return }
             val comment = reviewComment.trim().ifBlank { null }
             val tags = reviewTags
             val rating = stars
@@ -843,9 +834,11 @@ class LezervState(
         val o = live.currentOffer(now) ?: return null
         return Incoming(
             o.id, o.title,
-            listOfNotNull(o.categoryName, o.clientFirstName, o.areaName, o.detail("when")).joinToString(" · "),
+            listOfNotNull(o.categoryName, o.clientFirstName, o.areaName, o.whenLabel(now)).joinToString(" · "),
             o.areaName.orEmpty(), isoMillis(o.offerExpiresAt) ?: now,
-            o.detail("estimate")?.let { "Client’s estimate · price agreed in chat" to it },
+            // 0029 sets the price at booking (the artisan's own service price); older jobs carried an estimate.
+            o.detail("estimate")?.let { "Client’s estimate · price agreed in chat" to it }
+                ?: o.priceKobo?.takeIf { it > 0 }?.let { "Starting price · final price agreed in chat" to naira(it / 100) },
         )
     }
 
@@ -971,7 +964,7 @@ class LezervState(
         cancellingJobId = jobId
         liveCancellationRefund = null
         if (jobId != null && live != null) {
-            live?.loadCancellationRefund(jobId)
+            if (LiveFeatures.payments) live?.loadCancellationRefund(jobId)
             cancelReason = 0
             cancelling = true
             return
@@ -985,7 +978,7 @@ class LezervState(
     fun confirmCancel() {
         val cJobId = cancellingJobId
         if (cJobId != null && live != null) {
-            val refund = cancelRefundAmount
+            val refund = if (LiveFeatures.payments) cancelRefundAmount else 0
             live?.cancel(cJobId)
             cancelling = false
             cancellingJobId = null

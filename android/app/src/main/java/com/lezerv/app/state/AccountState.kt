@@ -239,7 +239,13 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     fun deleteAccount() {
         deleting = false
         val live = app.live
-        if (live != null) { live.requestDeletion { signOut(); app.toast("Deletion requested. We remove your account within 30 days.") }; return }
+        if (live != null) {
+            live.requestDeletion {
+                signOut()
+                app.toast(if (LiveFeatures.accountDeletionFunction) "Your account has been deleted." else "Deletion requested. We remove your account within 30 days.")
+            }
+            return
+        }
         signOut()
         app.toast("Your account is scheduled for deletion")
     }
@@ -398,8 +404,9 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         requireSignIn { app.push(Pushed.Verify(onboarding = true)) }
     }
 
+    /** Live, the artisan's own list replaces the sample one even when it's empty. */
     fun setServicesFromBackend(list: List<ServicePrice>) {
-        if (list.isNotEmpty()) services = list
+        if (list.isNotEmpty() || app.isLive) services = list
     }
 
     fun toggleService(i: Int) { services = services.toMutableList().also { it[i] = it[i].copy(on = !it[i].on) } }

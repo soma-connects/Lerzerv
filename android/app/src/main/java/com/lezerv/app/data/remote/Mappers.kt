@@ -116,6 +116,18 @@ fun timeLabel(iso: String, nowMs: Long, zone: ZoneId): String {
     }
 }
 
+/** When a job is wanted, for the artisan's cards: "Now", "Today 16:00", "Tomorrow 16:00" or "5 Oct 16:00". */
+fun whenWanted(scheduledFor: String?, nowMs: Long, zone: ZoneId): String {
+    val t = scheduledFor?.let(::parseIso)?.atZoneSameInstant(zone) ?: return "Now"
+    val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+    val hm = "%02d:%02d".format(t.hour, t.minute)
+    return when (t.toLocalDate()) {
+        today -> "Today $hm"
+        today.plusDays(1) -> "Tomorrow $hm"
+        else -> "${t.dayOfMonth} ${MONTHS[t.monthValue - 1]} $hm"
+    }
+}
+
 private fun parseIso(iso: String): OffsetDateTime? {
     val normal = iso.trim().replace(' ', 'T').let { if (Regex("[+-]\\d{2}$").containsMatchIn(it)) "$it:00" else it }
     return runCatching { OffsetDateTime.parse(normal) }.getOrNull()

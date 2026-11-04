@@ -269,13 +269,15 @@ class LiveSync(
         app.openPushRoute(type, notificationId)
     }
 
-    /** In-app account deletion (0031): requests automated deletion via edge function or support ticket fallback. */
-    fun requestDeletion(then: () -> Unit) = act("process account deletion") {
-        try {
-            api.deleteAccount()
-        } catch (_: Exception) {
-            api.openTicket("Please delete my Lezerv account and personal data.", null)
-        }
+    /**
+     * Account deletion. Until [LiveFeatures.accountDeletionFunction] is on, a request to the
+     * team (as on lezerv.com/delete-account). With it on, the delete-account function; if it
+     * refuses, act() shows why and the person stays signed in. Never both, and never a
+     * silent fallback: Google Play requires that the request really goes somewhere.
+     */
+    fun requestDeletion(then: () -> Unit) = act("send your deletion request") {
+        if (LiveFeatures.accountDeletionFunction) api.deleteAccount()
+        else api.openTicket("Please delete my Lezerv account and personal data.", null)
         then()
     }
 
@@ -306,8 +308,8 @@ class LiveSync(
         launch { attempt("load your messages") { api.conversations() }?.let { conversations = it } }
         launch { attempt("load support", quiet = true) { api.tickets() }?.let { ticket = it.firstOrNull { t -> t.status in OPEN_TICKET } } }
         launch { attempt("load notifications") { api.notifications() }?.let { list -> app.replaceNotices(list.map(::toNotice)) } }
-        launch { attempt("load referral code", quiet = true) { api.myReferralCode() }?.let { app.account.remoteReferralCode = it } }
-        launch {
+        if (LiveFeatures.referrals) launch { attempt("load referral code", quiet = true) { api.myReferralCode() }?.let { app.account.remoteReferralCode = it } }
+        if (LiveFeatures.notificationPreferences) launch {
             attempt("load notification preferences", quiet = true) { api.myNotificationPreferences() }?.let { prefs ->
                 app.account.notifyMessages = prefs.notifyMessages
                 app.account.notifyJobs = prefs.notifyJobs
@@ -510,10 +512,12 @@ class LiveSync(
     fun saveServices(services: List<ServicePrice>) = act("save your services and prices") {
         val artisanId = me?.id ?: return@act
         services.forEachIndexed { idx, s ->
+            // Only rows that came from the database: a service needs a real category (uuid).
+            if (s.categoryId.isBlank()) return@forEachIndexed
             val kobo = s.price * 100
             api.upsertArtisanService(
                 serviceId = s.id.ifBlank { null },
-                categoryId = s.categoryId.ifBlank { "cat-plumb" },
+                categoryId = s.categoryId,
                 name = s.name,
                 fromPriceKobo = kobo,
                 active = s.on,

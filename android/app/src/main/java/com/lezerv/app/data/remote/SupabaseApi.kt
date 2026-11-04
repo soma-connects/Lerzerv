@@ -203,6 +203,8 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
             put("p_scheduled_for", b.scheduledFor)
             put("p_budget_note", b.budgetNote)
             put("p_details", buildJsonObject { b.details.forEach { (k, v) -> put(k, v) } })
+            if (b.optionServiceId != null) put("p_option_service_id", b.optionServiceId)
+            if (b.estimateKobo != null) put("p_custom_estimate_kobo", b.estimateKobo)
         })
     }.decodeAs()
 
@@ -497,19 +499,19 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
 
     // ── account deletion (0031, Segment S12) ──
 
+    /** Throws unless the function says the account is gone: a refusal (an active job, say)
+     *  arrives as a [ServerMessage] in the function's words. LiveSync signs out afterwards. */
     override suspend fun deleteAccount() {
-        val token = client.auth.currentAccessTokenOrNull()
-        if (token != null) {
-            try {
-                client.httpClient.post("${client.supabaseUrl}/functions/v1/delete-account") {
-                    header(HttpHeaders.Authorization, "Bearer $token")
-                    contentType(ContentType.Application.Json)
-                }
-            } catch (_: Exception) {
-                // Ignore transient network errors; local sign out proceeds
-            }
+        val token = client.auth.currentAccessTokenOrNull() ?: throw ServerMessage("Sign in again to delete your account.")
+        val res = client.httpClient.post("${client.supabaseUrl}/functions/v1/delete-account") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
         }
-        client.auth.signOut()
+        if (!res.status.isSuccess()) {
+            val reply = runCatching { Json.parseToJsonElement(res.bodyAsText()).jsonObject }.getOrNull()
+            val why = reply?.get("message")?.jsonPrimitive?.contentOrNull ?: reply?.get("error")?.jsonPrimitive?.contentOrNull
+            throw ServerMessage(why ?: "Couldn't delete your account (${res.status.value}). Please contact support.")
+        }
     }
 
     /**

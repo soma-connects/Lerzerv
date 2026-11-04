@@ -94,6 +94,7 @@ import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 import kotlin.math.ceil
+import com.lezerv.app.state.LiveFeatures
 
 // ───────────────────────────── shared bits ─────────────────────────────
 
@@ -239,10 +240,12 @@ fun BookScreen(s: LezervState) {
     val a = s.artisan(s.bookArtisan) ?: return
     val bt = s.bookTotal()
     ScrollWithBar(bar = {
-        BarFigure("Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
-        PrimaryButton({ s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
-            Txt("PAY", heading(20, tracking = .05f, color = Color.White))
-            LzIcon("lock", 20, Color.White)
+        // Live without payments: the request goes straight to the artisan; nothing is paid in the app.
+        val request = s.isLive && !LiveFeatures.payments
+        BarFigure(if (request) "Estimate" else "Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
+        PrimaryButton({ if (request) s.sendRequest() else s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
+            Txt(if (request) "SEND REQUEST" else "PAY", heading(20, tracking = .05f, color = Color.White))
+            LzIcon(if (request) "send" else "lock", 20, Color.White)
         }
     }) {
         if (a.laundry) LaundryForm(s) else ServiceForm(s, a)
@@ -283,7 +286,7 @@ fun BookScreen(s: LezervState) {
                 Txt(if (s.isLive) "Estimated total" else "Total", body(15, weight = 700), Modifier.weight(1f))
                 Txt(naira(bt.total), heading(22, weight = 700))
             }
-            EscrowNote(Modifier.padding(top = 14.dp))
+            if (s.isLive && !LiveFeatures.payments) RequestNote(a.first, Modifier.padding(top = 14.dp)) else EscrowNote(Modifier.padding(top = 14.dp))
         }
     }
 }

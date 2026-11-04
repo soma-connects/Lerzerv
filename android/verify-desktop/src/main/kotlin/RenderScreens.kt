@@ -165,6 +165,9 @@ fun main(args: Array<String>) {
     // Live Settings: no toggles the server wouldn't keep, no unwritten languages, the real version.
     live().apply { openTab(Tab.ClientAccount); push(Pushed.Settings) }.let { shot("106-live-settings", it) }
     live().apply { openTab(Tab.ClientAccount); push(Pushed.EditProfile) }.let { shot("107-live-edit-profile", it) }
+    // First store release: unfinished features off (LiveFeatures), so no payments, tracking or in-app sign-up.
+    live().apply { openTab(Tab.ClientAccount) }.let { shot("108-live-account", it) }
+    live().withAddress().apply { startBooking("7f3e"); option = 1; sendRequest(); answerPrime(false); openCancel(liveActive.first().id) }.let { shot("109-live-cancel", it) }
 
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }

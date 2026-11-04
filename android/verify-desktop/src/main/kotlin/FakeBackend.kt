@@ -75,6 +75,8 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
         val pin: GeoPoint? = null,
         val description: String? = null, val details: Map<String, String> = emptyMap(), val created: String = "2026-10-05T09:00:00+00:00",
         var quoted: Double? = null, var agreed: Double? = null, var wrongCodes: Int = 0,
+        /** 0029: the listed price set at booking. */
+        val priceKobo: Int? = null,
     ) {
         val offerPending get() = status == "assigned" && offerExpires != null && !accepted
         /** What the job row's address_text holds: the street once an artisan is on it for real. */
@@ -285,7 +287,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun myJobs(): List<JobDto> { log("jobs"); return world.jobs.filter { it.client == me() }.map { it.toDto() } }
 
     override suspend fun bookArtisan(b: Booking): JobDto {
-        log("book ${b.artisanId} | ${b.categorySlug} | ${b.title} | ${b.addressId} | ${b.description} | ${b.scheduledFor} | ${b.budgetNote} | ${b.details}")
+        log("book ${b.artisanId} | ${b.categorySlug} | ${b.title} | ${b.addressId} | ${b.description} | ${b.scheduledFor} | ${b.budgetNote} | ${b.details} | option=${b.optionServiceId} | estimateKobo=${b.estimateKobo}")
         val a = world.artisans.first { it.id == b.artisanId }
         if (world.available[a.id] != true) throw ServerMessage("${first(a.displayName)} isn't taking jobs right now — pick someone available")
         if (b.categorySlug !in a.categories) throw ServerMessage("${first(a.displayName)} doesn't offer that service")
@@ -295,6 +297,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             "J-" + (1000 + world.jobs.size + 1), ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
             world.clock() + 30_000, false, description = b.description, details = b.details,
             pin = if (ad.lat != null && ad.lng != null) GeoPoint(ad.lat, ad.lng) else null,
+            // 0029: the chosen service's price, else the app's pre-fee price (kept apart from agreed_amount).
+            priceKobo = world.artisanServices[a.id]?.firstOrNull { it.id == b.optionServiceId }?.fromPriceKobo ?: b.estimateKobo,
         )
         world.jobs.add(0, job)
         world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} · answer within 30 seconds")
@@ -401,6 +405,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
                 // 0027: the area's centre always; the client's pin once the job is theirs.
                 LEKKI_CENTRE.lat, LEKKI_CENTRE.lng,
                 j.pin?.lat?.takeIf { !j.offerPending && j.status != "completed" }, j.pin?.lng?.takeIf { !j.offerPending && j.status != "completed" },
+                priceKobo = j.priceKobo,
             )
         }
     }

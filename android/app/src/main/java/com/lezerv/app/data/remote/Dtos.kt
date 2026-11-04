@@ -210,6 +210,10 @@ data class Booking(
     val scheduledFor: String?,
     val budgetNote: String?,
     val details: Map<String, String>,
+    /** 0029: the artisan's own service the client picked; the server takes its price. */
+    val optionServiceId: String? = null,
+    /** 0029: the price before Lezerv's fee, in kobo, when there is no [optionServiceId]. */
+    val estimateKobo: Int? = null,
 )
 
 @Serializable
@@ -262,9 +266,14 @@ data class ArtisanJobDto(
     /** 0027: the client's pin, once the job is theirs. Null if the address has none. */
     val lat: Double? = null,
     val lng: Double? = null,
+    /** 0029: the listed price the server set at booking (the artisan's own service price). */
+    @SerialName("price_kobo") val priceKobo: Int? = null,
 ) {
     val offerPending get() = status == "assigned" && offerExpiresAt != null && offerAcceptedAt == null
     fun detail(key: String): String? = details?.get(key)?.jsonPrimitive?.contentOrNull
+    /** 0029 keeps the time in scheduled_for (it drops a "when" detail); older jobs had the detail. */
+    fun whenLabel(nowMs: Long, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String =
+        detail("when") ?: whenWanted(scheduledFor, nowMs, zone)
 }
 
 /** 0030: Real-time telemetry point recorded while an artisan is en route. */

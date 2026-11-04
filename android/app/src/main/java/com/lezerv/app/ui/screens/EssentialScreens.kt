@@ -76,6 +76,7 @@ import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 import kotlin.math.roundToInt
+import com.lezerv.app.state.LiveFeatures
 
 // Pages most on-demand service apps need that the designs didn't cover yet.
 // They reuse the Industry look: square objects, ink rules, one green action per view.
@@ -255,9 +256,11 @@ fun CancelSheet(s: LezervState) {
     val total: Int
     val payMethod: String
 
+    // Live without payments nothing was paid in the app, so there is nothing to refund.
+    val nothingPaid = s.isLive && !LiveFeatures.payments
     if (liveJob != null) {
         artisanName = liveJob.artisan?.displayName?.substringBefore(' ') ?: "The artisan"
-        total = (liveJob.agreedAmount ?: liveJob.quotedAmount ?: 0.0).roundToInt()
+        total = if (nothingPaid) 0 else (liveJob.agreedAmount ?: liveJob.quotedAmount ?: 0.0).roundToInt()
         payMethod = "original payment method"
     } else {
         val j = s.job ?: return
@@ -274,13 +277,14 @@ fun CancelSheet(s: LezervState) {
     Sheet({ s.back() }) {
         Txt("CANCEL THIS BOOKING?", heading(30, 30, weight = 700))
         val explain = when {
+            nothingPaid -> "Nothing was paid in the app, so cancelling is free until work starts."
             reason != null -> reason
             fee == 0 -> "$artisanName hasn’t set off yet, so it’s free to cancel."
             else -> "$artisanName is already on the way. The call-out fee goes to them for their time."
         }
         Txt(explain, body(13, 19, color = Lz.Neutral800), Modifier.padding(top = 6.dp, bottom = 12.dp))
         CANCEL_REASONS.forEachIndexed { i, r -> RadioRow(r, s.cancelReason == i, { s.cancelReason = i }, { }, 48.dp) }
-        Column(Modifier.padding(top = 14.dp).borderTop(2.dp, Lz.Ink)) {
+        if (!nothingPaid) Column(Modifier.padding(top = 14.dp).borderTop(2.dp, Lz.Ink)) {
             if (total > 0) {
                 KvLine("You paid", naira(total))
                 KvLine("Call-out fee", if (fee == 0) "₦0" else "−${naira(fee)}")
@@ -295,7 +299,7 @@ fun CancelSheet(s: LezervState) {
                 }
             }
         }
-        Txt("Refunds go back the way you paid ($payMethod) within 1–3 working days.", body(12, 17, color = Lz.Neutral700))
+        if (!nothingPaid) Txt("Refunds go back the way you paid ($payMethod) within 1–3 working days.", body(12, 17, color = Lz.Neutral700))
         Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlineButton("Keep booking", { s.back() }, Modifier.weight(1f))
             OutlineButton("Cancel booking", { s.confirmCancel() }, Modifier.weight(1.4f), dashed = true)
@@ -412,16 +416,18 @@ fun SafetyScreen(s: LezervState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) { Txt("CALL 112", heading(22, tracking = .05f), Modifier.weight(1f)); LzIcon("phone", 22) }
         }
-        // Trusted emergency contact and live trip link
-        SwitchRow(
-            "Share live jobs with a trusted contact",
-            "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.",
-            a.shareLiveJobs,
-            { a.shareLiveJobs = !a.shareLiveJobs },
-        )
-        LinkRow("users", "Trusted contact", a.trustedContact, {
-            showContactSheet = true
-        })
+        // Trusted emergency contact and live trip link (live: once their backend exists).
+        if (!s.isLive || LiveFeatures.trustedContact) {
+            SwitchRow(
+                "Share live jobs with a trusted contact",
+                "While an artisan is at your home, ${a.trustedContact.substringBefore(" ·")} gets a link to the job and the artisan’s name.",
+                a.shareLiveJobs,
+                { a.shareLiveJobs = !a.shareLiveJobs },
+            )
+            LinkRow("users", "Trusted contact", a.trustedContact, {
+                showContactSheet = true
+            })
+        }
         SectionRule("01", "How Lezerv keeps you safe", gutter = 0.dp)
         Column {
             listOf(
@@ -483,7 +489,11 @@ fun SettingsScreen(s: LezervState) {
     val a = s.account
     FormPage(bar = null) {
         SectionRule("01", "Notifications", gutter = 0.dp)
-        Column {
+        // Live without saved preferences: the server sends every job update and message, so
+        // we say so instead of showing switches that wouldn't be kept.
+        if (s.isLive && !LiveFeatures.notificationPreferences) Column {
+            SwitchRow("Job updates and messages", "Bookings, arrivals and chat. To turn them off, open your phone’s Settings → Apps → Lezerv → Notifications.", true, { }, enabled = false)
+        } else Column {
             SwitchRow("Job updates", "Bookings, arrivals, payments. Kept on so you don’t miss an artisan.", a.notifyJobs, {
                 a.notifyJobs = !a.notifyJobs
                 s.live?.updateNotificationPreferences(messages = null, jobs = a.notifyJobs, promos = null)
@@ -522,7 +532,10 @@ fun SettingsScreen(s: LezervState) {
 @Composable
 fun DeleteAccountSheet(s: LezervState) {
     val a = s.account
-    val hasActiveJobs = s.isLive && s.liveActive.isNotEmpty()
+    // Live, until the delete-account function is on, the team handles the request (and any
+    // open bookings), so nothing blocks it.
+    val viaTeam = s.isLive && !LiveFeatures.accountDeletionFunction
+    val hasActiveJobs = s.isLive && !viaTeam && s.liveActive.isNotEmpty()
     Sheet({ a.deleting = false }) {
         Txt("DELETE YOUR ACCOUNT?", heading(30, 30, weight = 700))
         if (hasActiveJobs) {
@@ -533,10 +546,18 @@ fun DeleteAccountSheet(s: LezervState) {
         }
         Column(Modifier.padding(top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                if (s.isLive) "Your profile, active sessions, and personal data will be completely deleted." else "Your profile, saved addresses and cards are removed within 30 days.",
-                "Receipts and financial records required by Nigerian regulatory law are retained anonymously.",
-                if (s.job != null) "Your live booking is cancelled and refunded first." else "Any open support tickets are closed.",
-                "This action is permanent and cannot be undone.",
+                when {
+                    viaTeam -> "We send the request to our team; your profile and history are removed within 30 days."
+                    s.isLive -> "Your profile, active sessions, and personal data will be completely deleted."
+                    else -> "Your profile, saved addresses and cards are removed within 30 days."
+                },
+                "Receipts we must keep by law are kept, without your contact details.",
+                when {
+                    viaTeam -> "Any open bookings are cancelled first."
+                    s.job != null -> "Your live booking is cancelled and refunded first."
+                    else -> "Any open support tickets are closed."
+                },
+                "This can’t be undone. You can sign up again with the same number.",
             ).forEach { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { Box(Modifier.padding(top = 7.dp).size(6.dp).background(Lz.Accent)); Txt(it, body(14, 20)) } }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -625,6 +646,7 @@ fun ServicesScreen(s: LezervState) {
     val a = s.account
     FormPage(bar = { PrimaryWide("Save prices", "check", { a.saveServices() }, alpha = if (s.live?.busy == true) 0.5f else 1f) }) {
         Txt("Turn on what you do and set a starting price. You confirm the final price with the client before work starts.", body(14, 20, color = Lz.Neutral800))
+        if (a.services.isEmpty()) Note("No services yet. Lezerv sets them up from your application; write to support from Help to add one.")
         Column {
             a.services.forEachIndexed { i, sv ->
                 Column(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp)) {

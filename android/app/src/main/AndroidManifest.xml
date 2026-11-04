@@ -13,10 +13,6 @@
          no background location. Approximate is enough; people can choose it on Android 12+. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Foreground service for live job GPS tracking while en-route -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Asking for location must not hide the app from phones without GPS hardware. -->
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
@@ -49,11 +45,6 @@
             </intent-filter>
         </service>
 
-        <!-- Foreground service for streaming live GPS telemetry while en route to a client -->
-        <service
-            android:name=".android.LocationTrackingService"
-            android:exported="false"
-            android:foregroundServiceType="location" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="jobs" />

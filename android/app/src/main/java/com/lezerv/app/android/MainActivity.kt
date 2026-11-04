@@ -105,13 +105,6 @@ class MainActivity : ComponentActivity() {
         }
         // The phone's location: the map centres on you, and online artisans share where they are.
         state.attachLocator(AndroidLocator(this))
-        // Foreground service for streaming live GPS while an artisan is en route to an active job.
-        state.startLocationTracking = { jobId, clientName, dest ->
-            LocationTrackingService.start(this, jobId, clientName, dest)
-        }
-        state.stopLocationTracking = {
-            LocationTrackingService.stop(this)
-        }
         // Android's share sheet: WhatsApp, SMS, email…
         state.share = { text ->
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
@@ -195,8 +188,6 @@ class MainActivity : ComponentActivity() {
         appState.share = null
         appState.openMaps = null
         appState.openBrowser = null
-        appState.startLocationTracking = null
-        appState.stopLocationTracking = null
         appState.attachLocator(null) // it holds this Activity
         appState.notificationsAllowed = null
         Push.onToken = null

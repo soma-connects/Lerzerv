@@ -96,7 +96,8 @@ fun main() {
     val booked = api.calls.last { it.startsWith("book ") }
     check("booked with the artisan, their category, the saved address and the time",
         booked.startsWith("book 7f3e | plumbing | Unblock a drain | addr-") && "2026-10-05T16:00+01:00" in booked && "Kitchen sink drips." in booked)
-    check("the estimate and the time travel with it, for the artisan's request card", "estimate=₦" in booked && "when=Today 16:00" in booked)
+    // 0029 prices the booking on the server: the app names the artisan's service and sends no price of its own.
+    check("the chosen service goes by id and the app sends no price of its own", "option=as-2" in booked && "estimateKobo=null" in booked && "| {} |" in booked)
     val pending = s.liveActive.first()
     check("Jobs shows the countdown while Tunde decides", s.tab == Tab.ClientJobs && pending.offerPending && jobStatus(pending, LIVE_NOW) == "Waiting for Tunde to accept · 30s")
     check("first request asks about notifications", s.showPrime)
@@ -176,7 +177,8 @@ fun main() {
 
     // ── delete account ──
     s.account.deleteAccount()
-    check("delete calls the delete-account function and signs out", api.calls.any { it == "deleteAccount" } && api.calls.none { it.startsWith("openTicket Please delete my Lezerv account") } && !s.account.signedIn && s.snack!!.startsWith("Deletion requested"))
+    // Until LiveFeatures.accountDeletionFunction is on, the team gets the request (as on lezerv.com/delete-account).
+    check("delete sends a request to support and signs out", api.calls.any { it.startsWith("openTicket Please delete my Lezerv account") } && api.calls.none { it == "deleteAccount" } && !s.account.signedIn && s.snack!!.startsWith("Deletion requested"))
 
     // ══ two phones, one backend: Amaka books, Tunde takes the job ══
     run {
@@ -204,7 +206,7 @@ fun main() {
         amaka.startBooking("7f3e"); amaka.option = 0; amaka.sendRequest(); amaka.answerPrime(false)
         val req = tunde.incoming
         check("Tunde's map shows the request at once, from the realtime notification", req != null && req.title == "Leak repair" && req.tag == "Ikate")
-        check("…with Amaka's first name, the area, when, and her estimate", req!!.sub == "Plumbing · Amaka · Ikate · Now" && req.pay?.second?.startsWith("₦") == true && req.endsAt == now + 30_000)
+        check("…with Amaka's first name, the area, when, and the service's starting price", req!!.sub == "Plumbing · Amaka · Ikate · Now" && req.pay?.second == "₦9,000" && req.endsAt == now + 30_000)
         check("…but not her street yet", tunde.live!!.artisanJobs.first().addressText == "Ikate")
 
         tunde.acceptIncoming()

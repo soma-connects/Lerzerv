@@ -91,6 +91,7 @@ import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+import com.lezerv.app.state.LiveFeatures
 
 // ───────────────────────────── map + incoming requests ─────────────────────────────
 
@@ -134,7 +135,7 @@ fun ArtisanMapScreen(s: LezervState) {
             ) { Box(Modifier.size(26.dp).background(if (on) Lz.Accent else Lz.Ink)) }
         }
         Row(Modifier.padding(start = 12.dp, top = 86.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MapChip("Today ${naira(s.earnedTodayAmount)}")
+            if (!s.isLive || LiveFeatures.payments) MapChip("Today ${naira(s.earnedTodayAmount)}")
             MapChip("Radius ${s.radiusKm} km")
         }
         Column(Modifier.align(Alignment.TopEnd).padding(top = 86.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -333,9 +334,11 @@ private fun LiveArtisanJob(s: LezervState) {
                 { j.conversationId?.let(s::openChat) ?: s.toast("Chat opens in a moment") }, Modifier.padding(top = 14.dp))
             Column(Modifier.padding(top = 14.dp)) {
                 KvLine("Job", j.title)
-                j.detail("when")?.let { KvLine("When", it) }
+                KvLine("When", j.whenLabel(s.now))
                 j.detail("items")?.let { KvLine("Items", it) }
+                j.detail("pickup_window")?.let { KvLine("Pickup", it) }
                 j.detail("estimate")?.let { KvLine("Client’s estimate", it) }
+                if (j.agreedAmount == null) j.priceKobo?.takeIf { it > 0 }?.let { KvLine("Starting price", naira(it / 100)) }
                 j.agreedAmount?.let { KvLine("Agreed price", naira(it)) }
             }
             j.description?.let { Txt("“$it”", body(14, 20, color = Lz.Neutral800), Modifier.padding(top = 10.dp)) }
@@ -385,7 +388,7 @@ private fun LiveArtisanJobs(s: LezervState) {
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).tap { s.openArtisanJob(j.id) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Txt(j.title.uppercase(), heading(19, 21))
-                        Txt(listOfNotNull(jobRef(j.jobNumber), j.clientFirstName, j.areaName, if (j.status == "in_progress") "In progress" else j.detail("when")).joinToString(" · "), body(12, color = Lz.Neutral800))
+                        Txt(listOfNotNull(jobRef(j.jobNumber), j.clientFirstName, j.areaName, if (j.status == "in_progress") "In progress" else j.whenLabel(s.now)).joinToString(" · "), body(12, color = Lz.Neutral800))
                     }
                     LzIcon("chevron-right", 20)
                 }
@@ -424,6 +427,18 @@ private fun CompletedList(s: LezervState, plus: Boolean) {
 /** Earnings and escrow ledger screen. */
 @Composable
 fun EarningsScreen(s: LezervState) {
+    // Live without payments: nothing is held or paid out through Lezerv yet, so this is a
+    // record of prices agreed with clients, not a balance.
+    if (s.isLive && !LiveFeatures.payments) {
+        val done = s.live?.artisanJobs.orEmpty().filter { it.status == "completed" }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Txt("LAST 60 DAYS · AGREED WITH CLIENTS", label(color = Lz.Neutral700))
+            Txt(naira(done.sumOf { it.agreedAmount ?: 0.0 }), heading(64, 62, weight = 700))
+            Txt("${done.size} completed job${if (done.size == 1) "" else "s"}. Payouts through Lezerv arrive with in-app payments; until then this is a record of agreed prices, not money held for you.",
+                body(14, 21, color = Lz.Neutral800))
+        }
+        return
+    }
     if (s.isLive) {
         val done = s.live?.artisanJobs.orEmpty().filter { it.status == "completed" }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
@@ -541,7 +556,7 @@ fun ArtisanAccountScreen(s: LezervState) {
             )) + listOf(
                 AccountRow("wrench", "Services and prices", "${s.account.services.count { it.on }} active") { s.push(Pushed.Services) },
                 AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
-                AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
+                AccountRow("settings", "Settings", if (s.isLive) "Notifications, log out" else "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
             Modifier.padding(horizontal = 20.dp),
         )

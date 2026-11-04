@@ -58,6 +58,8 @@ import com.lezerv.app.ui.theme.Lz
 import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
+import com.lezerv.app.state.LiveFeatures
+import com.lezerv.app.state.ARTISAN_SIGN_UP_URL
 
 // ───────────────────────────── jobs ─────────────────────────────
 
@@ -143,7 +145,7 @@ private fun LiveJobsScreen(s: LezervState) {
                         Txt(code, heading(36, 36, weight = 700, tracking = .2f), Modifier.semantics { contentDescription = "Start code ${code.toList().joinToString(" ")}" })
                     }
                     val price = j.agreedAmount ?: j.quotedAmount
-                    if ((j.status == "assigned" || j.status == "in_progress") && price != null && price > 0) {
+                    if (LiveFeatures.payments && (j.status == "assigned" || j.status == "in_progress") && price != null && price > 0) {
                         Row(
                             Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.openPay(j.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -157,7 +159,7 @@ private fun LiveJobsScreen(s: LezervState) {
                             Txt(naira(price), heading(18, weight = 700, color = Lz.Accent700))
                         }
                     }
-                    if ((j.status == "assigned" && !j.offerPending) || j.status == "in_progress") Box(
+                    if (LiveFeatures.liveTracking && ((j.status == "assigned" && !j.offerPending) || j.status == "in_progress")) Box(
                         Modifier.fillMaxWidth().borderTop(1.dp, Lz.Accent).tap { s.push(Pushed.Track) }.padding(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -353,14 +355,15 @@ fun ClientAccountScreen(s: LezervState) {
             listOfNotNull(
                 AccountRow("map-pin", "Saved addresses", acc.currentAddress?.title ?: "Add home or work") { acc.requireSignIn { s.push(Pushed.Addresses) } },
                 // Live hides what has no backend yet: saved cards (Paystack) and referral rewards.
-                AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
-                AccountRow("shield-check", "Safety", if (s.isLive) "Emergency, start codes, privacy" else "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
-                if (s.isLive) null else AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
+                if (s.isLive && !LiveFeatures.payments) null else AccountRow("credit-card", "Payment methods", listOfNotNull(acc.defaultCard?.label, "Bank transfer", "USSD").joinToString(" · ")) { acc.requireSignIn { s.push(Pushed.Payments) } },
+                AccountRow("shield-check", "Safety", if (s.isLive && !LiveFeatures.trustedContact) "Emergency, start codes, privacy" else "Emergency, trusted contact, start codes") { s.push(Pushed.Safety) },
+                if (s.isLive && !LiveFeatures.referrals) null else AccountRow("users", "Invite friends", "Give ₦1,000, get ₦1,000") { acc.requireSignIn { s.push(Pushed.Invite) } },
                 if (s.live?.me != null) null
+                else if (s.isLive && !LiveFeatures.artisanSignUp) AccountRow("wrench", "Become an artisan", "Apply on lezerv.com: ID check and services") { s.openWeb(ARTISAN_SIGN_UP_URL) }
                 else AccountRow("wrench", "Become an artisan", "Earn with Lezerv in your area") { acc.applyAsArtisan() },
                 AccountRow("bell", "Notifications", if (s.primed) "On · jobs, arrivals, messages" else "Choose what Lezerv tells you about") { s.push(Pushed.Notifications) },
                 AccountRow("life-buoy", "Help", "Questions, support chat, report a problem") { s.push(Pushed.Help) },
-                AccountRow("settings", "Settings", "Notifications, language, privacy, log out") { s.push(Pushed.Settings) },
+                AccountRow("settings", "Settings", if (s.isLive) "Notifications, privacy, log out" else "Notifications, language, privacy, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),
             Modifier.padding(horizontal = 20.dp).borderTop(2.dp, Lz.Ink),
         )
