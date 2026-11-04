@@ -14,11 +14,11 @@ data class BackendConfig(val url: String, val anonKey: String) {
     val isSet get() = url.startsWith("https://") && anonKey.isNotBlank()
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Data shapes exactly as Supabase returns them (snake_case column names).
 // They mirror the SQL in soma-connects/Lerzerv supabase/migrations; field
 // defaults cover columns a given RPC doesn't return.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Serializable
 data class CategoryDto(
@@ -52,6 +52,22 @@ data class MapArtisanDto(
 
 @Serializable
 data class SlugName(val slug: String = "", val name: String = "")
+
+/** artisan_services row (0028) or artisan_services_public() result. */
+@Serializable
+data class ArtisanServiceDto(
+    val id: String = "",
+    @SerialName("category_id") val categoryId: String = "",
+    val name: String = "",
+    @SerialName("from_price_kobo") val fromPriceKobo: Int = 0,
+    val active: Boolean = true,
+    val sort: Int = 0,
+    @SerialName("category_name") val categoryName: String? = null,
+    @SerialName("category_slug") val categorySlug: String? = null,
+    @SerialName("from_price_naira") val fromPriceNairaField: Double? = null,
+) {
+    val fromPriceNaira: Int get() = fromPriceNairaField?.toInt() ?: (fromPriceKobo / 100)
+}
 
 @Serializable
 data class ReviewDto(
@@ -112,6 +128,8 @@ data class JobDto(
     val requested: NameRef? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
     @SerialName("offer_accepted_at") val offerAcceptedAt: String? = null,
+    @SerialName("en_route_at") val enRouteAt: String? = null,
+    @SerialName("arrived_at") val arrivedAt: String? = null,
     @SerialName("started_at") val startedAt: String? = null,
 ) {
     /** Sent to the chosen artisan, who hasn't answered yet. */
@@ -230,6 +248,8 @@ data class ArtisanJobDto(
     val details: JsonObject? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
     @SerialName("offer_accepted_at") val offerAcceptedAt: String? = null,
+    @SerialName("en_route_at") val enRouteAt: String? = null,
+    @SerialName("arrived_at") val arrivedAt: String? = null,
     @SerialName("started_at") val startedAt: String? = null,
     @SerialName("completed_at") val completedAt: String? = null,
     @SerialName("created_at") val createdAt: String = "",
@@ -246,3 +266,110 @@ data class ArtisanJobDto(
     val offerPending get() = status == "assigned" && offerExpiresAt != null && offerAcceptedAt == null
     fun detail(key: String): String? = details?.get(key)?.jsonPrimitive?.contentOrNull
 }
+
+/** 0030: Real-time telemetry point recorded while an artisan is en route. */
+@Serializable
+data class JobLocationDto(
+    val id: String = "",
+    @SerialName("job_id") val jobId: String,
+    @SerialName("artisan_id") val artisanId: String? = null,
+    val lat: Double,
+    val lng: Double,
+    val heading: Double? = null,
+    val speed: Double? = null,
+    val accuracy: Double? = null,
+    val at: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Payments, Escrow & Earnings (0032, Segments S7 & S8)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/** Paystack checkout initialization returned by the payments-init Edge Function. */
+@Serializable
+data class PaymentInitDto(
+    @SerialName("authorization_url") val authorizationUrl: String,
+    @SerialName("access_code") val accessCode: String,
+    val reference: String,
+    @SerialName("amount_kobo") val amountKobo: Long,
+    @SerialName("fee_kobo") val feeKobo: Long,
+    @SerialName("base_amount_kobo") val baseAmountKobo: Long = 0L,
+) {
+    val totalNaira: Double get() = amountKobo / 100.0
+    val feeNaira: Double get() = feeKobo / 100.0
+    val baseNaira: Double get() = baseAmountKobo / 100.0
+}
+
+/** Tokenized card payment method stored in public.payment_methods (no PAN/CVV). */
+@Serializable
+data class PaymentMethodDto(
+    val id: String,
+    @SerialName("authorization_code") val authorizationCode: String = "",
+    val last4: String,
+    val brand: String,
+    @SerialName("exp_month") val expMonth: String? = null,
+    @SerialName("exp_year") val expYear: String? = null,
+    val reusable: Boolean = true,
+    @SerialName("created_at") val createdAt: String = "",
+) {
+    val expiry: String get() = if (expMonth != null && expYear != null) "$expMonth/${expYear.takeLast(2)}" else ""
+}
+
+/** Real-time earnings returned by public.my_earnings() RPC. */
+@Serializable
+data class EarningsDto(
+    @SerialName("available_kobo") val availableKobo: Long = 0L,
+    @SerialName("in_escrow_kobo") val inEscrowKobo: Long = 0L,
+    @SerialName("paid_out_kobo") val paidOutKobo: Long = 0L,
+    val currency: String = "NGN",
+) {
+    val availableNaira: Double get() = availableKobo / 100.0
+    val inEscrowNaira: Double get() = inEscrowKobo / 100.0
+    val paidOutNaira: Double get() = paidOutKobo / 100.0
+}
+
+/** Cancellation refund computation returned by public.compute_cancellation_refund() RPC. */
+@Serializable
+data class CancellationRefundDto(
+    @SerialName("refundable_amount_kobo") val refundableAmountKobo: Long = 0L,
+    @SerialName("cancellation_fee_kobo") val cancellationFeeKobo: Long = 0L,
+    @SerialName("policy_reason") val policyReason: String = "",
+) {
+    val refundableNaira: Double get() = refundableAmountKobo / 100.0
+    val cancellationFeeNaira: Double get() = cancellationFeeKobo / 100.0
+}
+
+/** A row in public.payments table tracking escrow and charges. */
+@Serializable
+data class PaymentDto(
+    val id: String,
+    @SerialName("job_id") val jobId: String,
+    @SerialName("payer_id") val payerId: String,
+    @SerialName("amount_kobo") val amountKobo: Long,
+    @SerialName("fee_kobo") val feeKobo: Long = 0L,
+    val status: String,
+    @SerialName("paystack_reference") val paystackReference: String,
+    val channel: String? = null,
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("updated_at") val updatedAt: String = "",
+) {
+    val isHeld get() = status == "held" || status == "released"
+    val amountNaira get() = amountKobo / 100.0
+}
+
+/** 0034: Granular notification preferences for a user profile. */
+@Serializable
+data class NotificationPreferencesDto(
+    @SerialName("notify_messages") val notifyMessages: Boolean = true,
+    @SerialName("notify_jobs") val notifyJobs: Boolean = true,
+    @SerialName("notify_promos") val notifyPromos: Boolean = true,
+)
+
+/** 0035: Trusted emergency contact stored on a user profile. */
+@Serializable
+data class TrustedContactDto(
+    val name: String? = null,
+    val phone: String? = null,
+)

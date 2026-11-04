@@ -150,7 +150,8 @@ internal fun HomePin(x: Float, y: Float, stem: Int = 10) = com.lezerv.app.ui.map
 fun ProfileScreen(s: LezervState, id: String) {
     val a = s.artisan(id) ?: return
     ScrollWithBar(bar = {
-        BarFigure("From", naira(a.from), a.unit, modifier = Modifier.weight(1f))
+        val fromPrice = s.servicesFor(a.id)?.filter { it.active }?.minOfOrNull { it.fromPriceNaira } ?: a.from
+        BarFigure("From", naira(fromPrice), a.unit, modifier = Modifier.weight(1f))
         PrimaryButton({ s.startBooking(a.id) }) {
             Txt((if (a.laundry) "Book pickup" else "Book").uppercase(), heading(20, tracking = .05f, color = Color.White))
             LzIcon("arrow-right", 20, Color.White)
@@ -190,7 +191,14 @@ fun ProfileScreen(s: LezervState, id: String) {
         Txt(a.bio, body(15, 23), Modifier.padding(horizontal = 20.dp))
         SectionRule("02", "Services and prices", Modifier.padding(top = 26.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
-            val opts = if (a.laundry) LAUNDRY_ITEMS.map { it.first to naira(it.second) } else OPTIONS.getValue(a.svc).mapIndexed { i, l -> l to naira(optionPrice(a, i)) }
+            val customServices = s.servicesFor(a.id)?.filter { it.active }
+            val opts = if (a.laundry) {
+                LAUNDRY_ITEMS.map { it.first to naira(it.second) }
+            } else if (!customServices.isNullOrEmpty()) {
+                customServices.map { it.name to naira(it.fromPriceNaira) }
+            } else {
+                OPTIONS.getValue(a.svc).mapIndexed { i, l -> l to naira(optionPrice(a, i)) }
+            }
             opts.forEach { (l, p) ->
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Txt(l, body(15), Modifier.weight(1f)); Txt(p, heading(20))
@@ -231,11 +239,10 @@ fun BookScreen(s: LezervState) {
     val a = s.artisan(s.bookArtisan) ?: return
     val bt = s.bookTotal()
     ScrollWithBar(bar = {
-        // Live there are no payments yet: the request goes to Lezerv, who confirm artisan and price.
-        BarFigure(if (s.isLive) "Estimate" else "Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
-        PrimaryButton({ if (s.isLive) s.sendRequest() else s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
-            Txt(if (s.isLive) "SEND REQUEST" else "PAY", heading(20, tracking = .05f, color = Color.White))
-            LzIcon(if (s.isLive) "send" else "arrow-right", 20, Color.White)
+        BarFigure("Total", naira(bt.total), size = 30, modifier = Modifier.weight(1f))
+        PrimaryButton({ s.openPay() }, modifier = Modifier.alpha(if (s.live?.busy == true) .5f else 1f)) {
+            Txt("PAY", heading(20, tracking = .05f, color = Color.White))
+            LzIcon("lock", 20, Color.White)
         }
     }) {
         if (a.laundry) LaundryForm(s) else ServiceForm(s, a)
@@ -267,15 +274,21 @@ fun BookScreen(s: LezervState) {
         )
         SectionRule(if (a.laundry) "05" else "04", if (s.isLive) "Estimate" else "Payment", Modifier.padding(top = 24.dp, bottom = 4.dp))
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
-            KvLine(if (a.laundry) "Items" else OPTIONS.getValue(a.svc)[s.option], naira(bt.sub))
+            val custom = s.servicesFor(a.id)?.filter { it.active }
+            val optTitle = if (a.laundry) "Items" else if (!custom.isNullOrEmpty()) custom.getOrNull(s.option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(s.option) { "Service" } else OPTIONS.getValue(a.svc).getOrElse(s.option) { "Service" }
+            KvLine(optTitle, naira(bt.sub))
             if (bt.extra > 0) KvLine("Express return", naira(bt.extra))
-            KvLine("Lezerv service fee (5%)", naira(bt.fee))
-            if (s.isLive) RequestNote(a.first, Modifier.padding(top = 14.dp)) else EscrowNote(Modifier.padding(top = 14.dp))
+            KvLine("Client service fee (5%)", naira(bt.fee))
+            Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Txt(if (s.isLive) "Estimated total" else "Total", body(15, weight = 700), Modifier.weight(1f))
+                Txt(naira(bt.total), heading(22, weight = 700))
+            }
+            EscrowNote(Modifier.padding(top = 14.dp))
         }
     }
 }
 
-/** PROPOSAL: escrow needs backend work before launch. */
+/** Escrow protection for clients. */
 @Composable
 private fun EscrowNote(modifier: Modifier) {
     Row(modifier.fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -283,7 +296,7 @@ private fun EscrowNote(modifier: Modifier) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Txt("Held by Lezerv until you confirm the job is done.", body(13, 19, weight = 700, color = Lz.Accent800))
             Txt("If the artisan doesn’t show, you get a full refund.", body(13, 19, color = Lz.Accent800))
-            Box(Modifier.border(1.dp, Lz.Accent700).padding(horizontal = 5.dp, vertical = 1.dp)) { Txt("PROPOSAL", label(10, .1f, Lz.Accent800)) }
+
         }
     }
 }
@@ -304,8 +317,15 @@ private fun RequestNote(first: String, modifier: Modifier) {
 private fun ServiceForm(s: LezervState, a: Artisan) {
     SectionRule("01", "What do you need", Modifier.padding(top = 20.dp, bottom = 4.dp))
     Column(Modifier.padding(horizontal = 20.dp)) {
-        OPTIONS.getValue(a.svc).forEachIndexed { i, l ->
-            RadioRow(l, s.option == i, { s.option = i }, { Txt(naira(optionPrice(a, i)), heading(19)) })
+        val custom = s.servicesFor(a.id)?.filter { it.active }
+        if (!custom.isNullOrEmpty()) {
+            custom.forEachIndexed { i, svc ->
+                RadioRow(svc.name, s.option == i, { s.option = i }, { Txt(naira(svc.fromPriceNaira), heading(19)) })
+            }
+        } else {
+            OPTIONS.getValue(a.svc).forEachIndexed { i, l ->
+                RadioRow(l, s.option == i, { s.option = i }, { Txt(naira(optionPrice(a, i)), heading(19)) })
+            }
         }
     }
     SectionRule("02", "When", Modifier.padding(top = 24.dp, bottom = 12.dp))
@@ -454,9 +474,17 @@ fun TrackScreen(s: LezervState) {
             if (!j.laundry && j.stage <= 2) StartCode(if (j.stage == 2) "$fn is here. Read out this code." else "Only share this when $fn is at your door.")
             Column(Modifier.padding(top = 16.dp)) {
                 JobSpec(j, if (j.laundry) "Laundry" else a.service.label)
-                // Ways out of a job: cancel (until arrival, see LezervState.canCancel) and help.
-                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                // Ways out of a job: cancel (until arrival, see LezervState.canCancel), share trip, and help.
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (s.canCancel) Txt("CANCEL BOOKING", label(12, .08f, Lz.Accent700), Modifier.tap { s.openCancel() }.padding(vertical = 10.dp))
+                    Txt("SHARE TRIP", label(12, .08f, Lz.Accent700), Modifier.tap {
+                        val live = s.live
+                        if (live != null) {
+                            live.shareTrip(j.id) { link -> s.shareText("Track my Lezerv job in real-time: $link") }
+                        } else {
+                            s.shareText("Track my Lezerv job with ${a.name}: https://lezerv.com/track/demo")
+                        }
+                    }.padding(vertical = 10.dp))
                     Txt("GET HELP", label(12, .08f, Lz.Accent700), Modifier.tap { s.push(com.lezerv.app.state.Pushed.Help) }.padding(vertical = 10.dp))
                 }
             }
@@ -494,7 +522,7 @@ internal fun PersonRow(ini: String, name: String, meta: String, onCall: () -> Un
     }
 }
 
-/** PROPOSAL: start code. The client reads it out so the artisan can start the job. */
+/** Start code. The client reads it out so the artisan can start the job. */
 @Composable
 private fun StartCode(note: String) {
     Row(Modifier.padding(top = 18.dp).fillMaxWidth().blueprint().border(1.dp, Lz.Ink).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {

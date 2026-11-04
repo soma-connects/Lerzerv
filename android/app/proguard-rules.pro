@@ -1,26 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# R8 rules for release builds (isMinifyEnabled in app/build.gradle.kts).
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# A missing rule only shows up in the release build, at the moment the code runs, so after
+# changing this file install the release APK on a phone and walk through RELEASE.md section 3.
+# kotlinx.serialization, Compose and AndroidX ship their own rules inside their jars.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+-keepattributes *Annotation*, InnerClasses, Signature
+-dontnote kotlinx.serialization.**
 
-# Keep serialization
--keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
-
-# Keep data classes used with Supabase / kotlinx.serialization
+# Backend DTOs: Supabase decodes these by their @SerialName fields.
 -keep class com.lezerv.app.data.remote.** { *; }
 
-# MapLibre
--keep class org.maplibre.android.** { *; }
+# Supabase: its plugins and response classes are created and decoded at run time.
+-keep class io.github.jan.supabase.** { *; }
 
-# Ktor OkHttp Engine
+# Ktor finds its HTTP engine at run time; keep the one we ship.
 -keep class io.ktor.client.engine.okhttp.** { *; }
+
+# MapLibre: the native map library calls back into these classes from C++.
+-keep class org.maplibre.android.** { *; }
+-dontwarn org.maplibre.android.**

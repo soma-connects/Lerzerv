@@ -51,7 +51,7 @@ import com.lezerv.app.ui.theme.label
 /**
  * Phone sign-in, full screen over the app. Guests can "look around first" and are only
  * asked to sign in when they book (Board flow 1g). Live, Supabase Auth sends and checks
- * the SMS code; people with a lezerv.com account can also sign in with their email.
+ * the SMS code via Twilio; people with a lezerv.com account can also sign in with their email.
  */
 @Composable
 fun AuthFlow(s: LezervState) {
@@ -118,10 +118,10 @@ private fun Welcome(s: LezervState, a: AccountState) {
 private fun PhoneStep(s: LezervState, a: AccountState) {
     Column {
         Txt("YOUR PHONE NUMBER", heading(44, 42), Modifier.padding(bottom = 10.dp))
-        Txt("We’ll text you a 6-digit code. Artisans never see your number.", body(15, 22, color = Lz.Neutral800), Modifier.padding(bottom = 22.dp))
+        Txt("Artisans never see your phone number.", body(15, 22, color = Lz.Neutral800), Modifier.padding(bottom = 22.dp))
         FormLabel("Mobile number")
         LzField(a.phoneDraft, a::onPhoneInput, "803 555 4417", keyboard = KeyboardType.Phone, style = body(18, tracking = .06f), prefix = "+234", transformation = PhoneTransformation)
-        if (!s.isLive) Txt("PROPOSAL: codes are sent by SMS through a provider such as Termii.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
+        Txt("We'll send a 6-digit code via SMS to verify your phone number.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 8.dp))
     }
     Column(Modifier.padding(top = 28.dp)) {
         PrimaryWide("Send code", "send", { a.sendCode() }, alpha = ready(s, a.phoneValid))

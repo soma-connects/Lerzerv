@@ -47,6 +47,11 @@ fun main() = runBlocking {
             path == "/rest/v1/rpc/search_artisans" -> respond(
                 """[{"id":"7f3e","display_name":"Tunde Bakare","bio":null,"city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":156,"completed_jobs":228,"distance_km":0.9,"categories":["plumbing","borehole-water"]}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/get_artisan_public" && bodyOf(r).contains("missing") -> respond("null", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/artisan_services_public" -> respond(
+                """[{"id":"as-1","artisan_id":"7f3e","category_id":"c2","category_name":"Plumbing","category_slug":"plumbing","name":"Leak repair","from_price_kobo":800000,"from_price_naira":8000,"active":true,"sort":0},{"id":"as-2","artisan_id":"7f3e","category_id":"c2","category_name":"Plumbing","category_slug":"plumbing","name":"Unblock a drain","from_price_kobo":1500000,"from_price_naira":15000,"active":true,"sort":1}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/upsert_artisan_service" -> respond(
+                """{"id":"as-new","artisan_id":"7f3e","category_id":"c2","name":"Borehole installation","from_price_kobo":5000000,"active":true,"sort":4}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/delete_artisan_service" -> respond("true", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/get_artisan_public" -> respond(
                 """{"id":"7f3e","display_name":"Tunde Bakare","bio":"Leaks.","city":"Lagos","avatar_url":null,"years_experience":9,"is_verified":true,"avg_rating":4.8,"total_reviews":2,"completed_jobs":228,"categories":[{"slug":"plumbing","name":"Plumbing"}],"reviews":[{"rating":5,"comment":"On time.","created_at":"2026-09-12T10:22:00+00:00","reviewer":"Amaka"}]}""", HttpStatusCode.OK, json)
             path == "/rest/v1/service_jobs" -> respond(
@@ -70,7 +75,7 @@ fun main() = runBlocking {
                 """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null,"area_lat":6.445,"area_lng":3.49,"lat":null,"lng":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/accept_job_offer" -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
-            path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" -> respond("", HttpStatusCode.NoContent, json)
+            path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" || path == "/rest/v1/rpc/submit_job_review" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/start_job" -> respond("""{"started": false, "attempts_left": 3}""", HttpStatusCode.OK, json)
             path == "/rest/v1/conversations" -> respond(
                 """[{"id":"conv1","job_id":"j1","artisan_id":"7f3e","last_message_at":"2026-10-05T09:12:00+00:00","artisan":{"display_name":"Tunde Bakare"},"job":{"title":"Leak repair"}}]""", HttpStatusCode.OK, json)
@@ -83,6 +88,11 @@ fun main() = runBlocking {
                 """[{"id":"n1","user_id":"user-1","type":"job_assigned","title":"Artisan assigned","body":"We matched an artisan to \"Leak repair\".","link":"/my-jobs","read":false,"created_at":"2026-10-05T09:10:00+00:00"}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/open_support_ticket" && bodyOf(r).contains("\"p_subject\":\"Hi\"") -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"please describe the issue in a few more words"}""", HttpStatusCode.BadRequest, json)
+            path == "/rest/v1/rpc/artisan_services_public" -> respond(
+                """[{"id":"as-1","category_id":"c2","name":"Leak repair","from_price_kobo":500000,"active":true,"sort":0,"category_name":"Plumbing","category_slug":"plumbing"}]""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/upsert_artisan_service" -> respond(
+                """{"id":"as-1","category_id":"c2","name":"Leak repair","from_price_kobo":500000,"active":true,"sort":0}""", HttpStatusCode.OK, json)
+            path == "/rest/v1/rpc/delete_artisan_service" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/open_support_ticket" -> respond(
                 """{"id":"t1","user_id":"user-1","name":"Amaka Obi","email":null,"phone":"2348035554417","subject":"Work not finished: still dripping","topic":"job","source":"app","status":"open","transcript":[],"page_path":null,"last_reply_at":null,"created_at":"2026-10-05T09:20:00+00:00","updated_at":"2026-10-05T09:20:00+00:00","job_id":"j1"}""", HttpStatusCode.OK, json)
             else -> respond("""{"message":"unexpected $path"}""", HttpStatusCode.NotFound, json)
@@ -147,6 +157,12 @@ fun main() = runBlocking {
     check("start codes are read from job_private", api.startCodes() == mapOf("j2" to "0427") && (sent.last().contains("select=job_id%2Cstart_code") || sent.last().contains("select=job_id,start_code")))
     api.expireOffers()
     check("expire_job_offers is a plain RPC call", sent.last().startsWith("POST /rest/v1/rpc/expire_job_offers"))
+    api.submitReview("j0", 5, "On time and tidy.", listOf("On time", "Tidy"))
+    check("submit_job_review sends job, rating and comment",
+        sent.last().startsWith("POST /rest/v1/rpc/submit_job_review") &&
+        sent.last().contains("\"p_job_id\":\"j0\"") &&
+        sent.last().contains("\"p_rating\":5") &&
+        sent.last().contains("\"p_comment\":\"On time and tidy.\""))
 
     // the artisan side
     val meA = api.myArtisan()
@@ -165,6 +181,14 @@ fun main() = runBlocking {
     check("a late accept comes back in the server's words", late is ServerMessage && late.message == "too late — this request has expired")
     val start = api.startJob("j2", "1111")
     check("a wrong start code is a result, not an error", !start.started && start.attemptsLeft == 3 && sent.last().contains("\"p_code\":\"1111\""))
+
+    // artisan services (0028)
+    val svcs = api.artisanServices("7f3e")
+    check("artisan_services_public returns services", svcs.single().name == "Leak repair" && svcs.single().fromPriceNaira == 5000 && sent.last().contains("\"p_artisan_id\":\"7f3e\""))
+    val upserted = api.upsertArtisanService("as-1", "c2", "Leak repair", 500000, true, 0)
+    check("upsert_artisan_service sends service details in kobo", upserted.id == "as-1" && sent.last().contains("\"p_from_price_kobo\":500000"))
+    api.deleteArtisanService("as-1")
+    check("delete_artisan_service names the service id", sent.last().contains("delete_artisan_service") && sent.last().contains("\"p_service_id\":\"as-1\""))
 
     // chat
     val conv = api.conversations().single()
@@ -193,6 +217,14 @@ fun main() = runBlocking {
     check("open_support_ticket links the job", t.jobId == "j1" && sent.last().contains("\"p_job_id\":\"j1\""))
     val refused = runCatching { api.openTicket("Hi", null) }.exceptionOrNull()
     check("a database 'raise exception' (P0001) arrives as a readable ServerMessage", refused is ServerMessage && refused.message == "please describe the issue in a few more words")
+
+    // artisan services
+    val svcs = api.artisanServices("7f3e")
+    check("artisan_services_public returns active services with prices", svcs.size == 2 && svcs[1].fromPriceNaira == 15000 && sent.last().contains("\"p_artisan_id\":\"7f3e\""))
+    val upserted = api.upsertArtisanService(null, "c2", "Borehole installation", 5000000, true, 4)
+    check("upsert_artisan_service returns saved service", upserted.name == "Borehole installation" && upserted.fromPriceKobo == 5000000 && sent.last().contains("\"p_name\":\"Borehole installation\""))
+    api.deleteArtisanService("as-4")
+    check("delete_artisan_service sends service id", sent.last().startsWith("POST /rest/v1/rpc/delete_artisan_service") && sent.last().contains("\"p_service_id\":\"as-4\""))
 
     println("\nAll ${sent.size} requests looked as the backend expects.")
 }

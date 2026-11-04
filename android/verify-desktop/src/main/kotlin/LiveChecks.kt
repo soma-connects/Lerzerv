@@ -81,6 +81,8 @@ fun main() {
     // reviews load with the profile
     s.push(Pushed.Profile("7f3e"))
     check("profile loads the artisan's real reviews", s.reviewsFor("7f3e")?.map { it.name } == listOf("Amaka", "Femi") && s.reviewsFor("7f3e")?.get(1)?.text == "No comment.")
+    check("profile loads the artisan's custom services and starting prices",
+        s.servicesFor("7f3e")?.map { it.name } == listOf("Leak repair", "Unblock a drain", "Water heater fix") && s.servicesFor("7f3e")?.get(1)?.fromPriceNaira == 15000)
     s.back()
 
     // ── book the artisan you picked ──
@@ -189,6 +191,13 @@ fun main() {
         check("an approved artisan signs in and the app knows they're one", tunde.live!!.isArtisan && tunde.online && tunde.radiusKm == 5)
         check("…with a real switch to the artisan side in Account", tunde.live!!.me!!.displayName == "Tunde Bakare")
         tunde.switchRole(Role.Artisan)
+        // Tunde manages services and prices
+        tunde.push(Pushed.Services)
+        check("artisan sees their real services loaded", tunde.account.services.map { it.name } == listOf("Leak repair", "Unblock a drain", "Water heater fix", "Borehole pump"))
+        tunde.account.changePrice(0, 1000)
+        tunde.account.saveServices()
+        check("artisan updates starting price in Naira and saves to backend",
+            tundeApi.calls.any { it.startsWith("upsertArtisanService") && it.contains("Leak repair") && it.contains("900000") } && tunde.top != Pushed.Services)
         check("online and waiting, nothing incoming", tunde.tab == Tab.ArtisanMap && tunde.incoming == null)
 
         amaka.account.editAddress(null); amaka.account.formStreet = "4 Bishop Aboyade Cole St"; amaka.account.formArea = "Ikate"; amaka.account.saveAddress()
@@ -218,6 +227,17 @@ fun main() {
         tunde.finishArtisanJob()
         check("back to the map afterwards", tunde.top == null && tunde.tab == Tab.ArtisanMap && tunde.live!!.justCompleted == null)
         check("the finished job is in Tunde's completed list", tunde.live!!.artisanJobs.any { it.id == tj.id && it.status == "completed" })
+
+        // Amaka reviews Tunde
+        amaka.openReview(tj.id)
+        amaka.stars = 5
+        amaka.reviewComment = "Quick and clean"
+        amaka.reviewTags = listOf("On time", "Tidy")
+        amaka.submitReview()
+        check("review submitted for completed job", "submitReview ${tj.id} 5* Quick and clean tags=[On time, Tidy]" in amakaApi.calls)
+        check("artisan's reviews cache updated immediately", amaka.reviewsFor("7f3e")?.first()?.text == "Quick and clean" && amaka.reviewsFor("7f3e")?.first()?.stars == 5)
+        check("reviewing sheet dismissed and feedback toasted", !amaka.reviewing && amaka.snack == "Thanks for the review.")
+
         tunde.openArtisanJob("j1")
         check("opening another job from the list shows that job", tunde.top == Pushed.Navigate && tunde.liveArtisanJob?.id == "j1")
         tunde.back()
@@ -387,6 +407,45 @@ fun main() {
         tunde.openMaps = { a, at -> opened = a to at }
         tunde.navigateTo(job.addressText!!, GeoPoint(job.lat!!, job.lng!!))
         check("\"Navigate\" opens the maps app at the pin", opened?.second == home.point)
+    }
+
+    // ── dynamic categories, real artisan services and custom prices (0028 / S3) ──
+    run {
+        val world = FakeWorld()
+        val amakaApi = FakeBackend(sessionUser = "user-1", world = world)
+        val tundeApi = FakeBackend(sessionUser = "art-user", world = world)
+        val amaka = liveApp(amakaApi)
+        val tunde = liveApp(tundeApi)
+
+        // Amaka checks Tunde's profile
+        amaka.push(Pushed.Profile("7f3e"))
+        check("opening profile loads artisan services", amakaApi.calls.any { it.startsWith("artisanServices 7f3e") })
+        val clientServices = amaka.servicesFor("7f3e")
+        check("client sees only active custom services", clientServices?.map { it.name } == listOf("Leak repair", "Pipe replacement", "Drain clearing"))
+        check("starting prices in Naira are parsed correctly from kobo", clientServices?.map { it.fromPriceNaira } == listOf(5000, 12000, 8000))
+
+        // Amaka books Tunde using custom service
+        amaka.startBooking("7f3e")
+        amaka.option = 1 // Pipe replacement, ₦12,000
+        val total = amaka.bookTotal()
+        check("bookTotal calculates with custom service starting price", total.sub == 12000)
+
+        // Tunde manages his services
+        tunde.switchRole(Role.Artisan)
+        tunde.push(Pushed.Services)
+        check("artisan sees all their services including inactive", tunde.account.services.map { it.name } == listOf("Leak repair", "Pipe replacement", "Drain clearing", "Water heater repair"))
+        check("active state is reflected in artisan state", tunde.account.services.map { it.on } == listOf(true, true, true, false))
+
+        // Tunde raises price of Leak repair by ₦500 and saves
+        tunde.account.changePrice(0, 500) // 5000 -> 5500
+        check("price updated locally", tunde.account.services[0].price == 5500)
+        tunde.account.saveServices()
+        check("saveServices updates backend with kobo price", tundeApi.calls.any { it.startsWith("upsertArtisanService") && it.contains("550000") })
+
+        // Amaka sees the updated price
+        amaka.live?.loadArtisanServices("7f3e", force = true)
+        val updatedServices = amaka.servicesFor("7f3e")
+        check("client gets updated starting price", updatedServices?.firstOrNull { it.name == "Leak repair" }?.fromPriceNaira == 5500)
     }
 
     // ── time labels ──

@@ -4,16 +4,23 @@ import com.lezerv.app.data.GeoPoint
 import com.lezerv.app.data.remote.AddressDto
 import com.lezerv.app.data.remote.ArtisanJobDto
 import com.lezerv.app.data.remote.ArtisanPublicDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
+import com.lezerv.app.data.remote.CancellationRefundDto
 import com.lezerv.app.data.remote.CategoryDto
 import com.lezerv.app.data.remote.ConversationDto
+import com.lezerv.app.data.remote.EarningsDto
 import com.lezerv.app.data.remote.JobDto
+import com.lezerv.app.data.remote.JobLocationDto
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.MapArtisanDto
 import com.lezerv.app.data.remote.MessageDto
 import com.lezerv.app.data.remote.MyArtisanDto
 import com.lezerv.app.data.remote.NameRef
 import com.lezerv.app.data.remote.NotificationDto
+import com.lezerv.app.data.remote.PaymentDto
+import com.lezerv.app.data.remote.PaymentInitDto
+import com.lezerv.app.data.remote.PaymentMethodDto
 import com.lezerv.app.data.remote.ProfileDto
 import com.lezerv.app.data.remote.ReviewDto
 import com.lezerv.app.data.remote.ServerMessage
@@ -35,7 +42,7 @@ val LEKKI_CENTRE = GeoPoint(6.445, 3.49)
 /**
  * The shared "database" behind one or more [FakeBackend] sessions: a client's app and an
  * artisan's app can each have their own session over the same world, the way two phones
- * share one Supabase project. It follows the rules of migrations 0008–0027 closely enough
+ * share one Supabase project. It follows the rules of migrations 0008â€“0027 closely enough
  * to drive the apps: offers, start codes, who sees which address, shared locations.
  */
 class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
@@ -62,7 +69,8 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     data class Job(
         val id: String, val client: String, val title: String, val category: SlugName, var status: String,
         var artisan: String?, val requested: String?, val number: Long, val area: String, val fullAddress: String?,
-        val code: String?, var offerExpires: Long?, var accepted: Boolean, var startedAt: Long? = null,
+        val code: String?, var offerExpires: Long?, var accepted: Boolean,
+        var enRouteAt: Long? = null, var arrivedAt: Long? = null, var startedAt: Long? = null,
         /** job_private.lat/lng (0027): the address's pin, if it had one. */
         val pin: GeoPoint? = null,
         val description: String? = null, val details: Map<String, String> = emptyMap(), val created: String = "2026-10-05T09:00:00+00:00",
@@ -84,14 +92,54 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     )
     val notifications = mutableMapOf("user-1" to mutableListOf(NotificationDto("n1", "job_assigned", "Artisan assigned", "We matched an artisan to \"Leak repair\".", "/my-jobs", false, "2026-10-05T09:10:00+00:00")))
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
-    /** device_tokens: token → user. */
+    /** device_tokens: token â†’ user. */
     val devices = mutableMapOf<String, String>()
+    val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
+        "7f3e" to mutableListOf(
+            ArtisanServiceDto("as-1", "cat-plumb", "Leak repair", 500000, true, 0, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-2", "cat-plumb", "Pipe replacement", 1200000, true, 1, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-3", "cat-plumb", "Drain clearing", 800000, true, 2, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-4", "cat-plumb", "Water heater repair", 1500000, false, 3, "Plumbing", "plumbing"),
+        ),
+        "c1a0" to mutableListOf(
+            ArtisanServiceDto("as-5", "cat-clean", "Deep cleaning", 4200000, true, 0, "Cleaning", "cleaning"),
+            ArtisanServiceDto("as-6", "cat-clean", "Move-in cleaning", 6500000, true, 1, "Cleaning", "cleaning"),
+        ),
+    )
     val tickets = mutableListOf<TicketDto>()
     val ticketMessages = mutableListOf<TicketMessageDto>()
+
+    val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
+        "7f3e" to mutableListOf(
+            ArtisanServiceDto("as-1", "cat-plumb", "Leak repair", 800_000, true, 0, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-2", "cat-plumb", "Unblock a drain", 1_500_000, true, 1, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-3", "cat-plumb", "Water heater fix", 2_100_000, true, 2, "Plumbing", "plumbing"),
+            ArtisanServiceDto("as-4", "cat-plumb", "Borehole pump", 1_500_000, false, 3, "Plumbing", "plumbing"),
+        ),
+        "c1a0" to mutableListOf(
+            ArtisanServiceDto("as-10", "cat-clean", "Standard clean", 1_500_000, true, 0, "Cleaning", "cleaning"),
+            ArtisanServiceDto("as-11", "cat-clean", "Deep clean", 2_500_000, true, 1, "Cleaning", "cleaning"),
+        ),
+    )
+
+    // Payments & Escrow (0032)
+    val paymentMethods = mutableMapOf<String, MutableList<PaymentMethodDto>>(
+        "user-1" to mutableListOf(PaymentMethodDto("pm-1", "AUTH_123", "2291", "visa", "08", "2027"))
+    )
+    val payments = mutableMapOf<String, PaymentDto>()
+    val paymentFeed = MutableSharedFlow<PaymentDto>(extraBufferCapacity = 16)
+    var earnings = mapOf(
+        "art-user" to EarningsDto(availableKobo = 4800000L, inEscrowKobo = 1200000L, paidOutKobo = 9500000L)
+    )
+
+    data class SubmittedReview(val jobId: String, val artisanId: String, val clientId: String, val rating: Int, val comment: String?, val tags: List<String>, val created: String)
+    val submittedReviews = mutableListOf<SubmittedReview>()
 
     // Realtime
     val messageFeed = MutableSharedFlow<MessageDto>(extraBufferCapacity = 16)
     val ticketFeed = MutableSharedFlow<TicketMessageDto>(extraBufferCapacity = 16)
+    val jobLocationFeed = MutableSharedFlow<JobLocationDto>(extraBufferCapacity = 64)
+    val jobLocations = mutableMapOf<String, MutableList<JobLocationDto>>()
     private val noticeFeeds = mutableMapOf<String, MutableSharedFlow<NotificationDto>>()
     fun noticeFeed(uid: String) = noticeFeeds.getOrPut(uid) { MutableSharedFlow(extraBufferCapacity = 16) }
 
@@ -126,6 +174,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     val messageFeed get() = world.messageFeed
     val ticketFeed get() = world.ticketFeed
     val noticeFeed get() = world.noticeFeed(sessionUser ?: "")
+    val paymentFeed get() = world.paymentFeed
     val jobs get() = world.jobs
 
     private fun log(s: String) { calls += s; failNext?.let { failNext = null; throw it } }
@@ -168,11 +217,65 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun artisanProfile(id: String): ArtisanPublicDto? {
         log("artisan $id")
         val a = world.artisans.firstOrNull { it.id == id } ?: return null
-        return ArtisanPublicDto(a.id, a.displayName, a.bio, a.isVerified, a.avgRating, a.totalReviews, a.completedJobs,
-            reviews = listOf(ReviewDto(5, "On time and tidy.", "2026-09-12T10:22:00+00:00", "Amaka"), ReviewDto(4, null, "2026-08-30T10:22:00+00:00", "Femi")))
+        val submitted = world.submittedReviews.filter { it.artisanId == id }.map {
+            ReviewDto(it.rating, it.comment, it.created, reviewer = "You")
+        }
+        val defaultReviews = listOf(
+            ReviewDto(5, "On time and tidy.", "2026-09-12T10:22:00+00:00", "Amaka"),
+            ReviewDto(4, null, "2026-08-30T10:22:00+00:00", "Femi")
+        )
+        return ArtisanPublicDto(a.id, a.displayName, a.bio, a.isVerified, a.avgRating, a.totalReviews + submitted.size, a.completedJobs,
+            reviews = submitted + defaultReviews)
     }
 
-    // ── addresses ──
+    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
+        log("artisanServices $artisanId")
+        val list = world.artisanServices[artisanId].orEmpty()
+        val isOwner = world.artisanUser[artisanId] == sessionUser
+        return if (isOwner) list.toList() else list.filter { it.active }
+    }
+
+    override suspend fun upsertArtisanService(
+        serviceId: String?,
+        categoryId: String,
+        name: String,
+        fromPriceKobo: Int,
+        active: Boolean,
+        sort: Int
+    ): ArtisanServiceDto {
+        log("upsertArtisanService ${serviceId ?: "new"} $categoryId $name $fromPriceKobo $active $sort")
+        val artisanId = myArtisanId() ?: throw ServerMessage("only artisans can edit services")
+        if (fromPriceKobo < 50_000 || fromPriceKobo > 50_000_000) {
+            throw ServerMessage("price must be between ₦500 and ₦500,000")
+        }
+        val list = world.artisanServices.getOrPut(artisanId) { mutableListOf() }
+        val id = serviceId?.ifBlank { null } ?: world.next("as-")
+        val existingIndex = list.indexOfFirst { it.id == id }
+        val item = ArtisanServiceDto(
+            id = id,
+            categoryId = categoryId,
+            name = name,
+            fromPriceKobo = fromPriceKobo,
+            active = active,
+            sort = sort,
+            categoryName = if (categoryId == "cat-plumb") "Plumbing" else "Services",
+            categorySlug = if (categoryId == "cat-plumb") "plumbing" else "services"
+        )
+        if (existingIndex >= 0) {
+            list[existingIndex] = item
+        } else {
+            list.add(item)
+        }
+        return item
+    }
+
+    override suspend fun deleteArtisanService(serviceId: String) {
+        log("deleteArtisanService $serviceId")
+        val artisanId = myArtisanId() ?: throw ServerMessage("only artisans can delete services")
+        world.artisanServices[artisanId]?.removeAll { it.id == serviceId }
+    }
+
+    // ───────────────────────────── addresses ─────────────────────────────
     override suspend fun addresses(): List<AddressDto> { log("addresses"); return world.addresses[me()].orEmpty().toList() }
     override suspend fun saveAddress(a: AddressDto): AddressDto {
         log("saveAddress ${a.id.ifBlank { "new" }} ${a.label} | ${a.street} | ${a.area} | ${a.areaSlug} | ${a.note}" + (if (a.lat != null) " @ ${a.lat},${a.lng}" else ""))
@@ -184,10 +287,11 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override suspend fun deleteAddress(id: String) { log("deleteAddress $id"); world.addresses[me()]?.removeAll { it.id == id } }
 
-    // ── jobs (client) ──
+    // â”€â”€ jobs (client) â”€â”€
     private fun FakeWorld.Job.toDto() = JobDto(
         id, title, description, status, null, created, addressText, null, quoted, agreed, artisan, category, world.artisanName(artisan)?.let(::NameRef),
-        number, requested, world.artisanName(requested)?.let(::NameRef), offerExpires?.let(world::iso), if (accepted) world.iso(world.clock()) else null, startedAt?.let(world::iso),
+        number, requested, world.artisanName(requested)?.let(::NameRef), offerExpires?.let(world::iso), if (accepted) world.iso(world.clock()) else null,
+        enRouteAt?.let(world::iso), arrivedAt?.let(world::iso), startedAt?.let(world::iso),
     )
 
     override suspend fun myJobs(): List<JobDto> { log("jobs"); return world.jobs.filter { it.client == me() }.map { it.toDto() } }
@@ -195,17 +299,17 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun bookArtisan(b: Booking): JobDto {
         log("book ${b.artisanId} | ${b.categorySlug} | ${b.title} | ${b.addressId} | ${b.description} | ${b.scheduledFor} | ${b.budgetNote} | ${b.details}")
         val a = world.artisans.first { it.id == b.artisanId }
-        if (world.available[a.id] != true) throw ServerMessage("${first(a.displayName)} isn't taking jobs right now — pick someone available")
+        if (world.available[a.id] != true) throw ServerMessage("${first(a.displayName)} isn't taking jobs right now â€” pick someone available")
         if (b.categorySlug !in a.categories) throw ServerMessage("${first(a.displayName)} doesn't offer that service")
         val ad = world.addresses[me()]?.firstOrNull { it.id == b.addressId } ?: throw ServerMessage("choose one of your saved addresses")
         val job = FakeWorld.Job(
             world.next("job-"), me(), b.title, SlugName(b.categorySlug, b.categorySlug.replaceFirstChar { it.uppercase() }), "assigned", a.id, a.id,
-            1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
+            1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " Â· $it" } ?: ""), "5309",
             world.clock() + 30_000, false, description = b.description, details = b.details,
             pin = if (ad.lat != null && ad.lng != null) GeoPoint(ad.lat, ad.lng) else null,
         )
         world.jobs.add(0, job)
-        world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} · answer within 30 seconds")
+        world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} Â· answer within 30 seconds")
         return job.toDto()
     }
 
@@ -227,18 +331,63 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         world.jobs.filter { it.offerPending && it.offerExpires!! <= world.clock() }.forEach { j ->
             val who = j.artisan
             j.status = "open"; j.artisan = null; j.offerExpires = null
-            world.notify(j.client, "job_offer_expired", "${first(world.artisanName(who))} didn't answer in time", "${j.title} — we are finding someone else for you")
+            world.notify(j.client, "job_offer_expired", "${first(world.artisanName(who))} didn't answer in time", "${j.title} â€” we are finding someone else for you")
             who?.let { world.notify(world.artisanUser.getValue(it), "job_offer_missed", "You missed a request", "${j.title} went to other artisans.") }
         }
     }
 
-    // ── the artisan side ──
+    override suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>) {
+        log("submitReview $jobId $rating* ${comment.orEmpty()} tags=$tags")
+        if (rating !in 1..5) throw ServerMessage("rating must be 1-5")
+        val j = world.jobs.firstOrNull { it.id == jobId } ?: throw ServerMessage("not your job")
+        if (j.client != me()) throw ServerMessage("not your job")
+        if (j.status != "completed") throw ServerMessage("can only review completed jobs")
+        val artId = j.artisan ?: throw ServerMessage("no artisan on this job")
+        world.submittedReviews.removeAll { it.jobId == jobId }
+        world.submittedReviews.add(FakeWorld.SubmittedReview(jobId, artId, me(), rating, comment, tags, world.iso(world.clock())))
+    }
+
+    // ───────────────────────────── the artisan side ─────────────────────────────
     override suspend fun myArtisan(): MyArtisanDto? {
         log("myArtisan")
         val id = myArtisanId() ?: return null
         val a = world.artisans.first { it.id == id }
         return MyArtisanDto(id, a.displayName, "approved", world.available[id] == true, world.radius[id] ?: 5, a.avgRating, a.isVerified)
     }
+
+    override suspend fun upsertArtisanProfile(
+        bio: String?,
+        experienceYears: Int,
+        businessName: String?,
+        idType: String,
+        idNumber: String,
+        lat: Double?,
+        lng: Double?,
+        categories: List<String>,
+    ) {
+        log("upsertArtisanProfile businessName=$businessName idType=$idType idNumber=$idNumber")
+        val uid = sessionUser ?: throw ServerMessage("must be logged in")
+        val artId = myArtisanId() ?: run {
+            val newId = world.next("a-")
+            world.artisanUser[newId] = uid
+            val name = businessName?.ifBlank { null } ?: "Artisan"
+            world.artisans.add(
+                MapArtisanDto(
+                    id = newId,
+                    displayName = name,
+                    service = categories.firstOrNull() ?: "plumbing",
+                    rating = 5.0,
+                    reviewCount = 0,
+                    lat = lat ?: 6.45,
+                    lng = lng ?: 3.47,
+                    isVerified = false,
+                    isAvailable = false,
+                )
+            )
+            newId
+        }
+    }
+
     override suspend fun setAvailability(online: Boolean) { log("available $online"); world.available[myArtisanId()!!] = online }
     override suspend fun setRadius(km: Int) { log("radius $km"); world.radius[myArtisanId()!!] = km }
 
@@ -257,7 +406,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             ArtisanJobDto(
                 j.id, j.number, j.title, j.description, j.status, j.category.slug, j.category.name, j.area, j.addressText, null, null,
                 buildJsonObject { j.details.forEach { (k, v) -> put(k, JsonPrimitive(v)) } },
-                j.offerExpires?.let(world::iso), if (j.accepted) world.iso(world.clock()) else null, j.startedAt?.let(world::iso), null,
+                j.offerExpires?.let(world::iso), if (j.accepted) world.iso(world.clock()) else null,
+                j.enRouteAt?.let(world::iso), j.arrivedAt?.let(world::iso), j.startedAt?.let(world::iso), null,
                 j.created, j.agreed, first(world.profiles[j.client]?.fullName), world.conversations.firstOrNull { it.jobId == j.id }?.id,
                 // 0027: the area's centre always; the client's pin once the job is theirs.
                 LEKKI_CENTRE.lat, LEKKI_CENTRE.lng,
@@ -276,28 +426,70 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         log("accept $jobId")
         val j = myJob(jobId, "accept")
         if (!j.offerPending) throw ServerMessage("this request is no longer waiting for you")
-        if (j.offerExpires!! < world.clock()) throw ServerMessage("too late — this request has expired")
+        if (j.offerExpires!! < world.clock()) throw ServerMessage("too late â€” this request has expired")
         j.accepted = true
         val name = world.artisanName(j.artisan)!!
         val conv = ConversationDto(world.next("conv-"), j.id, j.artisan, world.iso(world.clock()), NameRef(name), TitleRef(j.title))
         world.conversations.add(0, conv)
         world.messages += MessageDto(world.next("m"), conv.id, null, "${first(name)} accepted your request. Chat here to agree the time and price.", true, world.iso(world.clock()))
-        world.notify(j.client, "job_accepted", "${first(name)} accepted your request", "${j.title} · your start code is in the app")
+        world.notify(j.client, "job_accepted", "${first(name)} accepted your request", "${j.title} Â· your start code is in the app")
     }
 
     override suspend fun declineJob(jobId: String, reason: String) {
         log("decline $jobId $reason")
         val j = myJob(jobId, "decline")
-        if (j.status != "assigned" || j.agreed != null) throw ServerMessage("this job is already under way — talk to the client or our team instead")
+        if (j.status != "assigned" || j.agreed != null) throw ServerMessage("this job is already under way â€” talk to the client or our team instead")
         j.status = "open"; j.artisan = null; j.offerExpires = null; j.accepted = false
-        world.notify(j.client, "job_declined", "Your artisan is not available", "${j.title} — we are finding someone else for you")
+        world.notify(j.client, "job_declined", "Your artisan is not available", "${j.title} â€” we are finding someone else for you")
     }
+
+    override suspend fun markEnRoute(jobId: String) {
+        log("markEnRoute $jobId")
+        val j = myJob(jobId, "mark en route")
+        j.enRouteAt = world.clock()
+        world.notify(j.client, "artisan_en_route", "${first(world.artisanName(j.artisan))} is on the way", "${j.title} · track their progress in the app")
+    }
+
+    override suspend fun markArrived(jobId: String) {
+        log("markArrived $jobId")
+        val j = myJob(jobId, "mark arrived")
+        j.arrivedAt = world.clock()
+        world.notify(j.client, "artisan_arrived", "${first(world.artisanName(j.artisan))} has arrived", "${j.title} · give them your start code")
+    }
+
+    override suspend fun recordJobLocation(
+        jobId: String,
+        lat: Double,
+        lng: Double,
+        heading: Double?,
+        speed: Double?,
+        accuracy: Double?,
+    ) {
+        log("recordJobLocation $jobId $lat,$lng")
+        val loc = JobLocationDto(
+            id = world.next("loc-"),
+            jobId = jobId,
+            artisanId = myArtisanId(),
+            lat = lat,
+            lng = lng,
+            heading = heading,
+            speed = speed,
+            accuracy = accuracy,
+            at = world.iso(world.clock()),
+            createdAt = world.iso(world.clock()),
+        )
+        world.jobLocations.getOrPut(jobId) { mutableListOf() }.add(loc)
+        world.jobLocationFeed.tryEmit(loc)
+    }
+
+    override fun jobLocationUpdates(jobId: String): Flow<JobLocationDto> =
+        world.jobLocationFeed.filter { it.jobId == jobId }
 
     override suspend fun startJob(jobId: String, code: String): StartResult {
         log("start $jobId $code")
         val j = myJob(jobId, "start")
         if (j.offerPending) throw ServerMessage("accept the request first")
-        if (j.wrongCodes >= 5) throw ServerMessage("too many wrong codes — contact Lezerv support to start this job")
+        if (j.wrongCodes >= 5) throw ServerMessage("too many wrong codes â€” contact Lezerv support to start this job")
         if (j.code != null && code != j.code) { j.wrongCodes++; return StartResult(false, 5 - j.wrongCodes) }
         j.status = "in_progress"; j.startedAt = world.clock()
         world.notify(j.client, "job_started", "Work has started", j.title)
@@ -311,7 +503,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         j.status = "completed"
     }
 
-    // ── chat ──
+    // â”€â”€ chat â”€â”€
     override suspend fun conversations(): List<ConversationDto> {
         log("conversations")
         val uid = me()
@@ -325,17 +517,17 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override fun messageInserts(conversationId: String): Flow<MessageDto> = world.messageFeed.filter { it.conversationId == conversationId }
 
-    // ── push ──
+    // â”€â”€ push â”€â”€
     override suspend fun registerDevice(token: String, appVersion: String) { log("register $token $appVersion"); world.devices[token] = me() }
     override suspend fun unregisterDevice(token: String) { log("unregister $token"); if (world.devices[token] == me()) world.devices.remove(token) }
 
-    // ── notifications ──
+    // â”€â”€ notifications â”€â”€
     override suspend fun notifications(): List<NotificationDto> { log("notifications"); return world.notifications[me()].orEmpty().toList() }
     override suspend fun markNotificationRead(id: String) = log("read $id")
     override suspend fun markAllNotificationsRead() = log("readAll")
     override fun notificationInserts(userId: String): Flow<NotificationDto> = world.noticeFeed(userId)
 
-    // ── support ──
+    // â”€â”€ support â”€â”€
     override suspend fun tickets(): List<TicketDto> { log("tickets"); return world.tickets.toList() }
     override suspend fun ticketMessages(ticketId: String): List<TicketMessageDto> { log("ticketMessages $ticketId"); return world.ticketMessages.filter { it.ticketId == ticketId } }
     override suspend fun openTicket(subject: String, jobId: String?): TicketDto {
@@ -351,4 +543,105 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         return TicketMessageDto(world.next("tm"), ticketId, "user", body, "2026-10-05T09:21:00+00:00").also { world.ticketMessages += it }
     }
     override fun ticketMessageInserts(ticketId: String): Flow<TicketMessageDto> = world.ticketFeed.filter { it.ticketId == ticketId }
+
+    // â”€â”€ payments & escrow (0032) â”€â”€
+    override suspend fun initializePayment(jobId: String): PaymentInitDto {
+        log("initPayment $jobId")
+        val j = world.jobs.firstOrNull { it.id == jobId }
+        val baseKobo = ((j?.agreed ?: j?.quoted ?: 15000.0) * 100).toLong()
+        val feeKobo = (baseKobo * 0.05).toLong()
+        val totalKobo = baseKobo + feeKobo
+        val ref = "lz_sim_${jobId}_${world.clock()}"
+        val p = PaymentDto(
+            id = world.next("pay-"),
+            jobId = jobId,
+            payerId = me(),
+            amountKobo = totalKobo,
+            feeKobo = feeKobo,
+            status = "initialized",
+            paystackReference = ref,
+            channel = "card",
+            createdAt = world.iso(world.clock()),
+        )
+        world.payments[jobId] = p
+        return PaymentInitDto(
+            authorizationUrl = "https://checkout.paystack.com/$ref",
+            accessCode = "sim_code_$jobId",
+            reference = ref,
+            amountKobo = totalKobo,
+            feeKobo = feeKobo,
+            baseAmountKobo = baseKobo,
+        )
+    }
+
+    override suspend fun savedPaymentMethods(): List<PaymentMethodDto> {
+        log("savedPaymentMethods")
+        return world.paymentMethods[me()].orEmpty().toList()
+    }
+
+    override suspend fun deletePaymentMethod(id: String) {
+        log("deletePaymentMethod $id")
+        world.paymentMethods[me()]?.removeAll { it.id == id }
+    }
+
+    override suspend fun myEarnings(): EarningsDto {
+        log("myEarnings")
+        return world.earnings[me()] ?: EarningsDto()
+    }
+
+    override suspend fun computeCancellationRefund(jobId: String): CancellationRefundDto {
+        log("computeCancellationRefund $jobId")
+        val j = world.jobs.firstOrNull { it.id == jobId }
+        val isEnRoute = false
+        val baseKobo = ((j?.agreed ?: j?.quoted ?: 15000.0) * 100).toLong()
+        val feeKobo = (baseKobo * 0.05).toLong()
+        val totalKobo = baseKobo + feeKobo
+        return if (isEnRoute) {
+            CancellationRefundDto(
+                refundableAmountKobo = (totalKobo - 100000L).coerceAtLeast(0L),
+                cancellationFeeKobo = 100000L,
+                policyReason = "Artisan is en route: â‚¦1,000 call-out fee applies",
+            )
+        } else {
+            CancellationRefundDto(
+                refundableAmountKobo = totalKobo,
+                cancellationFeeKobo = 0L,
+                policyReason = "Cancelled before departure: 100% full refund",
+            )
+        }
+    }
+
+    override suspend fun paymentForJob(jobId: String): PaymentDto? {
+        log("paymentForJob $jobId")
+        return world.payments[jobId]
+    }
+
+    override fun paymentUpdates(jobId: String): Flow<PaymentDto> = world.paymentFeed.filter { it.jobId == jobId }
+
+    override suspend fun updateTrustedContact(name: String, phone: String) {
+        log("updateTrustedContact $name $phone")
+    }
+
+    override suspend fun createShareTripLink(jobId: String): String {
+        log("createShareTripLink $jobId")
+        return "https://lezerv.com/track/fake-token-$jobId"
+    }
+
+    override suspend fun myNotificationPreferences(): com.lezerv.app.data.remote.NotificationPreferencesDto {
+        return com.lezerv.app.data.remote.NotificationPreferencesDto()
+    }
+
+    override suspend fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?) {
+        log("updateNotificationPreferences $messages $jobs $promos")
+    }
+
+    override suspend fun myReferralCode(): String = "LZ-FAKE01"
+
+    override suspend fun applyReferralCode(code: String) {
+        log("applyReferralCode $code")
+    }
+
+    override suspend fun deleteAccount() {
+        log("deleteAccount")
+    }
 }

@@ -22,13 +22,28 @@ import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -56,7 +71,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     private val db get() = client.postgrest
     private fun uid(): String = client.auth.currentUserOrNull()?.id ?: error("Not signed in")
 
-    // ───────────────────────────── sign-in ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ sign-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun restoreSession(): String? {
         client.auth.awaitInitialization()
@@ -93,7 +108,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         client.auth.updateUser { data = buildJsonObject { put("full_name", fullName) } }
     }
 
-    // ───────────────────────────── browsing ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ browsing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun categories(): List<CategoryDto> =
         db.from("service_categories").select(Columns.list("id", "slug", "name", "sort_order")) {
@@ -119,6 +134,34 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         return if (result.data.isBlank() || result.data.trim() == "null") null else result.decodeAs<ArtisanPublicDto>()
     }
 
+    override suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto> {
+        val result = db.rpc("artisan_services_public", buildJsonObject { put("p_artisan_id", artisanId) })
+        return if (result.data.isBlank() || result.data.trim() == "null") emptyList() else result.decodeList()
+    }
+
+    override suspend fun upsertArtisanService(
+        serviceId: String?,
+        categoryId: String,
+        name: String,
+        fromPriceKobo: Int,
+        active: Boolean,
+        sort: Int
+    ): ArtisanServiceDto {
+        val args = buildJsonObject {
+            serviceId?.let { put("p_service_id", it) }
+            put("p_category_id", categoryId)
+            put("p_name", name)
+            put("p_from_price_kobo", fromPriceKobo)
+            put("p_active", active)
+            put("p_sort", sort)
+        }
+        return db.rpc("upsert_artisan_service", args).decodeAs()
+    }
+
+    override suspend fun deleteArtisanService(serviceId: String) {
+        db.rpc("delete_artisan_service", buildJsonObject { put("p_service_id", serviceId) })
+    }
+
     // ───────────────────────────── saved addresses ─────────────────────────────
 
     override suspend fun addresses(): List<AddressDto> =
@@ -142,7 +185,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         db.from("client_addresses").delete { filter { eq("id", id) } }
     }
 
-    // ───────────────────────────── jobs ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ jobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun myJobs(): List<JobDto> =
         db.from("service_jobs").select(Columns.raw(JOB_COLUMNS)) {
@@ -174,12 +217,46 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         db.rpc("expire_job_offers")
     }
 
+    override suspend fun submitReview(jobId: String, rating: Int, comment: String?, tags: List<String>) {
+        saying {
+            db.rpc("submit_job_review", buildJsonObject {
+                put("p_job_id", jobId)
+                put("p_rating", rating)
+                if (comment != null) put("p_comment", comment)
+            })
+        }
+    }
+
     // ───────────────────────────── the artisan side ─────────────────────────────
 
     override suspend fun myArtisan(): MyArtisanDto? =
         db.from("artisans").select(Columns.list("id", "display_name", "status", "is_available", "service_radius_km", "avg_rating", "is_verified")) {
             filter { eq("user_id", uid()) }
         }.decodeSingleOrNull()
+
+    override suspend fun upsertArtisanProfile(
+        bio: String?,
+        experienceYears: Int,
+        businessName: String?,
+        idType: String,
+        idNumber: String,
+        lat: Double?,
+        lng: Double?,
+        categories: List<String>,
+    ) {
+        saying {
+            db.rpc("upsert_artisan_profile", buildJsonObject {
+                if (bio != null) put("p_bio", bio)
+                put("p_experience_years", experienceYears)
+                if (businessName != null) put("p_business_name", businessName)
+                put("p_id_type", idType)
+                put("p_id_number", idNumber)
+                if (lat != null) put("p_lat", lat)
+                if (lng != null) put("p_lng", lng)
+                put("p_categories", JsonArray(categories.map { JsonPrimitive(it) }))
+            })
+        }
+    }
 
     override suspend fun setAvailability(online: Boolean) {
         db.rpc("set_artisan_availability", buildJsonObject { put("p_available", online) })
@@ -204,6 +281,37 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         saying { db.rpc("decline_assigned_job", buildJsonObject { put("p_job_id", jobId); put("p_reason", reason) }) }
     }
 
+    override suspend fun markEnRoute(jobId: String) {
+        saying { db.rpc("mark_en_route", buildJsonObject { put("p_job_id", jobId) }) }
+    }
+
+    override suspend fun markArrived(jobId: String) {
+        saying { db.rpc("mark_arrived", buildJsonObject { put("p_job_id", jobId) }) }
+    }
+
+    override suspend fun recordJobLocation(
+        jobId: String,
+        lat: Double,
+        lng: Double,
+        heading: Double?,
+        speed: Double?,
+        accuracy: Double?,
+    ) {
+        saying {
+            db.rpc("record_job_location", buildJsonObject {
+                put("p_job_id", jobId)
+                put("p_lat", lat)
+                put("p_lng", lng)
+                heading?.let { put("p_heading", it) }
+                speed?.let { put("p_speed", it) }
+                accuracy?.let { put("p_accuracy", it) }
+            })
+        }
+    }
+
+    override fun jobLocationUpdates(jobId: String): Flow<JobLocationDto> =
+        inserts("job_locations-$jobId", "job_locations", "job_id", jobId)
+
     override suspend fun startJob(jobId: String, code: String): StartResult =
         saying { db.rpc("start_job", buildJsonObject { put("p_job_id", jobId); put("p_code", code) }) }.decodeAs()
 
@@ -211,7 +319,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         saying { db.rpc("update_service_job_status", buildJsonObject { put("p_job_id", jobId); put("p_status", "completed") }) }
     }
 
-    // ───────────────────────────── chat ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun conversations(): List<ConversationDto> =
         db.from("conversations").select(Columns.raw("id,job_id,artisan_id,last_message_at,artisan:artisans(display_name),job:service_jobs(title)")) {
@@ -227,7 +335,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     override fun messageInserts(conversationId: String): Flow<MessageDto> =
         inserts("messages-$conversationId", "messages", "conversation_id", conversationId)
 
-    // ───────────────────────────── notifications ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun registerDevice(token: String, appVersion: String) {
         db.rpc("register_device", buildJsonObject { put("p_token", token); put("p_platform", "android"); put("p_app_version", appVersion) })
@@ -251,7 +359,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     override fun notificationInserts(userId: String): Flow<NotificationDto> =
         inserts("notifications-$userId", "notifications", "user_id", userId)
 
-    // ───────────────────────────── support ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     override suspend fun tickets(): List<TicketDto> =
         db.from("support_tickets").select(Columns.raw("id,subject,status,created_at,last_reply_at,job_id")) {
@@ -271,6 +379,139 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     override fun ticketMessageInserts(ticketId: String): Flow<TicketMessageDto> =
         inserts("ticket-$ticketId", "support_ticket_messages", "ticket_id", ticketId)
 
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ payments & escrow (0032) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    override suspend fun initializePayment(jobId: String): PaymentInitDto = saying {
+        val token = client.auth.currentAccessTokenOrNull() ?: error("Not signed in")
+        val res = client.httpClient.post("${client.supabaseUrl}/functions/v1/payments-init") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("job_id", jobId) }.toString())
+        }
+        val text = res.bodyAsText()
+        if (!res.status.isSuccess()) {
+            val err = runCatching {
+                Json.parseToJsonElement(text).jsonObject["error"]?.jsonPrimitive?.contentOrNull
+            }.getOrNull() ?: "Payment initialization failed (${res.status.value})"
+            throw ServerMessage(err)
+        }
+        Json.decodeFromString<PaymentInitDto>(text)
+    }
+
+    override suspend fun savedPaymentMethods(): List<PaymentMethodDto> =
+        db.from("payment_methods").select {
+            filter { eq("user_id", uid()) }
+            order("created_at", Order.DESCENDING)
+        }.decodeList()
+
+    override suspend fun deletePaymentMethod(id: String) {
+        db.from("payment_methods").delete { filter { eq("id", id); eq("user_id", uid()) } }
+    }
+
+    override suspend fun myEarnings(): EarningsDto =
+        db.rpc("my_earnings").decodeList<EarningsDto>().firstOrNull() ?: EarningsDto()
+
+    override suspend fun computeCancellationRefund(jobId: String): CancellationRefundDto = saying {
+        db.rpc("compute_cancellation_refund", buildJsonObject { put("p_job_id", jobId) })
+            .decodeList<CancellationRefundDto>().firstOrNull() ?: CancellationRefundDto()
+    }
+
+    override suspend fun paymentForJob(jobId: String): PaymentDto? =
+        db.from("payments").select {
+            filter { eq("job_id", jobId) }
+            order("created_at", Order.DESCENDING)
+            limit(1)
+        }.decodeSingleOrNull()
+
+    override fun paymentUpdates(jobId: String): Flow<PaymentDto> = flow {
+        val channel = client.channel("payments-$jobId")
+        val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            this.table = "payments"
+            filter("job_id", FilterOperator.EQ, jobId)
+        }
+        channel.subscribe()
+        try {
+            emitAll(changes.mapNotNull { action ->
+                when (action) {
+                    is PostgresAction.Insert -> action.decodeRecord<PaymentDto>()
+                    is PostgresAction.Update -> action.decodeRecord<PaymentDto>()
+                    else -> null
+                }
+            })
+        } finally {
+            withContext(NonCancellable) { client.realtime.removeChannel(channel) }
+        }
+    }
+
+    // ── safety & trusted contacts (0035, Segment S11) ──
+
+    override suspend fun updateTrustedContact(name: String, phone: String) {
+        saying {
+            db.rpc("update_trusted_contact", buildJsonObject {
+                put("p_name", name)
+                put("p_phone", phone)
+            })
+        }
+    }
+
+    override suspend fun createShareTripLink(jobId: String): String = saying {
+        val token = db.rpc("create_share_trip_link", buildJsonObject {
+            put("p_job_id", jobId)
+        }).data.trim('"')
+        "https://lezerv.com/track/$token"
+    }
+
+    // ── notification preferences (0034, Segment S10) ──
+
+    override suspend fun myNotificationPreferences(): NotificationPreferencesDto = try {
+        db.rpc("my_notification_preferences").decodeAs<NotificationPreferencesDto>()
+    } catch (_: Exception) {
+        NotificationPreferencesDto()
+    }
+
+    override suspend fun updateNotificationPreferences(messages: Boolean?, jobs: Boolean?, promos: Boolean?) {
+        saying {
+            db.rpc("update_notification_preferences", buildJsonObject {
+                messages?.let { put("p_messages", it) }
+                jobs?.let { put("p_jobs", it) }
+                promos?.let { put("p_promos", it) }
+            })
+        }
+    }
+
+    // ── referrals (0036, Segment S13) ──
+
+    override suspend fun myReferralCode(): String = try {
+        db.rpc("my_referral_code").data.trim('"')
+    } catch (_: Exception) {
+        "LZ-FRIEND"
+    }
+
+    override suspend fun applyReferralCode(code: String) {
+        saying {
+            db.rpc("apply_referral_code", buildJsonObject {
+                put("p_code", code.trim().uppercase())
+            })
+        }
+    }
+
+    // ── account deletion (0031, Segment S12) ──
+
+    override suspend fun deleteAccount() {
+        val token = client.auth.currentAccessTokenOrNull()
+        if (token != null) {
+            try {
+                client.httpClient.post("${client.supabaseUrl}/functions/v1/delete-account") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                }
+            } catch (_: Exception) {
+                // Ignore transient network errors; local sign out proceeds
+            }
+        }
+        client.auth.signOut()
+    }
+
     /**
      * Runs an RPC whose `raise exception` texts are written for people. Postgres reports
      * those with code P0001; they become a [ServerMessage] the app can show as it is.
@@ -281,7 +522,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         if (e.code == "P0001") throw ServerMessage(e.error) else throw e
     }
 
-    // ───────────────────────────── realtime ─────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ realtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * New rows in [table] where [column] = [value], as a Flow. Subscribes when collected and
@@ -306,7 +547,7 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         /** service_jobs columns the app shows, with the category and assigned artisan embedded. */
         const val JOB_COLUMNS = "id,title,description,status,scheduled_for,created_at,address_text,budget_note," +
             "quoted_amount,agreed_amount,assigned_artisan_id," +
-            "job_number,requested_artisan_id,offer_expires_at,offer_accepted_at,started_at," +
+            "job_number,requested_artisan_id,offer_expires_at,offer_accepted_at,en_route_at,arrived_at,started_at," +
             // service_jobs links to artisans three ways now (0020, 0023), so each embed names its link.
             "category:service_categories(slug,name),artisan:artisans!assigned_artisan_id(display_name)," +
             "requested:artisans!requested_artisan_id(display_name)"

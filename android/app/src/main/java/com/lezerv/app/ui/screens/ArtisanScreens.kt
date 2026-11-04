@@ -134,7 +134,7 @@ fun ArtisanMapScreen(s: LezervState) {
             ) { Box(Modifier.size(26.dp).background(if (on) Lz.Accent else Lz.Ink)) }
         }
         Row(Modifier.padding(start = 12.dp, top = 86.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!s.isLive) MapChip("Today ${naira(s.earnedToday)}")
+            MapChip("Today ${naira(s.earnedTodayAmount)}")
             MapChip("Radius ${s.radiusKm} km")
         }
         Column(Modifier.align(Alignment.TopEnd).padding(top = 86.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -421,16 +421,39 @@ private fun CompletedList(s: LezervState, plus: Boolean) {
 
 // ───────────────────────────── earnings ─────────────────────────────
 
-/** PROPOSAL: earnings and payouts need backend work. */
+/** Earnings and escrow ledger screen. */
 @Composable
 fun EarningsScreen(s: LezervState) {
     if (s.isLive) {
         val done = s.live?.artisanJobs.orEmpty().filter { it.status == "completed" }
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Txt("LAST 60 DAYS · AGREED WITH CLIENTS", label(color = Lz.Neutral700))
-            Txt(naira(done.sumOf { it.agreedAmount ?: 0.0 }), heading(64, 62, weight = 700))
-            Txt("${done.size} completed job${if (done.size == 1) "" else "s"}. Payouts through Lezerv arrive with in-app payments; until then this is a record of agreed prices, not money held for you.",
-                body(14, 21, color = Lz.Neutral800))
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp)) {
+                Txt("AVAILABLE BALANCE · AFTER 20% COMMISSION", label(color = Lz.Neutral700))
+                Txt(naira(s.availableBalance), heading(64, 62, weight = 700))
+            }
+            Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp).fillMaxWidth().blueprint().border(1.dp, Lz.Ink)) {
+                MoneyCell("Available", naira(s.availableBalance), "to withdraw", Modifier.weight(1f))
+                MoneyCell("In escrow", naira(s.inEscrow), "until confirmed", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
+                MoneyCell("Paid out", naira(s.paidOut), "total paid out", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
+            }
+            PrimaryWide(if (s.payoutSaved) "Withdraw to ${s.payoutLabel}" else "Add payout account", "landmark", { s.withdraw() }, Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp))
+            SectionRule("01", "How you are paid", Modifier.padding(top = 28.dp, bottom = 10.dp))
+            Txt("The client pays into Lezerv escrow when they book. Once the client confirms the job is done, funds move to your available balance for payout.",
+                body(14, 21, color = Lz.Neutral800), Modifier.padding(horizontal = 20.dp))
+            SectionRule("02", "Completed jobs", Modifier.padding(top = 28.dp, bottom = 4.dp))
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                if (done.isEmpty()) Txt("Completed jobs and earnings show here.", body(13, color = Lz.Neutral700), Modifier.padding(vertical = 14.dp))
+                done.forEach { j ->
+                    val takeHome = ((j.agreedAmount ?: 0.0) * 0.8).roundToInt()
+                    Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Txt(j.title, body(15, weight = 600))
+                            Txt(listOfNotNull(j.clientFirstName, j.areaName, shortDate(j.createdAt)).joinToString(" · "), body(12, color = Lz.Neutral700))
+                        }
+                        Txt("+${naira(takeHome)}", heading(19, color = Lz.Accent700))
+                    }
+                }
+            }
         }
         return
     }
@@ -454,9 +477,9 @@ fun EarningsScreen(s: LezervState) {
         }
         // Available / held / paid out: the three states money moves through (first design, slide 13).
         Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp).fillMaxWidth().blueprint().border(1.dp, Lz.Ink)) {
-            MoneyCell("Available", naira(AVAILABLE_BALANCE), "to withdraw", Modifier.weight(1f))
-            MoneyCell("In escrow", naira(s.earnedToday), "until confirmed", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
-            MoneyCell("Paid out", naira(PAID_THIS_MONTH), "this month", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
+            MoneyCell("Available", naira(s.availableBalance), "to withdraw", Modifier.weight(1f))
+            MoneyCell("In escrow", naira(s.inEscrow), "until confirmed", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
+            MoneyCell("Paid out", naira(s.paidOut), "this month", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider))
         }
         if (!s.payoutSaved) Row(
             Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp).fillMaxWidth().background(Lz.Accent100).border(1.dp, Lz.Accent).tap { s.push(Pushed.Payout) }.padding(14.dp),
@@ -510,12 +533,13 @@ fun ArtisanAccountScreen(s: LezervState) {
         }
         SectionRule("02", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
         AccountRows(
-            // Verification, services and payouts are still sample screens; live hides them.
+            // Verification and payouts are still sample screens; live hides them.
             (if (s.isLive) emptyList() else listOf(
                 AccountRow("badge-check", "Verification", "ID and address verified") { s.push(Pushed.Verify(onboarding = false)) },
-                AccountRow("wrench", "Services and prices", "Plumbing · ${s.account.services.count { it.on }} services") { s.push(Pushed.Services) },
+
                 AccountRow("landmark", "Payout account", s.payoutLabel) { s.push(Pushed.Payout) },
             )) + listOf(
+                AccountRow("wrench", "Services and prices", "${s.account.services.count { it.on }} active") { s.push(Pushed.Services) },
                 AccountRow("life-buoy", "Help", "Questions and support chat") { s.push(Pushed.Help) },
                 AccountRow("settings", "Settings", "Notifications, language, log out") { s.push(Pushed.Settings) },
             ) + demoRows(s),

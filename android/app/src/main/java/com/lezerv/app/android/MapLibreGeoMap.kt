@@ -45,6 +45,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -108,13 +109,29 @@ class MapLibreGeoMap(private val styleUrl: String) : GeoMap {
         LaunchedEffect(map, aim, plane, size) {
             val m = map ?: return@LaunchedEffect
             if (size.height == 0) return@LaunchedEffect
-            val zoom = if (placed) m.cameraPosition.zoom else ZOOM
-            // The target should sit aim.fromTop dp from the top, so the camera's centre is
-            // that much further down the map: convert the dp to map units at this zoom.
-            val dpBelow = size.height / 2f / context.resources.displayMetrics.density - aim.fromTop
-            val centre = plane.toGeo(Pt(aim.target.x, aim.target.y + dpBelow / dpPerUnit(plane, zoom)))
-            val update = CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(LatLng(centre.lat, centre.lng)).zoom(zoom).build())
-            if (placed) m.animateCamera(update, 450) else m.moveCamera(update)
+            val density = context.resources.displayMetrics.density
+            val framing = aim.framing
+            val update = if (framing != null) {
+                val bounds = LatLngBounds.Builder()
+                    .include(LatLng(framing.sw.lat, framing.sw.lng))
+                    .include(LatLng(framing.ne.lat, framing.ne.lng))
+                    .build()
+                CameraUpdateFactory.newLatLngBounds(
+                    bounds,
+                    (framing.paddingLeftDp * density).toInt(),
+                    (framing.paddingTopDp * density).toInt(),
+                    (framing.paddingRightDp * density).toInt(),
+                    (framing.paddingBottomDp * density).toInt(),
+                )
+            } else {
+                val zoom = if (placed) m.cameraPosition.zoom else ZOOM
+                // The target should sit aim.fromTop dp from the top, so the camera's centre is
+                // that much further down the map: convert the dp to map units at this zoom.
+                val dpBelow = size.height / 2f / density - aim.fromTop
+                val centre = plane.toGeo(Pt(aim.target.x, aim.target.y + dpBelow / dpPerUnit(plane, zoom)))
+                CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(LatLng(centre.lat, centre.lng)).zoom(zoom).build())
+            }
+            if (placed) m.animateCamera(update, 550) else m.moveCamera(update)
             placed = true
         }
 

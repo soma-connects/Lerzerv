@@ -272,7 +272,8 @@ private fun SelectedArtisan(s: LezervState, a: Artisan) {
             OutlineButton("Profile", { s.push(Pushed.Profile(a.id)) }, Modifier.weight(1f))
             PrimaryButton({ s.startBooking(a.id) }, Modifier.weight(1.6f), minHeight = 52.dp) {
                 Txt((if (a.laundry) "Book pickup" else "Book now").uppercase(), heading(18, tracking = .05f, color = Color.White), Modifier.weight(1f))
-                Txt(naira(a.from), heading(15, tracking = .05f, color = Color.White.copy(alpha = .85f)))
+                val fromPrice = s.servicesFor(a.id)?.filter { it.active }?.minOfOrNull { it.fromPriceNaira } ?: a.from
+                Txt(naira(fromPrice), heading(15, tracking = .05f, color = Color.White.copy(alpha = .85f)))
             }
         }
     }

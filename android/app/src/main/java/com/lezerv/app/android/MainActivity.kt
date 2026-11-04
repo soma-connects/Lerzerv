@@ -50,7 +50,8 @@ class MainViewModel : ViewModel() {
     val state: LezervState = if (backend.isSet) {
         // Live: real artisans, sign-in, jobs, chat and notifications. Starts as a guest,
         // or as whoever signed in last time. viewModelScope stops its work when the app closes.
-        LezervState(demo = BuildConfig.DEMO_MODE).also { it.connect(SupabaseApi(createLezervClient(backend)), viewModelScope, BuildConfig.VERSION_NAME) }
+        val api = LezervApplication.api ?: SupabaseApi(createLezervClient(backend)).also { LezervApplication.api = it }
+        LezervState(demo = BuildConfig.DEMO_MODE).also { it.connect(api, viewModelScope, BuildConfig.VERSION_NAME) }
     } else {
         // Sample data: the demo build starts signed in as the sample user (Settings → Log out
         // shows sign-in); a non-demo build starts as a guest who can look around first.
@@ -98,9 +99,20 @@ class MainActivity : ComponentActivity() {
             val uri = if (at != null) "geo:${at.lat},${at.lng}?q=${at.lat},${at.lng}(${Uri.encode(address)})" else "geo:0,0?q=" + Uri.encode("$address, Lagos")
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a maps app for directions") }
         }
+        // Browser: checkout via Paystack authorization url or external links.
+        state.openBrowser = { url ->
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a browser to complete payment") }
+        }
         // The phone's location: the map centres on you, and online artisans share where they are.
         state.attachLocator(AndroidLocator(this))
-        // Android's share sheet: WhatsApp, SMS, email…
+        // Foreground service for streaming live GPS while an artisan is en route to an active job.
+        state.startLocationTracking = { jobId, clientName, dest ->
+            com.lezerv.app.service.LocationTrackingService.start(this, jobId, clientName, dest)
+        }
+        state.stopLocationTracking = {
+            com.lezerv.app.service.LocationTrackingService.stop(this)
+        }
+        // Android's share sheet: WhatsApp, SMS, emailâ€¦
         state.share = { text ->
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
             startActivity(Intent.createChooser(send, null))
@@ -182,6 +194,9 @@ class MainActivity : ComponentActivity() {
         appState.dial = null
         appState.share = null
         appState.openMaps = null
+        appState.openBrowser = null
+        appState.startLocationTracking = null
+        appState.stopLocationTracking = null
         appState.attachLocator(null) // it holds this Activity
         appState.notificationsAllowed = null
         Push.onToken = null

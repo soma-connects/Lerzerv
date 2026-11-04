@@ -38,12 +38,14 @@ import com.lezerv.app.data.SPLASH_MS
 import com.lezerv.app.data.CANCEL_FEE
 import com.lezerv.app.data.CANCEL_REASONS
 import com.lezerv.app.data.REPORT_REASONS
+import com.lezerv.app.data.remote.CancellationRefundDto
 import com.lezerv.app.data.SEED_MESSAGES
 import com.lezerv.app.data.SEED_PAST
 import com.lezerv.app.data.SUPPORT
 import com.lezerv.app.data.REVIEWS
 import com.lezerv.app.data.Review
 import com.lezerv.app.data.remote.ArtisanJobDto
+import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.areaSlug
 import com.lezerv.app.data.remote.LezervApi
@@ -141,6 +143,7 @@ data class ClientJob(
     val number: String = "", val payMethod: String = "",
     /** Price before Lezerv's 5% fee, and the fee itself, for the receipt. */
     val sub: Int = 0, val fee: Int = 0,
+    val id: String = "",
 ) {
     val lastStage get() = if (laundry) 5 else 4
     /** Stages where someone is driving: the artisan to you, or the laundry rider both ways. */
@@ -214,6 +217,12 @@ class LezervState(
     var share: ((String) -> Unit)? = null
     /** Opens a maps app (Google Maps) for directions: at the pin when there is one, else the address. */
     var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
+    /** Opens a web browser (e.g. for Paystack checkout). */
+    var openBrowser: ((String) -> Unit)? = null
+    /** Starts foreground GPS tracking while an artisan is en route to an active job. */
+    var startLocationTracking: ((jobId: String, clientName: String, dest: String) -> Unit)? = null
+    /** Stops foreground GPS tracking when artisan arrives or job concludes. */
+    var stopLocationTracking: (() -> Unit)? = null
 
     // ── launch ──
     /** Branded splash (Board 1h), shown for [SPLASH_MS] at cold start. */
@@ -238,6 +247,7 @@ class LezervState(
     /** Everyone on the map: sample artisans, or the backend's once LiveSync loads them. */
     var artisans by mutableStateOf(ARTISANS); private set
     fun artisan(id: String?): Artisan? = artisans.firstOrNull { it.id == id }
+    fun servicesFor(artisanId: String): List<ArtisanServiceDto>? = live?.artisanServices?.get(artisanId)
     fun replaceArtisans(list: List<Artisan>) { artisans = list; if (selected != null && artisan(selected) == null) selected = null }
     var category by mutableStateOf("all")
     var query by mutableStateOf("")
@@ -293,6 +303,10 @@ class LezervState(
     // ── pay-into-escrow sheet (first design, slide 8) ──
     var paying by mutableStateOf(false); private set
     var payMethod by mutableIntStateOf(0)
+    var payingJobId by mutableStateOf<String?>(null)
+    var paymentProcessing by mutableStateOf(false)
+    var paymentWaitingReference by mutableStateOf<String?>(null)
+    var liveCancellationRefund by mutableStateOf<CancellationRefundDto?>(null); private set
 
     // ── review sheet ──
     var reviewing by mutableStateOf(false); private set
@@ -346,6 +360,37 @@ class LezervState(
     var artisanJob by mutableStateOf<ArtisanJob?>(null); private set
     var code by mutableStateOf("")
     var earnedToday by mutableIntStateOf(6400); private set
+    val earnedTodayAmount: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.availableKobo?.div(100))?.toInt() ?: 0
+        }
+        return earnedToday
+    }
+
+    val availableBalance: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.availableKobo?.div(100))?.toInt() ?: 0
+        }
+        return 38400
+    }
+
+    val inEscrow: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.inEscrowKobo?.div(100))?.toInt() ?: 0
+        }
+        return 12500
+    }
+
+    val paidOut: Int get() {
+        val live = live
+        if (live != null) {
+            return (live.earnings?.paidOutKobo?.div(100))?.toInt() ?: 0
+        }
+        return 84000
+    }
     var radiusKm by mutableIntStateOf(5)
     var artisanPast by mutableStateOf(listOf(ArtisanPast("Blocked shower drain", "Femi A. · Ikate · Yesterday", 8000), ArtisanPast("Water heater fix", "Ngozi E. · Lekki · Wed", 12000))); private set
 
@@ -390,7 +435,13 @@ class LezervState(
 
     fun push(p: Pushed) {
         stack = stack + p
-        if (p is Pushed.Profile) live?.loadReviews(p.artisanId)
+        if (p is Pushed.Profile) {
+            live?.loadReviews(p.artisanId)
+            live?.loadArtisanServices(p.artisanId)
+        }
+        if (p is Pushed.Services && live?.isArtisan == true) {
+            live?.me?.id?.let { live?.loadArtisanServices(it, force = true) }
+        }
     }
 
     /** True while system back should stay inside the app; false lets Android close it. */
@@ -436,6 +487,7 @@ class LezervState(
     /** Tap on a pin or list row: select it and pan the map so it sits above the sheet. */
     fun pick(id: String, viewportW: Float) {
         val a = artisan(id) ?: return
+        live?.loadArtisanServices(id)
         selected = id; sheet = Sheet.Peek
         panX = viewportW / 2 - a.x
         panY = 230f - a.y
@@ -465,7 +517,10 @@ class LezervState(
     }
 
     /** Back on screen: people move between visits, so look again (quietly, never asking). */
-    fun onForeground() { if (locator?.allowed() == true) useMyLocation(ask = false) }
+    fun onForeground() {
+        if (locator?.allowed() == true) useMyLocation(ask = false)
+        live?.checkPendingPayment()
+    }
 
     /**
      * Finds the phone and centres the app on it. With [ask] (someone tapped "my location"),
@@ -502,6 +557,7 @@ class LezervState(
     fun startBooking(id: String) {
         bookArtisan = id; option = 0; whenIdx = 0; slot = 1; note = ""
         laundryCounts = listOf(5, 3, 1, 0); pickupWindow = 0; express = false
+        live?.loadArtisanServices(id)
         push(Pushed.Book)
     }
 
@@ -512,7 +568,14 @@ class LezervState(
         if (a.laundry) {
             sub = laundryCounts.withIndex().sumOf { (i, n) -> n * LAUNDRY_ITEMS[i].second }
             extra = if (express) EXPRESS_FEE else 0
-        } else sub = optionPrice(a, option)
+        } else {
+            val custom = servicesFor(a.id)?.filter { it.active }
+            sub = if (!custom.isNullOrEmpty()) {
+                custom.getOrNull(option)?.fromPriceNaira ?: optionPrice(a, option)
+            } else {
+                optionPrice(a, option)
+            }
+        }
         return BookTotal(sub, extra, ((sub + extra) * SERVICE_FEE).roundToInt())
     }
 
@@ -520,8 +583,17 @@ class LezervState(
 
     /** Opens the "Pay into escrow" sheet to pick bank transfer, card or USSD. */
     /** Guests can look around freely; paying is the moment we ask them to sign in (Board 1g). */
-    fun openPay() = account.requireSignIn { payMethod = if (account.defaultCard != null) 1 else 0; paying = true }
-    fun closePay() { paying = false }
+    fun openPay(jobId: String? = null) = account.requireSignIn {
+        payingJobId = jobId
+        payMethod = if (account.defaultCard != null) 1 else 0
+        paying = true
+    }
+    fun closePay() {
+        paying = false
+        payingJobId = null
+        paymentProcessing = false
+        paymentWaitingReference = null
+    }
 
     /**
      * Live mode's "Send request" (no payments on the backend yet): posts the job with what
@@ -532,7 +604,14 @@ class LezervState(
         val a = artisan(bookArtisan) ?: return@requireSignIn
         val ad = account.currentAddress
         if (ad == null) { toast("Add where the artisan should come"); account.editAddress(null); return@requireSignIn }
-        val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+        val custom = servicesFor(a.id)?.filter { it.active }
+        val title = if (a.laundry) {
+            "Laundry · ${laundryCounts.sum()} items"
+        } else if (!custom.isNullOrEmpty()) {
+            custom.getOrNull(option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        } else {
+            OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        }
         val estimate = naira(bookTotal().total)
         val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
         val details = buildMap {
@@ -574,12 +653,53 @@ class LezervState(
     /** What the artisan takes home from a booking: the price before Lezerv's 5% fee, minus 20%. */
     fun artisanTakeHome(b: BookTotal) = ((b.sub + b.extra) * 0.8).roundToInt()
 
-    /** PROPOSAL: escrow. Payment is held by Lezerv until the client confirms the job is done. */
+    /** Escrow: payment is held by Lezerv until the client confirms the job is done. */
     fun pay() {
+        val live = live
+        if (live != null) {
+            val jId = payingJobId
+            if (jId != null) {
+                live.startPayment(jId)
+                return
+            }
+            val a = artisan(bookArtisan) ?: return
+            val ad = account.currentAddress
+            if (ad == null) {
+                toast("Add where the artisan should come")
+                account.editAddress(null)
+                return
+            }
+            val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+            val estimate = naira(bookTotal().total)
+            val items = LAUNDRY_ITEMS.indices.filter { laundryCounts[it] > 0 }.joinToString(", ") { "${laundryCounts[it]} × ${LAUNDRY_ITEMS[it].first.lowercase()}" }
+            val details = buildMap {
+                put("estimate", estimate)
+                put("when", if (a.laundry) PICKUP_WINDOWS[pickupWindow] else whenLabel())
+                if (a.laundry) { put("items", items); put("return", if (express) "Express, 24 hours" else "Standard, 48 hours") }
+            }
+            live.bookAndPay(
+                Booking(
+                    artisanId = a.id, categorySlug = a.slug ?: backendSlug(a.svc), title = title, addressId = ad.id,
+                    description = listOfNotNull(if (a.laundry) "$items · pickup ${PICKUP_WINDOWS[pickupWindow]}" else null, note.trim().takeIf { it.isNotEmpty() })
+                        .joinToString("\n").ifBlank { null },
+                    scheduledFor = scheduledFor(a), budgetNote = "App estimate $estimate", details = details,
+                ),
+                a.first,
+            )
+            return
+        }
+
         paying = false
         val a = artisan(bookArtisan) ?: return
         val b = bookTotal()
-        val title = if (a.laundry) "Laundry · ${laundryCounts.sum()} items" else OPTIONS.getValue(a.svc)[option]
+        val custom = servicesFor(a.id)?.filter { it.active }
+        val title = if (a.laundry) {
+            "Laundry · ${laundryCounts.sum()} items"
+        } else if (!custom.isNullOrEmpty()) {
+            custom.getOrNull(option)?.name ?: OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        } else {
+            OPTIONS.getValue(a.svc).getOrElse(option) { "Service" }
+        }
         val whenLabel = if (a.laundry) PICKUP_WINDOWS[pickupWindow] else if (whenIdx == 0) "Now" else SLOTS[slot]
         job = ClientJob(a.id, a.laundry, 0, 0f, b.total, title, whenLabel, express, "J-0${nextJobNo++}", payMethodLabel, b.sub + b.extra, b.fee)
         system(a.id, "You booked ${a.first} for ${title.lowercase()}. ${naira(b.total)} is held by Lezerv until you confirm the job is done.")
@@ -597,11 +717,50 @@ class LezervState(
         job = j.copy(stage = j.stage + 1, t = 0f).also(::onStage)
     }
 
-    fun openReview() { reviewing = true; stars = 5; reviewTags = listOf("On time"); reviewComment = "" }
+    var reviewJobId by mutableStateOf<String?>(null)
+
+    fun openReview() = openReview(null)
+
+    fun openReview(jobId: String?) {
+        val live = live
+        if (live != null && jobId != null && job == null) {
+            val j = live.jobs.firstOrNull { it.id == jobId }
+            val artId = j?.assignedArtisanId ?: j?.requestedArtisanId ?: "7f3e"
+            val total = (j?.agreedAmount ?: j?.quotedAmount ?: 0.0).toInt()
+            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j?.title ?: "Job", whenLabel = "Done", express = false, number = j?.jobNumber?.let { "J-0$it" } ?: "", id = jobId)
+        } else if (job != null && jobId != null) {
+            job = job?.copy(id = jobId)
+        }
+        reviewJobId = jobId
+        reviewing = true
+        stars = 5
+        reviewTags = listOf("On time")
+        reviewComment = ""
+    }
 
     fun toggleTag(t: String) { reviewTags = if (t in reviewTags) reviewTags - t else reviewTags + t }
 
-    fun submitReview() {
+    fun submitReview() = submitReview(null)
+
+    fun submitReview(jobId: String?) {
+        val live = live
+        if (live != null) {
+            val j = job
+            val targetId = jobId
+                ?: reviewJobId
+                ?: j?.id?.takeIf { it.isNotBlank() }
+                ?: live.jobs.firstOrNull { it.status == "completed" }?.id
+                ?: live.jobs.firstOrNull()?.id
+                ?: j?.number.orEmpty()
+            val comment = reviewComment.trim().ifBlank { null }
+            val tags = reviewTags
+            val rating = stars
+            val artId = j?.artisanId ?: live.jobs.firstOrNull { it.id == targetId }?.assignedArtisanId
+            reviewing = false; job = null; reviewJobId = null
+            live.submitReview(targetId, rating, comment, tags, artId)
+            stack = emptyList(); tab = Tab.ClientJobs
+            return
+        }
         val j = job ?: return
         val a = artisan(j.artisanId) ?: return
         reviewing = false; job = null
@@ -767,11 +926,11 @@ class LezervState(
     fun reset(withHistory: Boolean = true) {
         val fresh = LezervState(demo, clock, splash = false, signedIn = withHistory)
         role = fresh.role; tab = fresh.tab; stack = fresh.stack; category = fresh.category; query = ""; selected = null; sheet = Sheet.Peek
-        panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; messages = fresh.messages
+        panX = null; panY = null; blueprintMap = true; job = null; past = fresh.past; reviewing = false; reviewJobId = null; messages = fresh.messages
         chatWith = null; draft = ""; snack = null; online = false; requestOpen = false; nextRequestAt = 0L; artisanJob = null
         code = ""; earnedToday = fresh.earnedToday; radiusKm = fresh.radiusKm; artisanPast = fresh.artisanPast
         showPrime = false; primed = false; notices = fresh.notices; declining = false; offline = false
-        paying = false; nextJobNo = 142; reviewComment = ""; payoutSaved = true; cancelling = false; reportJob = ""
+        paying = false; payingJobId = null; paymentProcessing = false; paymentWaitingReference = null; liveCancellationRefund = null; cancellingJobId = null; nextJobNo = 142; reviewComment = ""; payoutSaved = true; cancelling = false; reportJob = ""
         idType = 0; idNumber = ""; docsUploaded = fresh.docsUploaded; payoutBank = fresh.payoutBank; payoutAccount = fresh.payoutAccount; bvn = ""
     }
 
@@ -780,15 +939,63 @@ class LezervState(
 
     // ───────────────────────────── cancel booking ─────────────────────────────
 
+    var cancellingJobId by mutableStateOf<String?>(null); private set
+
     /** Cancelling is allowed until the artisan arrives (or the laundry is picked up). */
-    val canCancel get() = job?.let { it.stage <= 1 } == true
+    val canCancel get() = cancellingJobId != null || (job?.let { it.stage <= 1 } == true)
 
-    /** PROPOSAL policy: free while confirming; once they're on the way the call-out fee is kept. */
-    val cancelFee: Int get() = job?.let { if (it.stage == 0) 0 else CANCEL_FEE.coerceAtMost(it.total) } ?: 0
+    val cancelFee: Int get() {
+        val liveRefund = liveCancellationRefund
+        if (live != null && liveRefund != null) {
+            return (liveRefund.cancellationFeeKobo / 100).toInt()
+        }
+        return job?.let { if (it.stage == 0) 0 else CANCEL_FEE.coerceAtMost(it.total) } ?: 0
+    }
 
-    fun openCancel() { if (canCancel) { cancelReason = 0; cancelling = true } }
+    val cancelRefundAmount: Int get() {
+        val liveRefund = liveCancellationRefund
+        if (live != null && liveRefund != null) {
+            return (liveRefund.refundableAmountKobo / 100).toInt()
+        }
+        return job?.let { it.total - cancelFee } ?: 0
+    }
+
+    val cancelPolicyReason: String? get() = liveCancellationRefund?.policyReason
+
+    internal fun onCancellationRefundLoaded(refund: CancellationRefundDto) {
+        liveCancellationRefund = refund
+    }
+
+    fun openCancel(jobId: String? = null) {
+        cancellingJobId = jobId
+        liveCancellationRefund = null
+        if (jobId != null && live != null) {
+            live?.loadCancellationRefund(jobId)
+            cancelReason = 0
+            cancelling = true
+            return
+        }
+        if (canCancel) {
+            cancelReason = 0
+            cancelling = true
+        }
+    }
 
     fun confirmCancel() {
+        val cJobId = cancellingJobId
+        if (cJobId != null && live != null) {
+            val refund = cancelRefundAmount
+            live?.cancel(cJobId)
+            cancelling = false
+            cancellingJobId = null
+            liveCancellationRefund = null
+            if (refund > 0) {
+                toast("Cancelled. ${naira(refund)} refund on its way.")
+            } else {
+                toast("Booking cancelled.")
+            }
+            return
+        }
         val j = job ?: return
         val a = jobArtisan ?: return
         val refund = j.total - cancelFee
@@ -961,9 +1168,24 @@ class LezervState(
     val idDigits get() = ID_TYPES[idType].second
     val verifyReady get() = idNumber.length == idDigits && docsUploaded.all { it }
 
-    /** PROPOSAL: documents go to a private bucket and the team reviews them. */
+    /** Documents go to private KYC storage bucket and team reviews them (Segment S9). */
     fun submitVerification(onboarding: Boolean) {
         if (!verifyReady) { toast(if (idNumber.length != idDigits) "Enter your ${idDigits}-character ${ID_TYPES[idType].first}" else "Add all three documents"); return }
+        val mappedId = when (idType) {
+            0 -> "nin"
+            1 -> "voters_card"
+            2 -> "intl_passport"
+            3 -> "drivers_license"
+            else -> "nin"
+        }
+        val liveSync = live
+        if (isLive && liveSync != null) {
+            liveSync.submitKyc(mappedId, idNumber) {
+                stack = stack.dropLast(1)
+                toast(if (onboarding) "Verification submitted for review. We’ll notify you once approved." else "Verification details updated")
+            }
+            return
+        }
         if (onboarding && demo) {
             switchRole(Role.Artisan)
             payoutSaved = false; payoutAccount = "" // a new artisan has no bank details yet
