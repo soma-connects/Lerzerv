@@ -48,6 +48,7 @@ import com.lezerv.app.data.remote.ArtisanJobDto
 import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.areaSlug
+import com.lezerv.app.data.remote.jobRef
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.active
 import com.lezerv.app.data.remote.backendSlug
@@ -727,7 +728,7 @@ class LezervState(
             val j = live.jobs.firstOrNull { it.id == jobId }
             val artId = j?.assignedArtisanId ?: j?.requestedArtisanId ?: "7f3e"
             val total = (j?.agreedAmount ?: j?.quotedAmount ?: 0.0).toInt()
-            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j?.title ?: "Job", whenLabel = "Done", express = false, number = j?.jobNumber?.let { "J-0$it" } ?: "", id = jobId)
+            job = ClientJob(artisanId = artId, laundry = false, stage = 4, t = 1f, total = total, title = j?.title ?: "Job", whenLabel = "Done", express = false, number = jobRef(j?.jobNumber) ?: "", id = jobId)
         } else if (job != null && jobId != null) {
             job = job?.copy(id = jobId)
         }

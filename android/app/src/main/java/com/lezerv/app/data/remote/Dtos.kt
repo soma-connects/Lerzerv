@@ -123,7 +123,7 @@ data class JobDto(
     val category: SlugName? = null,
     val artisan: NameRef? = null,
     // 0023: booking a chosen artisan
-    @SerialName("job_number") val jobNumber: Long? = null,
+    @SerialName("job_number") val jobNumber: String? = null,
     @SerialName("requested_artisan_id") val requestedArtisanId: String? = null,
     val requested: NameRef? = null,
     @SerialName("offer_expires_at") val offerExpiresAt: String? = null,
@@ -235,7 +235,7 @@ data class MyArtisanDto(
 @Serializable
 data class ArtisanJobDto(
     val id: String,
-    @SerialName("job_number") val jobNumber: Long? = null,
+    @SerialName("job_number") val jobNumber: String? = null,
     val title: String,
     val description: String? = null,
     val status: String,

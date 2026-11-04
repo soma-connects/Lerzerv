@@ -128,7 +128,8 @@ fun isoMillis(iso: String?): Long? = iso?.let(::parseIso)?.toInstant()?.toEpochM
 fun secondsLeft(iso: String?, nowMs: Long): Int = isoMillis(iso)?.let { ((it - nowMs + 999) / 1000).toInt().coerceAtLeast(0) } ?: 0
 
 /** "J-1042", the reference people read out to support. */
-fun jobRef(number: Long?): String? = number?.let { "J-$it" }
+/** 0029: the server formats job numbers itself ("J-0042"); older rows were converted the same way. */
+fun jobRef(number: String?): String? = number?.trim()?.ifEmpty { null }
 
 /** The app's areas → service_areas slugs (0008). Lekki Phase 1, Ikate and Osapa are all Lekki. */
 fun areaSlug(area: String): String = if (area.startsWith("Ikoyi")) "ikoyi" else "lekki"

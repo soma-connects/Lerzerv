@@ -68,7 +68,7 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     /** A service_jobs row plus its job_private row. */
     data class Job(
         val id: String, val client: String, val title: String, val category: SlugName, var status: String,
-        var artisan: String?, val requested: String?, val number: Long, val area: String, val fullAddress: String?,
+        var artisan: String?, val requested: String?, val number: String, val area: String, val fullAddress: String?,
         val code: String?, var offerExpires: Long?, var accepted: Boolean,
         var enRouteAt: Long? = null, var arrivedAt: Long? = null, var startedAt: Long? = null,
         /** job_private.lat/lng (0027): the address's pin, if it had one. */
@@ -82,8 +82,8 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     }
 
     val jobs = mutableListOf(
-        Job("j1", "user-1", "Leak repair", SlugName("plumbing", "Plumbing"), "assigned", "7f3e", null, 1001, "Lekki Phase 1", "12 Admiralty Way, Lekki Phase 1", null, null, false, quoted = 15000.0),
-        Job("j0", "user-1", "Deep clean", SlugName("cleaning", "Cleaning"), "completed", "c1a0", null, 1000, "Lekki Phase 1", null, null, null, false, created = "2026-09-12T10:00:00+00:00", agreed = 42000.0),
+        Job("j1", "user-1", "Leak repair", SlugName("plumbing", "Plumbing"), "assigned", "7f3e", null, "J-1001", "Lekki Phase 1", "12 Admiralty Way, Lekki Phase 1", null, null, false, quoted = 15000.0),
+        Job("j0", "user-1", "Deep clean", SlugName("cleaning", "Cleaning"), "completed", "c1a0", null, "J-1000", "Lekki Phase 1", null, null, null, false, created = "2026-09-12T10:00:00+00:00", agreed = 42000.0),
     )
     val conversations = mutableListOf(ConversationDto("conv1", "j1", "7f3e", "2026-10-05T09:12:00+00:00", NameRef("Tunde Bakare"), TitleRef("Leak repair")))
     val messages = mutableListOf(
@@ -292,7 +292,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         val ad = world.addresses[me()]?.firstOrNull { it.id == b.addressId } ?: throw ServerMessage("choose one of your saved addresses")
         val job = FakeWorld.Job(
             world.next("job-"), me(), b.title, SlugName(b.categorySlug, b.categorySlug.replaceFirstChar { it.uppercase() }), "assigned", a.id, a.id,
-            1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
+            "J-" + (1000 + world.jobs.size + 1), ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
             world.clock() + 30_000, false, description = b.description, details = b.details,
             pin = if (ad.lat != null && ad.lng != null) GeoPoint(ad.lat, ad.lng) else null,
         )

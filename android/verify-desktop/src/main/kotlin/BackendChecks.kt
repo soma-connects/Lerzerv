@@ -57,7 +57,7 @@ fun main() = runBlocking {
             path == "/rest/v1/service_jobs" -> respond(
                 """[{"id":"j1","title":"Leak repair","description":null,"status":"assigned","scheduled_for":null,"created_at":"2026-10-05T09:00:00+00:00","address_text":"12 Admiralty Way","budget_note":null,"quoted_amount":null,"agreed_amount":null,"assigned_artisan_id":"7f3e","category":{"slug":"plumbing","name":"Plumbing"},"artisan":{"display_name":"Tunde Bakare"}}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/book_artisan" -> respond(
-                """{"id":"j2","client_id":"user-1","category_id":"c2","area_id":"a1","title":"Leak repair","description":null,"address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","status":"assigned","assigned_artisan_id":"7f3e","requested_artisan_id":"7f3e","offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"job_number":1042,"details":{"estimate":"₦15,750"},"created_at":"2026-10-05T09:05:00+00:00","updated_at":"2026-10-05T09:05:00+00:00"}""", HttpStatusCode.OK, json)
+                """{"id":"j2","client_id":"user-1","category_id":"c2","area_id":"a1","title":"Leak repair","description":null,"address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","status":"assigned","assigned_artisan_id":"7f3e","requested_artisan_id":"7f3e","offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"job_number":"J-1042","details":{"estimate":"₦15,750"},"created_at":"2026-10-05T09:05:00+00:00","updated_at":"2026-10-05T09:05:00+00:00"}""", HttpStatusCode.OK, json)
             path == "/rest/v1/client_addresses" && r.method.value == "GET" -> respond(
                 """[{"id":"addr1","label":"Home","street":"4 Bishop Aboyade Cole St","area":"Ikate","area_slug":"lekki","note":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/client_addresses" && r.method.value == "POST" -> respond(
@@ -72,7 +72,7 @@ fun main() = runBlocking {
             path == "/rest/v1/rpc/set_artisan_availability" -> respond("", HttpStatusCode.NoContent, json)
             path == "/rest/v1/rpc/update_my_location" -> respond("true", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/my_artisan_jobs" -> respond(
-                """[{"id":"j2","job_number":1042,"title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null,"area_lat":6.445,"area_lng":3.49,"lat":null,"lng":null}]""", HttpStatusCode.OK, json)
+                """[{"id":"j2","job_number":"J-1042","title":"Leak repair","description":null,"status":"assigned","category_slug":"plumbing","category_name":"Plumbing","area_name":"Lekki","address_text":"Ikate","scheduled_for":null,"budget_note":"App estimate ₦15,750","details":{"estimate":"₦15,750","when":"Now"},"offer_expires_at":"2026-10-05T09:05:30+00:00","offer_accepted_at":null,"started_at":null,"completed_at":null,"created_at":"2026-10-05T09:05:00+00:00","quoted_amount":null,"agreed_amount":null,"client_first_name":"Amaka","conversation_id":null,"area_lat":6.445,"area_lng":3.49,"lat":null,"lng":null}]""", HttpStatusCode.OK, json)
             path == "/rest/v1/rpc/accept_job_offer" -> respond(
                 """{"code":"P0001","details":null,"hint":null,"message":"too late — this request has expired"}""", HttpStatusCode.BadRequest, json)
             path == "/rest/v1/rpc/register_device" || path == "/rest/v1/rpc/unregister_device" || path == "/rest/v1/rpc/submit_job_review" -> respond("", HttpStatusCode.NoContent, json)
@@ -147,7 +147,7 @@ fun main() = runBlocking {
 
     // booking
     val booked = api.bookArtisan(Booking("7f3e", "plumbing", "Leak repair", "addr1", null, null, "App estimate ₦15,750", mapOf("estimate" to "₦15,750")))
-    check("book_artisan gets the artisan, address and details; the offer comes back", booked.offerPending && booked.jobNumber == 1042L &&
+    check("book_artisan gets the artisan, address and details; the offer comes back", booked.offerPending && booked.jobNumber == "J-1042" &&
         sent.last().contains("\"p_artisan_id\":\"7f3e\"") && sent.last().contains("\"p_address_id\":\"addr1\"") && sent.last().contains("\"p_details\":{\"estimate\":\"₦15,750\"}"))
     check("start codes are read from job_private", api.startCodes() == mapOf("j2" to "0427") && (sent.last().contains("select=job_id%2Cstart_code") || sent.last().contains("select=job_id,start_code")))
     api.expireOffers()
