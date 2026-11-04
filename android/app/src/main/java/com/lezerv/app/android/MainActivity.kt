@@ -23,7 +23,10 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import com.lezerv.app.BuildConfig
 import com.lezerv.app.R
@@ -34,6 +37,8 @@ import com.lezerv.app.state.LezervState
 import com.lezerv.app.ui.LezervApp
 import com.lezerv.app.ui.map.LocalGeoMap
 import com.lezerv.app.ui.theme.LzFonts
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Holds the app state across configuration changes (rotation, dark-mode toggle…),
@@ -118,7 +123,14 @@ class MainActivity : ComponentActivity() {
             // The real map for live screens (the demo keeps the drawn one, see PannableMap).
             CompositionLocalProvider(LocalGeoMap provides geoMap) {
                 // safeDrawingPadding keeps content clear of the status bar, gesture bar and keyboard.
-                LezervApp(state, fonts, Modifier.safeDrawingPadding())
+                LezervApp(state, fonts, Modifier.safeDrawingPadding(), runTicker = false)
+            }
+        }
+        // The app clock, only while the app is on screen: in the background it would keep
+        // polling and draining the battery.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) { delay(100); state.tick() }
             }
         }
     }
@@ -149,11 +161,14 @@ class MainActivity : ComponentActivity() {
     /** Feeds real connectivity into the offline banner and the queued-message retry. */
     private fun watchNetwork(state: LezervState) {
         connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        fun online() = connectivity.getNetworkCapabilities(connectivity.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        fun online() = connectivity.getNetworkCapabilities(connectivity.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
         state.updateOffline(!online())
         val cb = object : ConnectivityManager.NetworkCallback() {
             // Callbacks arrive on a background thread; hop to the main thread before touching UI state.
-            override fun onAvailable(network: Network) { runOnUiThread { state.updateOffline(false) } }
+            override fun onAvailable(network: Network) { runOnUiThread { state.updateOffline(!online()) } }
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                runOnUiThread { state.updateOffline(!networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) }
+            }
             override fun onLost(network: Network) { runOnUiThread { state.updateOffline(!online()) } }
         }
         connectivity.registerDefaultNetworkCallback(cb)

@@ -90,7 +90,8 @@ import kotlinx.coroutines.delay
  * Root of the Lezerv app. Platform code (MainActivity) supplies fonts and handles
  * system back by calling [LezervState.back].
  *
- * @param runTicker false for screenshot rendering, where time should stand still.
+ * @param runTicker false for screenshot rendering, where time should stand still, and on
+ *   Android, where MainActivity runs the ticker only while the app is on screen.
  */
 @Composable
 fun LezervApp(state: LezervState, fonts: LzFonts, modifier: Modifier = Modifier, runTicker: Boolean = true) {
