@@ -42,7 +42,7 @@ val LEKKI_CENTRE = GeoPoint(6.445, 3.49)
 /**
  * The shared "database" behind one or more [FakeBackend] sessions: a client's app and an
  * artisan's app can each have their own session over the same world, the way two phones
- * share one Supabase project. It follows the rules of migrations 0008â€“0027 closely enough
+ * share one Supabase project. It follows the rules of migrations 0008–0027 closely enough
  * to drive the apps: offers, start codes, who sees which address, shared locations.
  */
 class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
@@ -92,7 +92,7 @@ class FakeWorld(var clock: () -> Long = { LIVE_NOW }) {
     )
     val notifications = mutableMapOf("user-1" to mutableListOf(NotificationDto("n1", "job_assigned", "Artisan assigned", "We matched an artisan to \"Leak repair\".", "/my-jobs", false, "2026-10-05T09:10:00+00:00")))
     val addresses = mutableMapOf<String, MutableList<AddressDto>>()
-    /** device_tokens: token â†’ user. */
+    /** device_tokens: token → user. */
     val devices = mutableMapOf<String, String>()
     val artisanServices = mutableMapOf<String, MutableList<ArtisanServiceDto>>(
         "7f3e" to mutableListOf(
@@ -287,7 +287,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override suspend fun deleteAddress(id: String) { log("deleteAddress $id"); world.addresses[me()]?.removeAll { it.id == id } }
 
-    // â”€â”€ jobs (client) â”€â”€
+    // ── jobs (client) ──
     private fun FakeWorld.Job.toDto() = JobDto(
         id, title, description, status, null, created, addressText, null, quoted, agreed, artisan, category, world.artisanName(artisan)?.let(::NameRef),
         number, requested, world.artisanName(requested)?.let(::NameRef), offerExpires?.let(world::iso), if (accepted) world.iso(world.clock()) else null,
@@ -299,17 +299,17 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     override suspend fun bookArtisan(b: Booking): JobDto {
         log("book ${b.artisanId} | ${b.categorySlug} | ${b.title} | ${b.addressId} | ${b.description} | ${b.scheduledFor} | ${b.budgetNote} | ${b.details}")
         val a = world.artisans.first { it.id == b.artisanId }
-        if (world.available[a.id] != true) throw ServerMessage("${first(a.displayName)} isn't taking jobs right now â€” pick someone available")
+        if (world.available[a.id] != true) throw ServerMessage("${first(a.displayName)} isn't taking jobs right now — pick someone available")
         if (b.categorySlug !in a.categories) throw ServerMessage("${first(a.displayName)} doesn't offer that service")
         val ad = world.addresses[me()]?.firstOrNull { it.id == b.addressId } ?: throw ServerMessage("choose one of your saved addresses")
         val job = FakeWorld.Job(
             world.next("job-"), me(), b.title, SlugName(b.categorySlug, b.categorySlug.replaceFirstChar { it.uppercase() }), "assigned", a.id, a.id,
-            1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " Â· $it" } ?: ""), "5309",
+            1000L + world.jobs.size + 1, ad.area, "${ad.street}, ${ad.area}" + (ad.note?.let { " · $it" } ?: ""), "5309",
             world.clock() + 30_000, false, description = b.description, details = b.details,
             pin = if (ad.lat != null && ad.lng != null) GeoPoint(ad.lat, ad.lng) else null,
         )
         world.jobs.add(0, job)
-        world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} Â· answer within 30 seconds")
+        world.notify(world.artisanUser.getValue(a.id), "job_offer", "New request: ${b.title}", "${ad.area} · answer within 30 seconds")
         return job.toDto()
     }
 
@@ -331,7 +331,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         world.jobs.filter { it.offerPending && it.offerExpires!! <= world.clock() }.forEach { j ->
             val who = j.artisan
             j.status = "open"; j.artisan = null; j.offerExpires = null
-            world.notify(j.client, "job_offer_expired", "${first(world.artisanName(who))} didn't answer in time", "${j.title} â€” we are finding someone else for you")
+            world.notify(j.client, "job_offer_expired", "${first(world.artisanName(who))} didn't answer in time", "${j.title} — we are finding someone else for you")
             who?.let { world.notify(world.artisanUser.getValue(it), "job_offer_missed", "You missed a request", "${j.title} went to other artisans.") }
         }
     }
@@ -426,21 +426,21 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         log("accept $jobId")
         val j = myJob(jobId, "accept")
         if (!j.offerPending) throw ServerMessage("this request is no longer waiting for you")
-        if (j.offerExpires!! < world.clock()) throw ServerMessage("too late â€” this request has expired")
+        if (j.offerExpires!! < world.clock()) throw ServerMessage("too late — this request has expired")
         j.accepted = true
         val name = world.artisanName(j.artisan)!!
         val conv = ConversationDto(world.next("conv-"), j.id, j.artisan, world.iso(world.clock()), NameRef(name), TitleRef(j.title))
         world.conversations.add(0, conv)
         world.messages += MessageDto(world.next("m"), conv.id, null, "${first(name)} accepted your request. Chat here to agree the time and price.", true, world.iso(world.clock()))
-        world.notify(j.client, "job_accepted", "${first(name)} accepted your request", "${j.title} Â· your start code is in the app")
+        world.notify(j.client, "job_accepted", "${first(name)} accepted your request", "${j.title} · your start code is in the app")
     }
 
     override suspend fun declineJob(jobId: String, reason: String) {
         log("decline $jobId $reason")
         val j = myJob(jobId, "decline")
-        if (j.status != "assigned" || j.agreed != null) throw ServerMessage("this job is already under way â€” talk to the client or our team instead")
+        if (j.status != "assigned" || j.agreed != null) throw ServerMessage("this job is already under way — talk to the client or our team instead")
         j.status = "open"; j.artisan = null; j.offerExpires = null; j.accepted = false
-        world.notify(j.client, "job_declined", "Your artisan is not available", "${j.title} â€” we are finding someone else for you")
+        world.notify(j.client, "job_declined", "Your artisan is not available", "${j.title} — we are finding someone else for you")
     }
 
     override suspend fun markEnRoute(jobId: String) {
@@ -489,7 +489,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         log("start $jobId $code")
         val j = myJob(jobId, "start")
         if (j.offerPending) throw ServerMessage("accept the request first")
-        if (j.wrongCodes >= 5) throw ServerMessage("too many wrong codes â€” contact Lezerv support to start this job")
+        if (j.wrongCodes >= 5) throw ServerMessage("too many wrong codes — contact Lezerv support to start this job")
         if (j.code != null && code != j.code) { j.wrongCodes++; return StartResult(false, 5 - j.wrongCodes) }
         j.status = "in_progress"; j.startedAt = world.clock()
         world.notify(j.client, "job_started", "Work has started", j.title)
@@ -503,7 +503,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         j.status = "completed"
     }
 
-    // â”€â”€ chat â”€â”€
+    // ── chat ──
     override suspend fun conversations(): List<ConversationDto> {
         log("conversations")
         val uid = me()
@@ -517,17 +517,17 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override fun messageInserts(conversationId: String): Flow<MessageDto> = world.messageFeed.filter { it.conversationId == conversationId }
 
-    // â”€â”€ push â”€â”€
+    // ── push ──
     override suspend fun registerDevice(token: String, appVersion: String) { log("register $token $appVersion"); world.devices[token] = me() }
     override suspend fun unregisterDevice(token: String) { log("unregister $token"); if (world.devices[token] == me()) world.devices.remove(token) }
 
-    // â”€â”€ notifications â”€â”€
+    // ── notifications ──
     override suspend fun notifications(): List<NotificationDto> { log("notifications"); return world.notifications[me()].orEmpty().toList() }
     override suspend fun markNotificationRead(id: String) = log("read $id")
     override suspend fun markAllNotificationsRead() = log("readAll")
     override fun notificationInserts(userId: String): Flow<NotificationDto> = world.noticeFeed(userId)
 
-    // â”€â”€ support â”€â”€
+    // ── support ──
     override suspend fun tickets(): List<TicketDto> { log("tickets"); return world.tickets.toList() }
     override suspend fun ticketMessages(ticketId: String): List<TicketMessageDto> { log("ticketMessages $ticketId"); return world.ticketMessages.filter { it.ticketId == ticketId } }
     override suspend fun openTicket(subject: String, jobId: String?): TicketDto {
@@ -544,7 +544,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override fun ticketMessageInserts(ticketId: String): Flow<TicketMessageDto> = world.ticketFeed.filter { it.ticketId == ticketId }
 
-    // â”€â”€ payments & escrow (0032) â”€â”€
+    // ── payments & escrow (0032) ──
     override suspend fun initializePayment(jobId: String): PaymentInitDto {
         log("initPayment $jobId")
         val j = world.jobs.firstOrNull { it.id == jobId }
@@ -600,7 +600,7 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
             CancellationRefundDto(
                 refundableAmountKobo = (totalKobo - 100000L).coerceAtLeast(0L),
                 cancellationFeeKobo = 100000L,
-                policyReason = "Artisan is en route: â‚¦1,000 call-out fee applies",
+                policyReason = "Artisan is en route: ₦1,000 call-out fee applies",
             )
         } else {
             CancellationRefundDto(

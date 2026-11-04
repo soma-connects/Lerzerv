@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
         state.stopLocationTracking = {
             com.lezerv.app.service.LocationTrackingService.stop(this)
         }
-        // Android's share sheet: WhatsApp, SMS, emailâ€¦
+        // Android's share sheet: WhatsApp, SMS, email…
         state.share = { text ->
             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
             startActivity(Intent.createChooser(send, null))

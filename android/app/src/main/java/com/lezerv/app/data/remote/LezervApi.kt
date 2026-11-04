@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * A message the database wrote for people (a `raise exception` in one of the RPCs, e.g.
- * "too many support requests â€” please wait a moment"). Safe to show as it is.
+ * "too many support requests — please wait a moment"). Safe to show as it is.
  */
 class ServerMessage(message: String) : Exception(message)
 
@@ -17,7 +17,7 @@ class ServerMessage(message: String) : Exception(message)
  */
 interface LezervApi {
 
-    // â”€â”€ sign-in (Supabase Auth) â”€â”€
+    // ── sign-in (Supabase Auth) ──
     /** Restores a saved session; returns the signed-in user's id, or null. */
     suspend fun restoreSession(): String?
     /** Texts a 6-digit code. [phone] is E.164, e.g. +2348035554417. */
@@ -30,7 +30,7 @@ interface LezervApi {
     suspend fun myProfile(): ProfileDto?
     suspend fun saveProfile(fullName: String, email: String?)
 
-    // â”€â”€ browsing â”€â”€
+    // ── browsing ──
     /** service_categories, in display order. */
     suspend fun categories(): List<CategoryDto>
     /** map_artisans() (0022); falls back to search_artisans() if 0022 isn't applied yet. */
@@ -52,13 +52,13 @@ interface LezervApi {
     /** delete_artisan_service() (0028): remove a custom service offering. */
     suspend fun deleteArtisanService(serviceId: String)
 
-    // â”€â”€ saved addresses (client_addresses, 0023) â”€â”€
+    // ── saved addresses (client_addresses, 0023) ──
     suspend fun addresses(): List<AddressDto>
     /** Inserts when the id is blank, otherwise updates; returns the saved row. */
     suspend fun saveAddress(a: AddressDto): AddressDto
     suspend fun deleteAddress(id: String)
 
-    // â”€â”€ jobs (service_jobs) â”€â”€
+    // ── jobs (service_jobs) ──
     suspend fun myJobs(): List<JobDto>
     /** book_artisan() (0023): offers the job to the chosen artisan, who has a short time to accept. */
     suspend fun bookArtisan(b: Booking): JobDto
@@ -109,7 +109,7 @@ interface LezervApi {
     suspend fun startJob(jobId: String, code: String): StartResult
     suspend fun completeJob(jobId: String)
 
-    // â”€â”€ chat (conversations, messages, send_message) â”€â”€
+    // ── chat (conversations, messages, send_message) ──
     suspend fun conversations(): List<ConversationDto>
     suspend fun messages(conversationId: String): List<MessageDto>
     /** send_message(): the server hides phone numbers, emails and links. */
@@ -117,7 +117,7 @@ interface LezervApi {
     /** New messages in a conversation as they arrive (Realtime). */
     fun messageInserts(conversationId: String): Flow<MessageDto>
 
-    // â”€â”€ notifications â”€â”€
+    // ── notifications ──
     /** register_device() (0024): this phone gets the person's pushes. */
     suspend fun registerDevice(token: String, appVersion: String)
     /** unregister_device(): called before signing out, while still allowed to. */
@@ -127,7 +127,7 @@ interface LezervApi {
     suspend fun markAllNotificationsRead()
     fun notificationInserts(userId: String): Flow<NotificationDto>
 
-    // â”€â”€ support (support_tickets) â”€â”€
+    // ── support (support_tickets) ──
     suspend fun tickets(): List<TicketDto>
     suspend fun ticketMessages(ticketId: String): List<TicketMessageDto>
     /** open_support_ticket() (0022), optionally about a job. */
@@ -136,7 +136,7 @@ interface LezervApi {
     suspend fun replyToTicket(ticketId: String, body: String): TicketMessageDto
     fun ticketMessageInserts(ticketId: String): Flow<TicketMessageDto>
 
-    // â”€â”€ payments & escrow (0032, Segments S7 & S8) â”€â”€
+    // ── payments & escrow (0032, Segments S7 & S8) ──
     /** payments-init edge function: initializes Paystack checkout session server-side. */
     suspend fun initializePayment(jobId: String): PaymentInitDto
     /** payment_methods: saved reusable card authorizations for the signed-in user. */
