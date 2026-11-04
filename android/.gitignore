@@ -12,3 +12,7 @@ captures/
 verify-desktop/.gradle/
 verify-desktop/.kotlin/
 verify-desktop/build/
+# A website build copied in by Capacitor (`npx cap sync`) is not part of this native app.
+app/src/main/assets/public/
+app/src/main/assets/capacitor.*.json
+app/src/main/res/xml/config.xml
