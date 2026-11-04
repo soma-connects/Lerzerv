@@ -7,14 +7,16 @@ to answer in Play Console's forms. Do the steps in order; ☐ marks the ones onl
 
 | | Blocker | Why |
 |---|---|---|
-| ☐ | **Run it on a real phone** (section 3) | The Android-only code has been compiled but never run on a device |
-| ☐ | **Legal review** of Terms and Privacy (app: `data/SampleData.kt` `LIVE_*`; website: PR #7) | Play and the NDPA require an accurate privacy policy; the text is a draft |
-| ☐ | **Decide payments for launch** | The app has no in-app payment. The live Terms say the price is agreed in chat and "paying in the app is coming soon"; change that wording if you decide otherwise |
-| ☐ | **SMS provider** for phone sign-in (Supabase → Authentication → Phone) | Without it only email sign-in works |
+| ☐ | **Test the release build on a phone** (section 3) | Release builds are shrunk by R8, which can remove code the app needs only when it runs. A debug build working proves nothing about this |
+| ☐ | **Fix 0029 in the database** (artisans can't decline app bookings; the price is set as "agreed" at booking) | Artisans would be stuck with every request they receive |
+| ✅ | **Database security fix 0033** (branch `claude/security-hotfix`) | Applied 4 Nov 2026: escrow release, payments view, exact GPS, artisan_private |
+| ✅ | **Payments for launch**: none in the app. Clients pay on delivery or by bank transfer, as agreed in chat | Switched off in `LiveFeatures.kt` with tracking, referrals, trusted contacts, notification settings and in-app artisan sign-up. Each switch says what it needs before it's turned on |
+| ☐ | **Legal review** of Terms and Privacy (app: `data/SampleData.kt` `LIVE_*`; website `/terms`, `/privacy`) | Play and the NDPA require an accurate privacy policy; the text is a draft |
+| ☐ | **SMS provider** for phone sign-in (Supabase → Authentication → Phone; `supabase/SMS_TWILIO.md` on `claude/s2-auth-security`) | Without it only email sign-in works |
 | ☐ | **Firebase** (`supabase/PUSH_NOTIFICATIONS.md`) | Artisans miss requests while the app is closed |
 | ☐ | **App icon**: send the logo file | The launcher icon is a placeholder |
 | ☐ | **Email domain** verified in Resend (`supabase/EMAILS.md` step 5) | Otherwise no emails reach customers |
-| ☐ | **Password reset**: merge website PR #8, then add `https://www.lezerv.com/reset-password` to Supabase → Authentication → URL Configuration → Redirect URLs | The app's "Forgot it?" link opens that page; until then reset links don't ask for a new password |
+| ☐ | **Password reset**: add `https://www.lezerv.com/reset-password` to Supabase → Authentication → URL Configuration → Redirect URLs (the page itself is live since PR #8) | The app's "Forgot it?" link opens that page; until then reset links don't ask for a new password |
 
 ## 1. What a release build is
 
@@ -72,7 +74,8 @@ adb install app/build/outputs/apk/release/app-release.apk
 - [ ] On a second phone as an artisan: go online, share location, accept, start with the code, complete
 - [ ] Chat both ways, and get notifications with the app closed (needs Firebase)
 - [ ] **Account → Settings → Delete account** sends the request
-- [ ] No "Demo" rows anywhere
+- [ ] No "Demo" rows anywhere, and no "Pay", "Payment methods", "Live tracking", "Invite friends" or "Trusted contact"
+- [ ] An artisan can **decline** a request (needs the 0029 database fix)
 
 ## 4. Build the bundle
 
