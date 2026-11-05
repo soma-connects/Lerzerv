@@ -56,7 +56,7 @@ const Home: React.FC = () => {
   useSEO({
     title: 'Lezerv | Verified Home Services & Artisans in Nigeria',
     description: 'Hire ID-verified cleaners, plumbers, electricians, AC technicians, generator repairers and more. Request a service and Lezerv matches you with a verified artisan near you.',
-    keywords: 'home services Nigeria, cleaning services Lagos, verified cleaners Abuja, hire plumber Nigeria, electrician Lagos, generator repair Lagos, AC technician Abuja, local artisans Nigeria, professional cleaners Lagos, house cleaning Nigeria, handyman services Nigeria',
+    keywords: 'home services Nigeria, cleaning services Lagos, verified cleaners Port Harcourt, hire plumber Nigeria, electrician Lagos, generator repair Lagos, AC technician Port Harcourt, home services Omoku, local artisans Nigeria, professional cleaners Lagos, house cleaning Nigeria, handyman services Nigeria',
   });
 
   return (

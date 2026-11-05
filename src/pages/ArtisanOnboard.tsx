@@ -12,13 +12,13 @@ import type { IServiceCategory, IServiceArea } from '../types/marketplace';
 import './ArtisanOnboard.css';
 import { useSEO } from '../hooks/useSEO';
 
-const CITIES = ['Lagos', 'Abuja', 'Port Harcourt'];
+const CITIES = ['Lagos', 'Port Harcourt', 'Omoku'];
 
 const ArtisanOnboard: React.FC = () => {
   useSEO({
     title: 'Become an Artisan / Service Provider | Lezerv Nigeria',
-    description: "Grow your home service business. Join Lezerv to get connected with customers needing professional cleaning, plumbing, electrical installations, AC servicing, and repairs in Lagos and Abuja.",
-    keywords: 'register as artisan lagos, handyman jobs abuja, get cleaning jobs lagos, artisan recruitment nigeria, work as plumber nigeria'
+    description: "Grow your home service business. Join Lezerv to get connected with customers needing professional cleaning, plumbing, electrical installations, AC servicing, and repairs in Lagos, Port Harcourt and Omoku.",
+    keywords: 'register as artisan lagos, handyman jobs port harcourt, artisan jobs omoku, get cleaning jobs lagos, artisan recruitment nigeria, work as plumber nigeria'
   });
 
   const { user, loading: authLoading } = useAuth();

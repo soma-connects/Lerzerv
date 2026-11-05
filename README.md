@@ -7,7 +7,7 @@ Lezerv is a high-end platform connecting homeowners in Nigeria with verified art
 - **Verified Artisans**: Rigorous background checks for all service providers.
 - **Transparent Pricing**: Fixed tiers and custom quotes for complex jobs.
 - **Seamless Booking**: Easy-to-use booking flow for all home maintenance needs.
-- **Coverage**: Operating in Lagos, Abuja, and Port Harcourt.
+- **Coverage**: Operating in Lagos and Rivers State (Port Harcourt and Omoku).
 
 ## Tech Stack
 

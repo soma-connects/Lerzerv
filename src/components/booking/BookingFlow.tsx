@@ -214,9 +214,8 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
                       onChange={e => updateField('city', e.target.value)}
                     >
                       <option value="Lagos">Lagos</option>
-                      <option value="Abuja">Abuja</option>
                       <option value="Port Harcourt">Port Harcourt</option>
-                      <option value="Ibadan">Ibadan</option>
+                      <option value="Omoku">Omoku</option>
                     </select>
                   </div>
                   <div className="form-group" style={{ flex: 1 }}>
@@ -224,7 +223,7 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
                     <input 
                       type="text" 
                       className="form-control"
-                      placeholder="e.g. VGC, Gwarinpa, etc."
+                      placeholder="e.g. Lekki, GRA, etc."
                       value={formData.estate}
                       onChange={e => updateField('estate', e.target.value)}
                     />

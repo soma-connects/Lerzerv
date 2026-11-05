@@ -2071,7 +2071,7 @@ const Admin: React.FC = () => {
                     <input 
                       type="text" 
                       required 
-                      placeholder="e.g. Remote, Abuja, or Lagos (Ikeja, Yaba)"
+                      placeholder="e.g. Remote, Port Harcourt, or Lagos (Ikeja, Yaba)"
                       value={newJob.location}
                       onChange={e => setNewJob({...newJob, location: e.target.value})}
                     />

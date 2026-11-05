@@ -222,8 +222,8 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
 const Services: React.FC = () => {
   useSEO({
     title: 'Professional Cleaning & Home Services Pricing | Lezerv Nigeria',
-    description: 'Compare upfront, transparent pricing for professional cleaning, plumbing, electrical installations, generator servicing, AC repair, and carpentry across Lagos and Abuja.',
-    keywords: 'cleaning price Lagos, plumber price Abuja, hire AC technician Nigeria, generator servicing costs, home repair services pricing Nigeria, list of artisans Lagos'
+    description: 'Compare upfront, transparent pricing for professional cleaning, plumbing, electrical installations, generator servicing, AC repair, and carpentry across Lagos, Port Harcourt and Omoku.',
+    keywords: 'cleaning price Lagos, plumber price Port Harcourt, hire AC technician Nigeria, generator servicing costs, home repair services pricing Nigeria, list of artisans Lagos'
   });
 
   const navigate = useNavigate();

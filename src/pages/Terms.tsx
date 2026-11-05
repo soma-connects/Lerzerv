@@ -140,7 +140,7 @@ const Terms: React.FC = () => {
       <section>
         <h2>13. Contact</h2>
         <p>
-          Questions about these terms: <a href="mailto:support@lezerv.com">support@lezerv.com</a>.
+          Questions about these terms: <a href="mailto:lezervlimited@gmail.com">lezervlimited@gmail.com</a>.
         </p>
       </section>
     </div>

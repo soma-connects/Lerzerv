@@ -44,6 +44,9 @@ export const SERVICE_AREAS = [
   'Apapa', 'Mushin', 'Ojota', 'Magodo', 'Ogudu', 'Sangotedo', 'Epe', 'Badagry', 'Ojo',
 ];
 
+/** Rivers State towns we serve (service_areas from migration 0036). */
+export const RIVERS_AREAS = ['Port Harcourt', 'Omoku'];
+
 /**
  * Sentinel used as an `IBotAction.to`. The widget intercepts it and opens
  * the human-handoff form instead of navigating anywhere.
@@ -121,13 +124,14 @@ export const knowledgeBase: IKbEntry[] = [
   {
     id: 'areas',
     topic: 'coverage',
-    keywords: ['area', 'areas', 'location', 'cover', 'lagos', 'abuja', 'city', 'where'],
+    keywords: ['area', 'areas', 'location', 'cover', 'lagos', 'harcourt', 'ph', 'omoku', 'rivers', 'abuja', 'city', 'where'],
     patterns: [
-      'which areas do you cover', 'do you work in lekki', 'are you in abuja',
-      'where are you located', 'do you serve my area', 'what locations',
+      'which areas do you cover', 'do you work in lekki', 'are you in port harcourt',
+      'do you work in omoku', 'are you in abuja', 'where are you located',
+      'do you serve my area', 'what locations',
     ],
     answer:
-      `We are live across Lagos, covering:\n\n${SERVICE_AREAS.join(' · ')}\n\nPort Harcourt and Abuja are on the roadmap but not open for booking yet. If your area is not listed, post the job anyway — we will tell you honestly whether we can reach you.`,
+      `We work in two states.\n\nLagos: ${SERVICE_AREAS.join(' · ')}\n\nRivers State: ${RIVERS_AREAS.join(' · ')}\n\nWe are not in Abuja or other cities yet. If your area is not listed, post the job anyway — we will tell you honestly whether we can reach you.`,
     actions: [{ label: 'Request a service', to: '/post-job' }],
     followUps: ['What services do you offer?', 'How do I book a service?'],
   },
@@ -436,7 +440,7 @@ export const knowledgeBase: IKbEntry[] = [
       'do you have a blog', 'where can i read more',
     ],
     answer:
-      'Lezerv is a Nigerian home-services marketplace: we connect homeowners with verified artisans and professional cleaners, and handle the matching, the chat and the money so you are not gambling on a stranger from a WhatsApp group.\n\nWe are Lagos-first today, with Port Harcourt and Abuja to follow.',
+      'Lezerv is a Nigerian home-services marketplace: we connect homeowners with verified artisans and professional cleaners, and handle the matching, the chat and the money so you are not gambling on a stranger from a WhatsApp group.\n\nWe work in Lagos and in Rivers State (Port Harcourt and Omoku).',
     actions: [
       { label: 'About us', to: '/about' },
       { label: 'Read the blog', to: '/blog' },

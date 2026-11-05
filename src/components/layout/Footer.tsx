@@ -74,16 +74,16 @@ export const Footer: React.FC = () => {
             <div className="ftr-brand">
               <Link to="/" aria-label="Lezerv home" className="ftr-logo"><BrandLogo tone="light" /></Link>
               <p className="ftr-tagline">Verified home-service professionals, booked in a few taps. Reliable help, made simple.</p>
-              <p className="ftr-location"><MapPin size={15} /> Lagos · Abuja · Port Harcourt</p>
+              <p className="ftr-location"><MapPin size={15} /> Lagos · Port Harcourt · Omoku</p>
 
               <div className="ftr-contact">
                 <a href="https://wa.me/2349046367604" target="_blank" rel="noopener noreferrer" className="ftr-contact-link">
                   <span className="ftr-contact-icon"><MessageCircle size={17} /></span>
                   <span><small>WhatsApp</small>+234 904 636 7604</span>
                 </a>
-                <a href="mailto:hello@lezerv.com" className="ftr-contact-link">
+                <a href="mailto:lezervlimited@gmail.com" className="ftr-contact-link">
                   <span className="ftr-contact-icon"><Mail size={17} /></span>
-                  <span><small>Email</small>hello@lezerv.com</span>
+                  <span><small>Email</small>lezervlimited@gmail.com</span>
                 </a>
               </div>
             </div>

@@ -25,7 +25,7 @@ const Privacy: React.FC = () => {
         <p>
           Lezerv connects people in Lagos who need help at home with independent, verified artisans.
           Lezerv is responsible for the personal data described here. Questions or requests:{' '}
-          <a href="mailto:support@lezerv.com">support@lezerv.com</a>.
+          <a href="mailto:lezervlimited@gmail.com">lezervlimited@gmail.com</a>.
         </p>
       </section>
 
@@ -90,7 +90,7 @@ const Privacy: React.FC = () => {
         <h2>6. Your rights</h2>
         <p>
           Under the Nigeria Data Protection Act 2023 you can ask for a copy of your data, ask us to correct it, object to how
-          we use it, or ask us to delete it. Write to <a href="mailto:support@lezerv.com">support@lezerv.com</a>. You can also
+          we use it, or ask us to delete it. Write to <a href="mailto:lezervlimited@gmail.com">lezervlimited@gmail.com</a>. You can also
           complain to the Nigeria Data Protection Commission.
         </p>
         <p>

@@ -10,7 +10,7 @@ const Blog: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Lezerv Blog | Home service tips & events in Lagos, Abuja & Port Harcourt';
+    document.title = 'Lezerv Blog | Home service tips & events in Lagos & Port Harcourt';
     blogService.listPublished().then((p) => { setPosts(p); setLoading(false); });
   }, []);
 
@@ -23,7 +23,7 @@ const Blog: React.FC = () => {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="blog-hero-inner">
           <span className="blog-eyebrow"><Newspaper size={15} /> Lezerv Blog</span>
           <h1>News, events & home-service tips</h1>
-          <p>Updates from Lezerv and helpful guides for keeping your home running across Lagos, Abuja and Port Harcourt.</p>
+          <p>Updates from Lezerv and helpful guides for keeping your home running across Lagos, Port Harcourt and Omoku.</p>
         </motion.div>
       </div>
 
