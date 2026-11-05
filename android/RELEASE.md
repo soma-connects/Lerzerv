@@ -8,8 +8,8 @@ to answer in Play Console's forms. Do the steps in order; ☐ marks the ones onl
 | | Blocker | Why |
 |---|---|---|
 | ☐ | **Test the release build on a phone** (section 3) | Release builds are shrunk by R8, which can remove code the app needs only when it runs. A debug build working proves nothing about this |
-| ☐ | **Fix 0029 in the database** (artisans can't decline app bookings; the price is set as "agreed" at booking) | Artisans would be stuck with every request they receive |
 | ✅ | **Database security fix 0033** (branch `claude/security-hotfix`) | Applied 4 Nov 2026: escrow release, payments view, exact GPS, artisan_private |
+| ✅ | **Booking fix 0034** (same branch) | Applied 5 Nov 2026: artisans can decline and quote again, clients can accept quotes |
 | ✅ | **Payments for launch**: none in the app. Clients pay on delivery or by bank transfer, as agreed in chat | Switched off in `LiveFeatures.kt` with tracking, referrals, trusted contacts, notification settings and in-app artisan sign-up. Each switch says what it needs before it's turned on |
 | ☐ | **Legal review** of Terms and Privacy (app: `data/SampleData.kt` `LIVE_*`; website `/terms`, `/privacy`) | Play and the NDPA require an accurate privacy policy; the text is a draft |
 | ☐ | **SMS provider** for phone sign-in (Supabase → Authentication → Phone; `supabase/SMS_TWILIO.md` on `claude/s2-auth-security`) | Without it only email sign-in works |
@@ -75,7 +75,7 @@ adb install app/build/outputs/apk/release/app-release.apk
 - [ ] Chat both ways, and get notifications with the app closed (needs Firebase)
 - [ ] **Account → Settings → Delete account** sends the request
 - [ ] No "Demo" rows anywhere, and no "Pay", "Payment methods", "Live tracking", "Invite friends" or "Trusted contact"
-- [ ] An artisan can **decline** a request (needs the 0029 database fix)
+- [ ] An artisan can **decline** a request, send a quote, and the client can accept it
 
 ## 4. Build the bundle
 
