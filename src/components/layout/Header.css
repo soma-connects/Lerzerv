@@ -27,6 +27,7 @@
 }
 
 .hdr-bar {
+  position: relative; /* anchors the location card on phones */
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -415,6 +416,16 @@
 @media (max-width: 1100px) {
   .hdr-cta .btn-content { font-size: 0.9rem; }
   .hdr-link { padding: 0.55rem 0.7rem; }
+}
+
+@media (max-width: 1180px) {
+  .hdr-bar { gap: 0.75rem; }
+}
+
+@media (max-width: 640px) {
+  .hdr-bar { gap: 0.5rem; }
+  .hdr-logo .brand-word { font-size: 1.25rem; }
+  .hdr-logo .brand-mark { width: 2.25rem; height: 2.25rem; }
 }
 
 @media (max-width: 960px) {

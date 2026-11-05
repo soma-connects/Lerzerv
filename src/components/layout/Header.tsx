@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { LinkButton } from '../ui/LinkButton';
 import { BrandLogo } from '../ui/BrandLogo';
+import { LocationPicker } from '../location/LocationPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationService, type INotification } from '../../services/notificationService';
 import './Header.css';
@@ -136,6 +137,7 @@ export const Header: React.FC = () => {
     <header className={['hdr', isScrolled || isMenuOpen ? 'hdr-scrolled' : '', isMenuOpen ? 'hdr-sheet-open' : ''].filter(Boolean).join(' ')}>
       <div className="container hdr-bar" ref={barRef}>
         <Link to="/" className="hdr-logo" aria-label="Lezerv home"><BrandLogo /></Link>
+        <LocationPicker />
 
         <nav className="hdr-nav" aria-label="Main">
           <ul className="hdr-nav-list">

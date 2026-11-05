@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { LinkButton } from '../components/ui/LinkButton';
 import { useSEO } from '../hooks/useSEO';
+import { useRegion } from '../contexts/LocationContext';
 import './Home.css';
 
 // The eight most-asked-for services. Each tile opens Find Artisans already
@@ -52,7 +53,15 @@ const reveal = {
   transition: { duration: 0.5, ease: 'easeOut' as const },
 };
 
+// A believable place for the example job card, in the visitor's city.
+const sampleSpot: Record<string, string> = {
+  Lagos: 'Lekki Phase 1',
+  'Port Harcourt': 'GRA, Port Harcourt',
+  Omoku: 'Omoku',
+};
+
 const Home: React.FC = () => {
+  const { city } = useRegion();
   useSEO({
     title: 'Lezerv | Verified Home Services & Artisans in Nigeria',
     description: 'Hire ID-verified cleaners, plumbers, electricians, AC technicians, generator repairers and more. Request a service and Lezerv matches you with a verified artisan near you.',
@@ -73,7 +82,9 @@ const Home: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              <span className="home-pill"><BadgeCheck size={16} /> Verified artisans for your home</span>
+              <span className="home-pill">
+                <BadgeCheck size={16} /> {city ? `Verified artisans in ${city}` : 'Verified artisans for your home'}
+              </span>
               <h1>
                 Live better.
                 <span className="home-h1-accent">Your life, our priority.</span>
@@ -111,7 +122,7 @@ const Home: React.FC = () => {
                   <span className="hv-icon"><Fuel size={22} /></span>
                   <div className="hv-head-text">
                     <strong>Generator repair</strong>
-                    <span>Lekki Phase 1 · Today</span>
+                    <span>{sampleSpot[city ?? 'Lagos'] ?? city} · Today</span>
                   </div>
                   <span className="hv-status">In progress</span>
                 </div>

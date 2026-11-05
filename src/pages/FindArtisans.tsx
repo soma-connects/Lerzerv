@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Star, ShieldCheck, Loader2, Hammer, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { artisanService } from '../services/artisanService';
 import { useSEO } from '../hooks/useSEO';
-import type { IServiceCategory, IServiceArea } from '../types/marketplace';
+import { useRegion } from '../contexts/LocationContext';
+import type { IServiceCategory } from '../types/marketplace';
 import './FindArtisans.css';
 
 const Stars: React.FC<{ rating: number }> = ({ rating }) => (
@@ -20,8 +21,9 @@ const FindArtisans: React.FC = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const initialCat = params.get('category') || '';
+  const region = useRegion();
+  const areas = region.areas;
   const [categories, setCategories] = useState<IServiceCategory[]>([]);
-  const [areas, setAreas] = useState<IServiceArea[]>([]);
   const [activeCat, setActiveCat] = useState<string>(initialCat);
   const [activeArea, setActiveArea] = useState<string>('');
   const [results, setResults] = useState<any[]>([]);
@@ -31,7 +33,7 @@ const FindArtisans: React.FC = () => {
   const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name || '';
 
   const displayCat = catName(activeCat) || 'Artisans, Cleaners & Plumbers';
-  const displayArea = areaName(activeArea) || 'Nigeria';
+  const displayArea = areaName(activeArea) || region.city || 'Nigeria';
 
   useSEO({
     title: `Find Verified ${displayCat} in ${displayArea} | Lezerv`,
@@ -46,10 +48,24 @@ const FindArtisans: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    Promise.all([artisanService.fetchCategories(), artisanService.fetchAreas()]).then(([c, a]) => {
-      setCategories(c); setAreas(a);
-    });
+    artisanService.fetchCategories().then(setCategories);
   }, []);
+
+  // With no particular area picked, show the artisans who work in the
+  // visitor's city (each result lists the area slugs it serves).
+  const shown = useMemo(() => {
+    if (activeArea || !region.city) return results;
+    const inCity = new Set(region.cityAreas.map((a) => a.slug));
+    return results.filter((a) => (a.areas || []).some((slug: string) => inCity.has(slug)));
+  }, [results, activeArea, region.city, region.cityAreas]);
+
+  // The visitor's city first in the area list.
+  const areaGroups = useMemo(() => {
+    const order = region.city ? [region.city, ...region.cities.filter((c) => c !== region.city)] : region.cities;
+    return order
+      .map((c) => ({ city: c, items: areas.filter((a) => (a.city || 'Lagos') === c) }))
+      .filter((g) => g.items.length > 0);
+  }, [areas, region.cities, region.city]);
 
   // React to category changes coming from the URL (nav dropdown links)
   useEffect(() => {
@@ -66,14 +82,23 @@ const FindArtisans: React.FC = () => {
     <div className="find-artisans">
       <div className="fa-hero">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="fa-hero-inner">
-          <h1>Browse verified artisans</h1>
-          <p>See trusted professionals across Lagos. Ready to hire? Request for a service and we'll match you with the right one.</p>
+          <h1>{region.city ? `Verified artisans in ${region.city}` : 'Browse verified artisans'}</h1>
+          <p>
+            {region.city ? `Trusted professionals who work in ${region.city}.` : 'Trusted professionals in Lagos, Port Harcourt and Omoku.'}
+            {' '}Ready to hire? Request a service and we'll match you with the right one.
+          </p>
           <div className="fa-bar">
             <div className="fa-select-wrap">
               <MapPin size={16} />
               <select value={activeArea} onChange={(e) => onArea(e.target.value)} className="fa-select" aria-label="Area">
-                <option value="">All areas</option>
-                {areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+                <option value="">{region.city ? `All of ${region.city}` : 'All areas'}</option>
+                {areaGroups.length > 1
+                  ? areaGroups.map((g) => (
+                      <optgroup key={g.city} label={g.city}>
+                        {g.items.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+                      </optgroup>
+                    ))
+                  : areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
               </select>
             </div>
             <Link to="/post-job" className="fa-post-cta">
@@ -95,7 +120,7 @@ const FindArtisans: React.FC = () => {
       <div className="fa-results">
         {loading ? (
           <div className="fa-empty"><Loader2 className="animate-spin" size={28} /><p>Loading…</p></div>
-        ) : results.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div className="fa-empty">
             <Hammer size={36} style={{ opacity: 0.3 }} />
             <h3>No artisans here yet</h3>
@@ -104,9 +129,9 @@ const FindArtisans: React.FC = () => {
           </div>
         ) : (
           <>
-            <p className="fa-count">{results.length} artisan{results.length > 1 ? 's' : ''}{activeArea ? ` in ${areaName(activeArea)}` : ''}{activeCat ? ` · ${catName(activeCat)}` : ''}</p>
+            <p className="fa-count">{shown.length} artisan{shown.length > 1 ? 's' : ''}{activeArea ? ` in ${areaName(activeArea)}` : region.city ? ` in ${region.city}` : ''}{activeCat ? ` · ${catName(activeCat)}` : ''}</p>
             <div className="fa-grid">
-              {results.map((a) => (
+              {shown.map((a) => (
                 <motion.div key={a.id} className="artisan-card" whileHover={{ y: -4 }} onClick={() => navigate(`/artisan/${a.id}`)}>
                   <div className="ac-top">
                     <div className="ac-avatar">

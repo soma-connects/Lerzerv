@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import './BookingFlow.css';
 import { bookingService } from '../../services/bookingService';
 import { ambassadorService } from '../../services/ambassadorService';
+import { useRegionMaybe } from '../../contexts/LocationContext';
 import type { IBookingRequest } from '../../types/api';
 
 interface BookingFlowProps {
@@ -18,6 +19,7 @@ type Step = 'details' | 'schedule' | 'info' | 'review' | 'success';
 
 const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName }) => {
   const navigate = useNavigate();
+  const region = useRegionMaybe();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ const BookingFlow: React.FC<BookingFlowProps> = ({ isOpen, onClose, serviceName 
     date: '',
     time: '',
     address: '',
-    city: 'Lagos',
+    city: region?.city ?? 'Lagos',
     estate: '',
     name: '',
     email: '',

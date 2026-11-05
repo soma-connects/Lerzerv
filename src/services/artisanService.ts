@@ -40,11 +40,11 @@ export const artisanService = {
     return (data || []) as IServiceCategory[];
   },
 
-  /** Public list of Lagos service areas. */
+  /** Public list of service areas (Lagos neighbourhoods, Port Harcourt, Omoku), with their city and centre. */
   fetchAreas: async (): Promise<IServiceArea[]> => {
     const { data, error } = await supabase
       .from('service_areas')
-      .select('slug, name')
+      .select('slug, name, city, lat, lng')
       .eq('is_active', true)
       .order('sort_order');
     if (error) return [];

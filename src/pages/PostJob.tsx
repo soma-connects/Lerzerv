@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ClipboardList, MapPin, Loader2, ArrowRight, Check, AlertCircle, Calendar, Camera, X } from 'lucide-react';
+import { ClipboardList, MapPin, Loader2, ArrowRight, Check, AlertCircle, Calendar, Camera, X, LocateFixed } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useRegion } from '../contexts/LocationContext';
 import { artisanService } from '../services/artisanService';
-import type { IServiceCategory, IServiceArea } from '../types/marketplace';
+import type { IServiceCategory } from '../types/marketplace';
 import './PostJob.css';
 
 const PostJob: React.FC = () => {
@@ -13,9 +14,10 @@ const PostJob: React.FC = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
+  const region = useRegion();
   const [categories, setCategories] = useState<IServiceCategory[]>([]);
-  const [areas, setAreas] = useState<IServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locNote, setLocNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [title, setTitle] = useState(params.get('title') || '');
   const [category, setCategory] = useState(params.get('category') || '');
@@ -32,15 +34,41 @@ const PostJob: React.FC = () => {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    Promise.all([artisanService.fetchCategories(), artisanService.fetchAreas()]).then(([c, a]) => {
+    artisanService.fetchCategories().then((c) => {
       setCategories(c);
-      setAreas(a);
       if (!category && c[0]) setCategory(c[0].slug);
-      if (a[0]) setArea(a[0].slug);
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The area shown: what they picked here, else where they are (GPS), else
+  // the first area of their city. Areas come from the shared location context.
+  const chosenArea = area || region.areaSlug || region.cityAreas[0]?.slug || '';
+
+  // Areas grouped by city for the dropdown, the visitor's own city first.
+  const areaGroups = useMemo(() => {
+    const order = region.city ? [region.city, ...region.cities.filter((c) => c !== region.city)] : region.cities;
+    return order
+      .map((c) => ({ city: c, items: region.areas.filter((a) => (a.city || 'Lagos') === c) }))
+      .filter((g) => g.items.length > 0);
+  }, [region.areas, region.cities, region.city]);
+
+  const locateMe = async () => {
+    setLocNote(null);
+    const r = await region.detect();
+    if (r.ok) {
+      setArea(''); // fall back to the area GPS just found
+      setLocNote({ ok: true, text: `Found you in ${r.areaName ? `${r.areaName}, ` : ''}${r.city}.` });
+    } else {
+      setLocNote({
+        ok: false,
+        text: r.reason === 'denied' ? 'Location is off for this site. Pick your area from the list.'
+          : r.reason === 'outside' ? 'You seem to be outside our areas. Pick the area where the job is.'
+          : 'Couldn’t get your location. Pick your area from the list.',
+      });
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +79,7 @@ const PostJob: React.FC = () => {
     const res = await artisanService.createJob({
       title: title.trim(),
       categorySlug: category,
-      areaSlug: area,
+      areaSlug: chosenArea,
       description: description.trim() || undefined,
       addressText: address.trim() || undefined,
       scheduledFor: scheduledFor || undefined,
@@ -150,10 +178,23 @@ const PostJob: React.FC = () => {
               </select>
             </div>
             <div className="form-group">
-              <label>Area</label>
-              <select value={area} onChange={(e) => setArea(e.target.value)} className="select-input">
-                {areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+              <div className="pj-label-row">
+                <label htmlFor="pj-area">Area</label>
+                <button type="button" className="pj-locate" onClick={locateMe} disabled={region.detecting}>
+                  {region.detecting ? <Loader2 size={14} className="spin" /> : <LocateFixed size={14} />}
+                  {region.detecting ? 'Finding you…' : 'Use my location'}
+                </button>
+              </div>
+              <select id="pj-area" value={chosenArea} onChange={(e) => setArea(e.target.value)} className="select-input">
+                {areaGroups.length > 1
+                  ? areaGroups.map((g) => (
+                      <optgroup key={g.city} label={g.city}>
+                        {g.items.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+                      </optgroup>
+                    ))
+                  : region.areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
               </select>
+              {locNote && <p className={`pj-loc-note ${locNote.ok ? 'ok' : 'warn'}`} role="status">{locNote.text}</p>}
             </div>
           </div>
 

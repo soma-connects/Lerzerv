@@ -58,6 +58,11 @@ export interface IArtisanProfile {
 export interface IServiceArea {
   slug: string;
   name: string;
+  /** Lagos, Port Harcourt or Omoku (migration 0036). */
+  city?: string;
+  /** Centre of the area (migration 0025), used to find the nearest area from GPS. */
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export type IdType = 'nin' | 'voters_card' | 'intl_passport';
