@@ -2,11 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, MotionConfig } from 'framer-motion';
 import {
-  ArrowRight, BadgeCheck, ChefHat, CircleCheck, ClipboardList, Fuel, Gift, HandCoins, HardHat,
-  Headphones, KeyRound, MessagesSquare, PlugZap, Search, Shirt, Snowflake, SprayCan, Sun,
-  UserCheck, Wrench,
+  ArrowRight, BadgeCheck, ChefHat, ClipboardList, Droplets, Fuel, Gift, HandCoins, HardHat,
+  Headphones, KeyRound, MessagesSquare, PlugZap, Search, Shirt, Snowflake, Sparkles, SprayCan, Sun,
+  Wrench, Zap,
 } from 'lucide-react';
 import { LinkButton } from '../components/ui/LinkButton';
+import { GiftArt, HeroScene, RequestArt, SafetyArt, StartCodeArt, ToolboxArt, VerifiedArt } from '../components/illustrations/Illustrations';
 import { useSEO } from '../hooks/useSEO';
 import { useRegion } from '../contexts/LocationContext';
 import './Home.css';
@@ -14,14 +15,14 @@ import './Home.css';
 // The eight most-asked-for services. Each tile opens Find Artisans already
 // filtered to that category (same slugs as the header's Services menu).
 const categories = [
-  { slug: 'cleaning', name: 'Cleaning', blurb: 'Regular, deep and post-construction cleaning.', icon: SprayCan, tone: 'green' },
-  { slug: 'plumbing', name: 'Plumbing', blurb: 'Leaks, blockages, fittings and water heaters.', icon: Wrench, tone: 'amber' },
-  { slug: 'electrical', name: 'Electrical', blurb: 'Wiring, sockets, lighting and fault finding.', icon: PlugZap, tone: 'green' },
-  { slug: 'generator-power', name: 'Generator & Power', blurb: 'Servicing, repairs and changeover set-up.', icon: Fuel, tone: 'amber' },
-  { slug: 'ac-refrigeration', name: 'AC & Refrigeration', blurb: 'AC servicing, gas top-ups, fridge repairs.', icon: Snowflake, tone: 'green' },
-  { slug: 'solar-inverter', name: 'Solar & Inverter', blurb: 'Inverter, battery and panel installs and checks.', icon: Sun, tone: 'amber' },
-  { slug: 'laundry', name: 'Laundry', blurb: 'Washing, ironing and dry cleaning.', icon: Shirt, tone: 'green' },
-  { slug: 'cooking', name: 'Cooking', blurb: 'Home cooks for meal prep and family meals.', icon: ChefHat, tone: 'amber' },
+  { slug: 'cleaning', name: 'Cleaning', blurb: 'Regular, deep and post-construction cleaning.', icon: SprayCan, tone: 'green', anim: 'shake' },
+  { slug: 'plumbing', name: 'Plumbing', blurb: 'Leaks, blockages, fittings and water heaters.', icon: Wrench, tone: 'amber', anim: 'turn' },
+  { slug: 'electrical', name: 'Electrical', blurb: 'Wiring, sockets, lighting and fault finding.', icon: PlugZap, tone: 'green', anim: 'flash' },
+  { slug: 'generator-power', name: 'Generator & Power', blurb: 'Servicing, repairs and changeover set-up.', icon: Fuel, tone: 'amber', anim: 'buzz' },
+  { slug: 'ac-refrigeration', name: 'AC & Refrigeration', blurb: 'AC servicing, gas top-ups, fridge repairs.', icon: Snowflake, tone: 'green', anim: 'spin' },
+  { slug: 'solar-inverter', name: 'Solar & Inverter', blurb: 'Inverter, battery and panel installs and checks.', icon: Sun, tone: 'amber', anim: 'spin' },
+  { slug: 'laundry', name: 'Laundry', blurb: 'Washing, ironing and dry cleaning.', icon: Shirt, tone: 'green', anim: 'sway' },
+  { slug: 'cooking', name: 'Cooking', blurb: 'Home cooks for meal prep and family meals.', icon: ChefHat, tone: 'amber', anim: 'hop' },
 ] as const;
 
 const popular: [string, string][] = [
@@ -33,9 +34,15 @@ const popular: [string, string][] = [
 ];
 
 const steps = [
-  { icon: ClipboardList, title: 'Tell us what you need', text: 'Request a service, or pick an artisan yourself. Say what needs doing and where.' },
-  { icon: UserCheck, title: 'Get a verified artisan', text: 'An ID-checked artisan near you takes the job and agrees the price with you first.' },
-  { icon: KeyRound, title: 'Relax while it gets done', text: 'Share your start code when they arrive, chat in the app and follow the job to the end.' },
+  { art: RequestArt, title: 'Tell us what you need', text: 'Request a service, or pick an artisan yourself. Say what needs doing and where.' },
+  { art: VerifiedArt, title: 'Get a verified artisan', text: 'An ID-checked artisan near you takes the job and agrees the price with you first.' },
+  { art: StartCodeArt, title: 'Relax while it gets done', text: 'Share your start code when they arrive, chat in the app and follow the job to the end.' },
+];
+
+// Outline icons drifting slowly behind the final call to action.
+const floaters = [
+  { icon: Wrench, cls: 'f1' }, { icon: Droplets, cls: 'f2' }, { icon: Zap, cls: 'f3' },
+  { icon: Sparkles, cls: 'f4' }, { icon: Snowflake, cls: 'f5' }, { icon: Sun, cls: 'f6' },
 ];
 
 const safety = [
@@ -107,8 +114,8 @@ const Home: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* An illustration of a job in progress, drawn with HTML/CSS
-                instead of a stock photo. aria-hidden: it's decoration. */}
+            {/* An illustrated home, drawn in SVG and animated (see
+                components/illustrations). aria-hidden: it's decoration. */}
             <motion.div
               className="home-visual"
               aria-hidden="true"
@@ -116,31 +123,7 @@ const Home: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
             >
-              <div className="hv-glow" />
-              <div className="hv-card">
-                <div className="hv-head">
-                  <span className="hv-icon"><Fuel size={22} /></span>
-                  <div className="hv-head-text">
-                    <strong>Generator repair</strong>
-                    <span>{sampleSpot[city ?? 'Lagos'] ?? city} · Today</span>
-                  </div>
-                  <span className="hv-status">In progress</span>
-                </div>
-                <ol className="hv-steps">
-                  <li className="done"><CircleCheck size={18} /> Request sent</li>
-                  <li className="done"><CircleCheck size={18} /> Verified artisan matched</li>
-                  <li className="done"><CircleCheck size={18} /> Price agreed</li>
-                  <li className="now"><span className="hv-dot" /> Artisan on the way</li>
-                </ol>
-                <div className="hv-artisan">
-                  <span className="hv-avatar"><HardHat size={20} /></span>
-                  <div>
-                    <strong>Your artisan</strong>
-                    <span><BadgeCheck size={14} /> ID verified</span>
-                  </div>
-                  <span className="hv-chat"><MessagesSquare size={18} /></span>
-                </div>
-              </div>
+              <HeroScene />
               <div className="hv-float hv-float-code">
                 <KeyRound size={16} />
                 <span>Start code</span>
@@ -149,6 +132,10 @@ const Home: React.FC = () => {
               <div className="hv-float hv-float-msg">
                 <MessagesSquare size={16} />
                 <span>“I'm 10 minutes away”</span>
+              </div>
+              <div className="hv-float hv-float-status">
+                <span className="hv-dot" />
+                <span>Artisan on the way · {sampleSpot[city ?? 'Lagos'] ?? city}</span>
               </div>
             </motion.div>
           </div>
@@ -175,7 +162,7 @@ const Home: React.FC = () => {
             <div className="home-cats">
               {categories.map((c) => (
                 <Link key={c.slug} to={`/find-artisans?category=${c.slug}`} className="home-cat">
-                  <span className={`home-cat-icon tone-${c.tone}`}><c.icon size={24} /></span>
+                  <span className={`home-cat-icon tone-${c.tone}`} data-anim={c.anim}><c.icon size={24} /></span>
                   <span className="home-cat-name">{c.name}</span>
                   <span className="home-cat-blurb">{c.blurb}</span>
                   <ArrowRight size={18} className="home-cat-arrow" />
@@ -200,8 +187,8 @@ const Home: React.FC = () => {
             <ol className="home-steps">
               {steps.map((s, i) => (
                 <motion.li key={s.title} className="home-step" {...reveal} transition={{ ...reveal.transition, delay: i * 0.08 }}>
-                  <span className="home-step-num">{i + 1}</span>
-                  <span className="home-step-icon"><s.icon size={26} /></span>
+                  <div className="home-step-art"><s.art /></div>
+                  <span className="home-step-num">Step {i + 1}</span>
                   <h3>{s.title}</h3>
                   <p>{s.text}</p>
                 </motion.li>
@@ -215,6 +202,7 @@ const Home: React.FC = () => {
           <div className="container">
             <div className="home-safety">
               <motion.div className="home-safety-copy" {...reveal}>
+                <SafetyArt className="home-safety-art" />
                 <span className="eyebrow">Peace of mind</span>
                 <h2>Safety is built into every job</h2>
                 <p>
@@ -245,6 +233,7 @@ const Home: React.FC = () => {
               <h2>Are you an artisan?</h2>
               <p>Get jobs from homeowners near you. Apply once, get verified, and choose the jobs you take.</p>
               <LinkButton to="/become-artisan" variant="light" rightIcon={<ArrowRight size={17} />}>Work with Lezerv</LinkButton>
+              <ToolboxArt className="home-promo-art" />
             </motion.div>
 
             <motion.div className="home-promo home-promo-amber" {...reveal} transition={{ ...reveal.transition, delay: 0.08 }}>
@@ -252,6 +241,7 @@ const Home: React.FC = () => {
               <h2>Refer &amp; earn</h2>
               <p>Share Lezerv with friends and family. When they book, you earn rewards and they get a discount on their first booking.</p>
               <LinkButton to="/ambassador" variant="primary" rightIcon={<ArrowRight size={17} />}>Become an ambassador</LinkButton>
+              <GiftArt className="home-promo-art" />
             </motion.div>
           </div>
         </section>
@@ -260,6 +250,9 @@ const Home: React.FC = () => {
         <section className="home-section home-section-tight">
           <div className="container">
             <motion.div className="home-final" {...reveal}>
+              <div className="home-final-floaters" aria-hidden="true">
+                {floaters.map((f) => <f.icon key={f.cls} className={`home-floater ${f.cls}`} />)}
+              </div>
               <h2>Ready for a stress-free home?</h2>
               <p>Tell us what needs doing and we'll find a verified artisan near you.</p>
               <div className="home-final-actions">
