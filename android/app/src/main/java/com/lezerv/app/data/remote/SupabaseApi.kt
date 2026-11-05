@@ -128,6 +128,30 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
         }
     }
 
+    override suspend fun uploadAvatar(jpeg: ByteArray): String {
+        val token = client.auth.currentAccessTokenOrNull() ?: throw ServerMessage("Sign in again to change your photo.")
+        val base = client.supabaseHttpUrl.trimEnd('/')
+        // Same place as the website: avatars/<user id>/avatar_<time>.jpg (0012's policies, 0035's check).
+        val path = "${uid()}/avatar_${System.currentTimeMillis()}.jpg"
+        val res = client.httpClient.post("$base/storage/v1/object/avatars/$path") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header("apikey", client.supabaseKey)
+            header("x-upsert", "true")
+            contentType(ContentType.Image.JPEG)
+            setBody(jpeg)
+        }
+        if (!res.status.isSuccess()) throw ServerMessage("Couldn't upload your photo (${res.status.value}). Please try again.")
+        val url = "$base/storage/v1/object/public/avatars/$path"
+        saying { db.rpc("set_avatar_url", buildJsonObject { put("p_url", url) }) }
+        return url
+    }
+
+    override suspend fun updateArtisanAbout(bio: String?, yearsExperience: Int) {
+        saying {
+            db.from("artisans").update({ set("bio", bio); set("years_experience", yearsExperience) }) { filter { eq("user_id", uid()) } }
+        }
+    }
+
     override suspend fun artisanProfile(id: String): ArtisanPublicDto? {
         val result = db.rpc("get_artisan_public", buildJsonObject { put("p_artisan_id", id) })
         // The function returns SQL null for an unknown or unapproved artisan.
@@ -232,7 +256,8 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
     // ───────────────────────────── the artisan side ─────────────────────────────
 
     override suspend fun myArtisan(): MyArtisanDto? =
-        db.from("artisans").select(Columns.list("id", "display_name", "status", "is_available", "service_radius_km", "avg_rating", "is_verified")) {
+        db.from("artisans").select(Columns.list("id", "display_name", "status", "is_available", "service_radius_km", "avg_rating", "is_verified",
+            "total_reviews", "completed_jobs", "bio", "years_experience", "avatar_url")) {
             filter { eq("user_id", uid()) }
         }.decodeSingleOrNull()
 
@@ -503,7 +528,8 @@ class SupabaseApi(private val client: SupabaseClient) : LezervApi {
      *  arrives as a [ServerMessage] in the function's words. LiveSync signs out afterwards. */
     override suspend fun deleteAccount() {
         val token = client.auth.currentAccessTokenOrNull() ?: throw ServerMessage("Sign in again to delete your account.")
-        val res = client.httpClient.post("${client.supabaseUrl}/functions/v1/delete-account") {
+        // supabaseHttpUrl has the https:// (supabaseUrl doesn't, and would make a relative URL).
+        val res = client.httpClient.post("${client.supabaseHttpUrl.trimEnd('/')}/functions/v1/delete-account") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
         }

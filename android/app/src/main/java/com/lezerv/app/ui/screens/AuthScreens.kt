@@ -31,6 +31,7 @@ import com.lezerv.app.data.DEMO_OTP
 import com.lezerv.app.state.AccountState
 import com.lezerv.app.state.AuthStep
 import com.lezerv.app.state.LezervState
+import com.lezerv.app.state.LiveFeatures
 import com.lezerv.app.ui.components.FormLabel
 import com.lezerv.app.ui.components.IconBox
 import com.lezerv.app.ui.components.LzField
@@ -95,9 +96,17 @@ private fun Welcome(s: LezervState, a: AccountState) {
     Column {
         Box(Modifier.blueprint().size(56.dp).background(Lz.Accent), contentAlignment = Alignment.Center) { Txt("L", heading(38, weight = 700, color = Lz.Bg)) }
         Txt("HELP FOR YOUR HOME, RIGHT ON THE MAP.", heading(52, 48), Modifier.padding(top = 24.dp, bottom = 12.dp))
-        Txt("Find verified artisans near you, pay safely and watch them arrive.", body(16, 24, color = Lz.Neutral800))
+        // Live builds promise only what's switched on (LiveFeatures): no escrow or tracking yet.
+        val held = !s.isLive || LiveFeatures.payments
+        val tracked = !s.isLive || LiveFeatures.liveTracking
+        Txt(if (held) "Find verified artisans near you, pay safely and watch them arrive." else "Find verified artisans near you, agree the price in chat, and book in a minute.",
+            body(16, 24, color = Lz.Neutral800))
         Column(Modifier.padding(top = 22.dp).borderTop(1.dp, Lz.Ink)) {
-            listOf("badge-check" to "Every artisan is ID-checked", "lock" to "Your money is held until the job is done", "navigation" to "Live tracking and a start code").forEach { (ic, t) ->
+            listOf(
+                "badge-check" to "Every artisan is ID-checked",
+                if (held) "lock" to "Your money is held until the job is done" else "lock" to "You agree the price before work starts",
+                if (tracked) "navigation" to "Live tracking and a start code" else "key-round" to "A start code, so only your artisan can begin",
+            ).forEach { (ic, t) ->
                 Row(Modifier.fillMaxWidth().borderBottom(1.dp, Lz.Divider).padding(vertical = 13.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     LzIcon(ic, 22, Lz.Accent700); Txt(t, body(15, 21))
                 }

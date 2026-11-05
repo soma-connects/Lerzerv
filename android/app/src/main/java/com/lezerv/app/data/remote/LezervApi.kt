@@ -38,6 +38,12 @@ interface LezervApi {
     /** get_artisan_public(): bio, stats and recent reviews. */
     /** get_artisan_public(): bio, stats and recent reviews. */
     suspend fun artisanProfile(id: String): ArtisanPublicDto?
+
+    /** Uploads a JPEG to the 'avatars' bucket (own folder), saves it with set_avatar_url (0012,
+     *  checked by 0035) and returns its public URL. */
+    suspend fun uploadAvatar(jpeg: ByteArray): String
+    /** The artisan's own "about": bio and years of experience (owners may update these columns, 0005). */
+    suspend fun updateArtisanAbout(bio: String?, yearsExperience: Int)
     /** artisan_services_public() (0028): active services for clients, all for owning artisan. */
     suspend fun artisanServices(artisanId: String): List<ArtisanServiceDto>
     /** upsert_artisan_service() (0028): create or update a custom service offering. */

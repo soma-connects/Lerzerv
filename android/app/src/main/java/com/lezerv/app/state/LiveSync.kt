@@ -231,6 +231,30 @@ class LiveSync(
         app.account.onProfileSaved()
     }
 
+    /** A new profile photo (JPEG, already resized on the phone): on the account and, for an
+     *  artisan, on their card on the map and profile. */
+    fun uploadPhoto(jpeg: ByteArray) = act("upload your photo") {
+        val url = api.uploadAvatar(jpeg)
+        app.account.photo = url
+        me?.let { mine ->
+            me = mine.copy(avatarUrl = url)
+            app.replaceArtisans(app.artisans.map { if (it.id == mine.id) it.copy(photo = url) else it })
+        }
+        app.toast("Photo updated")
+    }
+
+    /** The artisan's bio and years of experience, as clients read them on the profile. */
+    fun saveAbout(bio: String?, years: Int) = act("save your profile") {
+        api.updateArtisanAbout(bio, years)
+        me = me?.copy(bio = bio, yearsExperience = years)
+        me?.let { mine ->
+            val shown = bio ?: "${years.takeIf { it > 0 }?.let { "$it years’ experience. " } ?: ""}Verified by Lezerv."
+            app.replaceArtisans(app.artisans.map { if (it.id == mine.id) it.copy(bio = shown) else it })
+        }
+        if (app.top == Pushed.EditAbout) app.back()
+        app.toast("Profile updated. Clients see it now.")
+    }
+
     /** Left the "what should we call you" step: don't stay half signed in. */
     fun cancelSignIn() = signOut()
 
@@ -284,7 +308,7 @@ class LiveSync(
     private suspend fun signedIn(id: String, restored: Boolean) {
         userId = id
         val p = attempt("load your profile", quiet = true) { api.myProfile() }
-        app.account.onLiveSignIn(p?.fullName.orEmpty(), p?.email.orEmpty(), p?.phone?.let(::localPhone), restored)
+        app.account.onLiveSignIn(p?.fullName.orEmpty(), p?.email.orEmpty(), p?.phone?.let(::localPhone), restored, p?.avatarUrl)
         watchNotices(id)
         registerPush()
         refresh()
@@ -635,7 +659,7 @@ class LiveSync(
             categories = emptyList(),
         )
         attempt("load your profile", quiet = true) { api.myProfile() }?.let { p ->
-            app.account.onLiveSignIn(p.fullName.orEmpty(), p.email.orEmpty(), p.phone?.let(::localPhone), restored = true)
+            app.account.onLiveSignIn(p.fullName.orEmpty(), p.email.orEmpty(), p.phone?.let(::localPhone), restored = true, photo = p.avatarUrl)
         }
         me = attempt("load your artisan profile", quiet = true) { api.myArtisan() }
         me?.let {

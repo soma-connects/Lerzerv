@@ -129,14 +129,17 @@ Resend) does not count as "shared" in Play's terms.
 | Address | Yes | No | Required to book | App functionality |
 | Other in-app messages (chat, support) | Yes | No | Optional | App functionality, support |
 | Device or other IDs (notification token) | Yes | No | Optional | App functionality: notifications |
+| Photos (profile photo) | Yes | No | Optional | App functionality: an artisan's photo is shown to clients on their profile and the map (people expect that, so it isn't "sharing" in Play's terms); a client's photo isn't shown to artisans or other clients |
 
 - **Encrypted in transit:** yes.
 - **Users can ask for deletion:** yes.
-- **Not collected by the app:** photos, financial or payment info, contacts, health,
-  web history, app activity or analytics. Artisans upload ID documents on the website,
-  not in the app.
+- **Not collected by the app:** other photos or videos, financial or payment info, contacts,
+  health, web history, app activity or analytics. Artisans upload ID documents on the
+  website, not in the app.
+- **Profile photos** are picked with Android's photo picker (no storage permission), resized
+  on the phone and re-saved as JPEG, which drops the original's metadata such as GPS.
 
-If you add analytics, crash reporting, payments or photo upload later, update these answers.
+If you add analytics, crash reporting or payments later, update these answers.
 
 ### Store listing (draft)
 

@@ -49,6 +49,8 @@ import com.lezerv.app.data.remote.ArtisanServiceDto
 import com.lezerv.app.data.remote.Booking
 import com.lezerv.app.data.remote.areaSlug
 import com.lezerv.app.data.remote.jobRef
+import com.lezerv.app.data.remote.TYPICAL_FROM
+import com.lezerv.app.data.remote.appCategory
 import com.lezerv.app.data.remote.LezervApi
 import com.lezerv.app.data.remote.active
 import com.lezerv.app.data.remote.backendSlug
@@ -96,6 +98,8 @@ sealed interface Pushed {
     data object Safety : Pushed
     data object Settings : Pushed
     data object EditProfile : Pushed
+    /** Artisan: bio and years of experience, as clients see them. */
+    data object EditAbout : Pushed
     data class Legal(val privacy: Boolean) : Pushed
     data object Invite : Pushed
     data object Services : Pushed
@@ -220,6 +224,8 @@ class LezervState(
     var openMaps: ((address: String, at: GeoPoint?) -> Unit)? = null
     /** Opens a web browser (e.g. for Paystack checkout). */
     var openBrowser: ((String) -> Unit)? = null
+    /** Opens the phone's photo picker; the platform hands back a resized JPEG (Android only). */
+    var pickPhoto: ((onPicked: (ByteArray) -> Unit) -> Unit)? = null
     /** Opens a web page in the phone's browser (desktop renders: a note instead). */
     fun openWeb(url: String) { openBrowser?.invoke(url) ?: toast("Open $url in your browser") }
     /** Starts foreground GPS tracking while an artisan is en route to an active job. */
@@ -250,6 +256,24 @@ class LezervState(
     /** Everyone on the map: sample artisans, or the backend's once LiveSync loads them. */
     var artisans by mutableStateOf(ARTISANS); private set
     fun artisan(id: String?): Artisan? = artisans.firstOrNull { it.id == id }
+
+    /**
+     * For the profile page: the artisan from the map, or (live) the signed-in artisan's own
+     * card, so "See your profile" works when the map hasn't loaded them (offline, far away).
+     */
+    fun profileArtisan(id: String): Artisan? = artisan(id) ?: live?.me?.takeIf { it.id == id }?.let { m ->
+        val slug = live?.artisanServices?.get(id)?.firstNotNullOfOrNull { it.categorySlug }
+        val svc = slug?.let(::appCategory) ?: "repair"
+        val (from, unit) = TYPICAL_FROM.getValue(svc)
+        val at = plane.toMap(origin)
+        Artisan(
+            id = m.id, name = m.displayName, ini = initialsOf(m.displayName), svc = svc, x = at.x, y = at.y,
+            rating = m.avgRating, reviews = m.totalReviews, jobs = m.completedJobs, from = from, unit = unit,
+            online = m.isAvailable, verified = m.isVerified, laundry = svc == "laundry",
+            bio = m.bio?.takeIf { it.isNotBlank() } ?: "${m.yearsExperience.takeIf { it > 0 }?.let { "$it years’ experience. " } ?: ""}Verified by Lezerv.",
+            busyLabel = "Not taking jobs now", slug = slug, photo = m.avatarUrl,
+        )
+    }
     fun servicesFor(artisanId: String): List<ArtisanServiceDto>? = live?.artisanServices?.get(artisanId)
     fun replaceArtisans(list: List<Artisan>) { artisans = list; if (selected != null && artisan(selected) == null) selected = null }
     var category by mutableStateOf("all")

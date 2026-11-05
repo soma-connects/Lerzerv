@@ -67,10 +67,17 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     // ───────────── profile ─────────────
     var name by mutableStateOf(if (signedIn) "Amaka Obi" else "")
     var email by mutableStateOf(if (signedIn) "amaka@example.com" else "")
+    /** Profile photo (public URL), live only; initials show without one. */
+    var photo by mutableStateOf<String?>(null)
+    /** Edit about (artisans): the form's draft of bio and years of experience. */
+    var bioDraft by mutableStateOf("")
+    var yearsDraft by mutableStateOf(0)
     var phone by mutableStateOf(if (signedIn) "8035554417" else ""); private set
     val firstName get() = name.substringBefore(' ').ifBlank { "there" }
     val initials get() = name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }.ifBlank { "?" }
     val phoneMasked get() = if (phone.length == 10) "+234 ${phone.take(3)} ••• ${phone.takeLast(4)}" else "Add your phone"
+    /** How we reach them, for the account header: the phone, else the email (email sign-in). */
+    val contactLine get() = if (phone.length == 10) phoneMasked else email.ifBlank { "No phone or email yet" }
 
     // ───────────── addresses ─────────────
     // Sample data belongs to the signed-in demo user only; a guest starts with nothing saved.
@@ -185,8 +192,9 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
      * Live sign-in worked (or a saved one was restored). New accounts have no name yet, so
      * they get the details step; [restored] ones go straight in without a welcome toast.
      */
-    internal fun onLiveSignIn(fullName: String, email: String, phone: String?, restored: Boolean) {
+    internal fun onLiveSignIn(fullName: String, email: String, phone: String?, restored: Boolean, photo: String? = null) {
         password = ""
+        this.photo = photo?.takeIf { it.isNotBlank() }
         name = fullName.trim(); this.email = email
         this.phone = phone ?: phoneDraft.takeIf { !viaEmail && it.length == 10 }.orEmpty()
         when {
@@ -229,7 +237,7 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
     /** Signing out clears everything personal, so the next person on this phone sees none of it. */
     fun signOut() {
         app.live?.signOut()
-        signedIn = false; name = ""; email = ""; phone = ""; phoneDraft = ""; code = ""; emailDraft = ""; password = ""
+        signedIn = false; name = ""; email = ""; phone = ""; phoneDraft = ""; code = ""; emailDraft = ""; password = ""; photo = null
         addresses = emptyList(); cards = emptyList(); trustedContact = "Not set"
         app.reset(withHistory = false)
         authStep = AuthStep.Welcome; authFromGate = false
@@ -265,6 +273,32 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         name = name.trim(); email = email.trim()
         val live = app.live
         if (live != null) live.saveProfile(name, email.ifBlank { null }) else onProfileSaved()
+    }
+
+    /** Live: pick a photo on the phone, then upload it (LiveSync.uploadPhoto). */
+    fun changePhoto() = requireSignIn {
+        val live = app.live
+        val pick = app.pickPhoto
+        when {
+            live == null -> app.toast("Photos come with a real account")
+            pick == null -> app.toast("Choosing a photo works in the Android app")
+            else -> pick { jpeg -> live.uploadPhoto(jpeg) }
+        }
+    }
+
+    /** Artisan: open "About you" with what clients see now. */
+    fun editAbout() {
+        val me = app.live?.me
+        bioDraft = me?.bio.orEmpty()
+        yearsDraft = me?.yearsExperience ?: 0
+        app.push(Pushed.EditAbout)
+    }
+
+    fun saveAbout() {
+        val bio = bioDraft.trim().replace(Regex("\\s+"), " ")
+        if (bio.length > BIO_MAX) { app.toast("Keep it under $BIO_MAX characters"); return }
+        val live = app.live ?: run { app.back(); app.toast("Profile updated"); return }
+        live.saveAbout(bio.ifEmpty { null }, yearsDraft.coerceIn(0, 60))
     }
 
     internal fun onProfileSaved() { if (app.top == Pushed.EditProfile) app.back(); app.toast("Profile saved") }
@@ -441,3 +475,6 @@ class AccountState(private val app: LezervState, signedIn: Boolean) {
         }
     }
 }
+
+/** Longest artisan bio: a few lines on the profile. */
+const val BIO_MAX = 400

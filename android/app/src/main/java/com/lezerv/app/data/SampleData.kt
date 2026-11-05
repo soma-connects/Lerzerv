@@ -41,6 +41,8 @@ data class Artisan(
     val slug: String? = null,
     /** Live only: shown at this service area's centre, because they gave no location (0025). */
     val areaLabel: String? = null,
+    /** Live only: their profile photo (public URL), shown instead of initials. */
+    val photo: String? = null,
 ) {
     val km: Double get() = hypot((x - UX).toDouble(), (y - UY).toDouble()) / KM
     val eta: Int get() = (km * 5 + 4).roundToInt()
@@ -129,6 +131,12 @@ fun fixed1(d: Double): String {
     val r = Math.round(d * 10)
     return "${r / 10}.${kotlin.math.abs(r % 10)}"
 }
+
+/** "★ 4.8", or "New" for someone with no reviews yet (a 0.0 would read as a terrible rating). */
+fun ratingText(rating: Double, reviews: Int): String = if (reviews <= 0) "New" else "★ ${fixed1(rating)}"
+
+/** The artisan's public page on the website, for sharing (lezerv.com/artisan/:id). */
+fun artisanProfileUrl(id: String) = "https://www.lezerv.com/artisan/$id"
 
 // ───────────── from the Board (early prototype): launch, notifications, onboarding, payouts ─────────────
 
@@ -242,7 +250,8 @@ val LIVE_TERMS = listOf(
     "Your account" to "Keep your details accurate and don’t share your start codes. You can delete your account at any time in Settings.",
 )
 val LIVE_PRIVACY = listOf(
-    "What we collect" to "Your name, phone number or email, saved addresses, job details, photos you add and chat messages. Artisans also give ID documents for verification.",
+    "What we collect" to "Your name, phone number or email, a profile photo if you add one, saved addresses, job details, photos you add and chat messages. Artisans also give ID documents for verification.",
+    "Profile photos" to "Optional. An artisan's photo is public: clients see it on their profile and the map. A client's photo isn't shown to artisans or other clients.",
     "Location" to "Only while you use the app. Your location finds artisans near you and is not stored. Artisans who go online share theirs so clients can find them; clients only ever see it rounded to about 550 m.",
     "Who sees it" to "Artisans see your first name and area until they accept your job, then your street for that job. They never see your phone number.",
     "Your rights" to "Under the Nigeria Data Protection Act 2023 you can ask for a copy of your data, correct it or delete your account.",

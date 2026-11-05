@@ -92,6 +92,7 @@ import com.lezerv.app.ui.theme.label
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import com.lezerv.app.state.LiveFeatures
+import com.lezerv.app.data.artisanProfileUrl
 
 // ───────────────────────────── map + incoming requests ─────────────────────────────
 
@@ -530,14 +531,38 @@ private fun MoneyCell(k: String, v: String, sub: String, modifier: Modifier) {
 fun ArtisanAccountScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 20.dp)) {
         val me = s.live?.me
-        AccountHeader(me?.let { initialsOf(it.displayName) } ?: "TB", me?.displayName ?: "Tunde Bakare") {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                LzIcon("badge-check", 15, Lz.Accent700)
-                Txt(if (me != null) listOfNotNull(if (me.isVerified) "ID verified" else "Approved", "★ ${com.lezerv.app.data.fixed1(me.avgRating)}").joinToString(" · ") else "ID verified · Plumbing · ★ 4.8",
-                    body(13, weight = 600, color = Lz.Accent700))
+        Box(Modifier.tap { s.push(Pushed.EditProfile) }.semantics { contentDescription = "Edit profile" }) {
+            AccountHeader(me?.let { initialsOf(it.displayName) } ?: "TB", me?.displayName ?: "Tunde Bakare", me?.avatarUrl ?: s.account.photo) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LzIcon("badge-check", 15, Lz.Accent700)
+                    Txt(if (me != null) if (me.isVerified) "ID verified" else "Approved" else "ID verified · Plumbing", body(13, weight = 600, color = Lz.Accent700))
+                }
+                Txt("EDIT PROFILE", label(11, .06f, Lz.Accent700), Modifier.padding(top = 4.dp))
             }
         }
-        SectionRule("01", "Coverage radius", Modifier.padding(top = 4.dp, bottom = 12.dp))
+        // What clients judge you by, at a glance.
+        val rating = me?.avgRating ?: 4.8
+        val reviews = me?.totalReviews ?: 156
+        val jobs = me?.completedJobs ?: 228
+        Row(Modifier.padding(horizontal = 20.dp).fillMaxWidth().borderTop(2.dp, Lz.Ink).borderBottom(2.dp, Lz.Ink)) {
+            AccountStat("Rating", if (reviews == 0) "New" else com.lezerv.app.data.fixed1(rating), if (reviews == 0) "no reviews yet" else "out of 5", Modifier.weight(1f).padding(vertical = 10.dp))
+            AccountStat("Reviews", "$reviews", "from clients", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 12.dp, vertical = 10.dp))
+            AccountStat("Jobs", "$jobs", "done on Lezerv", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 12.dp, vertical = 10.dp))
+        }
+        SectionRule("01", "Your profile", Modifier.padding(top = 20.dp, bottom = 4.dp))
+        AccountRows(
+            listOfNotNull(
+                AccountRow("user", "See your profile", "As clients see it") { me?.let { s.push(Pushed.Profile(it.id)) } ?: s.push(Pushed.Profile("7f3e")) },
+                AccountRow("file-text", "About you", me?.bio?.takeIf { it.isNotBlank() }?.let { it.take(40) + if (it.length > 40) "…" else "" } ?: "Add a short bio and your experience") { s.account.editAbout() },
+                AccountRow("camera", "Profile photo", if ((me?.avatarUrl ?: s.account.photo) == null) "Add a clear photo of your face" else "Change your photo") { s.account.changePhoto() },
+                AccountRow("send", "Share your profile", "A link for WhatsApp, Instagram…") {
+                    val id = me?.id ?: "7f3e"
+                    s.shareText("Book me on Lezerv, verified home services in Lagos: ${artisanProfileUrl(id)}")
+                },
+            ),
+            Modifier.padding(horizontal = 20.dp),
+        )
+        SectionRule("02", "Coverage radius", Modifier.padding(top = 24.dp, bottom = 12.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Txt("You get requests from clients inside this distance.", body(14, 20, color = Lz.Neutral800), Modifier.weight(1f))
@@ -546,7 +571,7 @@ fun ArtisanAccountScreen(s: LezervState) {
             StepSlider(s.radiusKm, 1, 10, { s.changeRadius(it) }, Modifier.padding(top = 12.dp).semantics { contentDescription = "Coverage radius" })
             Row { Txt("1 km", label(11, 0f, Lz.Neutral700), Modifier.weight(1f)); Txt("10 km", label(11, 0f, Lz.Neutral700)) }
         }
-        SectionRule("02", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
+        SectionRule("03", "Account", Modifier.padding(top = 24.dp, bottom = 4.dp))
         AccountRows(
             // Verification and payouts are still sample screens; live hides them.
             (if (s.isLive) emptyList() else listOf(
@@ -581,6 +606,15 @@ private fun StepSlider(value: Int, min: Int, max: Int, onChange: (Int) -> Unit, 
             drawLine(Lz.Accent, Offset(r, cy), Offset(x, cy), 4.dp.toPx())
             drawCircle(Lz.Accent, r, Offset(x, cy))
         }
+    }
+}
+
+@Composable
+private fun AccountStat(k: String, v: String, sub: String, modifier: Modifier) {
+    Column(modifier) {
+        Txt(k.uppercase(), label(10, color = Lz.Neutral700))
+        Txt(v, heading(30, 32, weight = 700))
+        Txt(sub, body(11, color = Lz.Neutral700))
     }
 }
 

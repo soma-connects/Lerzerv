@@ -188,7 +188,22 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
     }
     override suspend fun signOut() { log("signout"); sessionUser = null }
     override suspend fun myProfile(): ProfileDto? { log("profile"); return world.profiles[me()] }
-    override suspend fun saveProfile(fullName: String, email: String?) { log("saveProfile $fullName $email"); world.profiles[me()] = ProfileDto(me(), email, fullName, null) }
+    // Like the real update: name and email only; phone and photo stay.
+    override suspend fun saveProfile(fullName: String, email: String?) { log("saveProfile $fullName $email"); world.profiles[me()] = (world.profiles[me()] ?: ProfileDto(me())).copy(fullName = fullName, email = email) }
+
+    override suspend fun uploadAvatar(jpeg: ByteArray): String {
+        log("uploadAvatar ${jpeg.size} bytes")
+        val url = "https://fakeproject.supabase.co/storage/v1/object/public/avatars/${me()}/avatar_${world.clock()}.jpg"
+        world.profiles[me()] = (world.profiles[me()] ?: ProfileDto(me())).copy(avatarUrl = url)
+        myArtisanId()?.let { id -> world.artisans.replaceAll { if (it.id == id) it.copy(avatarUrl = url) else it } }
+        return url
+    }
+
+    override suspend fun updateArtisanAbout(bio: String?, yearsExperience: Int) {
+        log("updateArtisanAbout $yearsExperience | $bio")
+        val id = myArtisanId() ?: throw ServerMessage("only artisans have a public profile")
+        world.artisans.replaceAll { if (it.id == id) it.copy(bio = bio, yearsExperience = yearsExperience) else it }
+    }
 
     override suspend fun categories(): List<CategoryDto> = emptyList()
     override suspend fun artisansNear(lat: Double, lng: Double, radiusKm: Int): List<MapArtisanDto> {
@@ -344,7 +359,8 @@ class FakeBackend(var sessionUser: String? = null, val world: FakeWorld = FakeWo
         log("myArtisan")
         val id = myArtisanId() ?: return null
         val a = world.artisans.first { it.id == id }
-        return MyArtisanDto(id, a.displayName, "approved", world.available[id] == true, world.radius[id] ?: 5, a.avgRating, a.isVerified)
+        return MyArtisanDto(id, a.displayName, "approved", world.available[id] == true, world.radius[id] ?: 5, a.avgRating, a.isVerified,
+            a.totalReviews, a.completedJobs, a.bio, a.yearsExperience, a.avatarUrl)
     }
 
     override suspend fun upsertArtisanProfile(

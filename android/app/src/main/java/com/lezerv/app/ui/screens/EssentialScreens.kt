@@ -70,6 +70,7 @@ import com.lezerv.app.ui.components.blueprint
 import com.lezerv.app.ui.components.borderBottom
 import com.lezerv.app.ui.components.borderTop
 import com.lezerv.app.ui.components.tap
+import com.lezerv.app.ui.components.Initials
 import com.lezerv.app.ui.icons.LzIcon
 import com.lezerv.app.ui.theme.Lz
 import com.lezerv.app.ui.theme.body
@@ -77,6 +78,7 @@ import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 import kotlin.math.roundToInt
 import com.lezerv.app.state.LiveFeatures
+import com.lezerv.app.state.BIO_MAX
 
 // Pages most on-demand service apps need that the designs didn't cover yet.
 // They reuse the Industry look: square objects, ink rules, one green action per view.
@@ -582,6 +584,17 @@ fun DeleteAccountSheet(s: LezervState) {
 fun EditProfileScreen(s: LezervState) {
     val a = s.account
     FormPage(bar = { PrimaryWide("Save", "check", { a.saveProfile() }, alpha = if (a.detailsValid && s.live?.busy != true) 1f else .5f) }) {
+        // Profile photo: artisans' shows on their profile and the map; a client's only to them and our team.
+        val artisan = s.live?.me != null
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Initials(a.initials, 72, 80, 30, photo = if (artisan) s.live?.me?.avatarUrl ?: a.photo else a.photo)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FormLabel("Profile photo")
+                Txt(if (artisan) "Clients see it on your profile and on the map. A clear photo of your face builds trust." else "Optional. Artisans and other clients don’t see it.",
+                    body(12, 17, color = Lz.Neutral700))
+                OutlineButton(if (a.photo == null) "Add photo" else "Change photo", { a.changePhoto() }, icon = "camera")
+            }
+        }
         Column { FormLabel("Full name"); LzField(a.name, { a.name = it.take(60) }, "First and last name", capitalizeWords = true) }
         Column {
             Row { FormLabel("Phone", Modifier.weight(1f)); if (a.phone.length == 10) Txt("VERIFIED", label(11, .08f, Lz.Accent700)) }
@@ -589,6 +602,30 @@ fun EditProfileScreen(s: LezervState) {
             Txt(if (s.isLive) "To change your number, write to us from Help → Chat with Lezerv Support." else "To change your number we’ll text a code to the new one.", body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
         }
         Column { FormLabel("Email (for receipts)"); LzField(a.email, { a.email = it.trim().take(80) }, "you@example.com", keyboard = KeyboardType.Email) }
+    }
+}
+
+// ───────────────────────────── about you ─────────────────────────────
+
+/** Artisan: the bio and years of experience clients read on the profile. */
+@Composable
+fun EditAboutScreen(s: LezervState) {
+    val a = s.account
+    FormPage(bar = { PrimaryWide("Save", "check", { a.saveAbout() }, alpha = if (s.live?.busy == true) .5f else 1f) }) {
+        Column {
+            FormLabel("About you")
+            LzField(a.bioDraft, { a.bioDraft = it.take(BIO_MAX) }, "What you do best, the areas you know, how you work", singleLine = false, minHeight = 132.dp)
+            Txt("${a.bioDraft.length}/$BIO_MAX · Clients read this before they book. Contact details are hidden from clients, so don’t add them.",
+                body(12, 17, color = Lz.Neutral700), Modifier.padding(top = 6.dp))
+        }
+        Column {
+            FormLabel("Years of experience")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconBox("minus", { a.yearsDraft = (a.yearsDraft - 1).coerceAtLeast(0) }, 44, 18, modifier = Modifier.semantics { contentDescription = "Fewer years" })
+                Txt(if (a.yearsDraft == 1) "1 YEAR" else "${a.yearsDraft} YEARS", heading(28, weight = 700), Modifier.weight(1f))
+                IconBox("plus", { a.yearsDraft = (a.yearsDraft + 1).coerceAtMost(60) }, 44, 18, bg = Lz.Ink, fg = Color.White, modifier = Modifier.semantics { contentDescription = "More years" })
+            }
+        }
     }
 }
 

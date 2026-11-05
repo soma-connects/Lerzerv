@@ -47,6 +47,8 @@ data class MapArtisanDto(
     val categories: List<String> = emptyList(),
     /** 0025: placed at this service area because the artisan gave no location of their own. */
     @SerialName("area_name") val areaName: String? = null,
+    /** 0012: public photo in the 'avatars' bucket. */
+    @SerialName("avatar_url") val avatarUrl: String? = null,
     val approximate: Boolean = false,
 )
 
@@ -97,6 +99,7 @@ data class ProfileDto(
     val email: String? = null,
     @SerialName("full_name") val fullName: String? = null,
     val phone: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
     val role: String? = null,
 )
 
@@ -233,6 +236,11 @@ data class MyArtisanDto(
     @SerialName("service_radius_km") val serviceRadiusKm: Int = 5,
     @SerialName("avg_rating") val avgRating: Double = 0.0,
     @SerialName("is_verified") val isVerified: Boolean = false,
+    @SerialName("total_reviews") val totalReviews: Int = 0,
+    @SerialName("completed_jobs") val completedJobs: Int = 0,
+    val bio: String? = null,
+    @SerialName("years_experience") val yearsExperience: Int = 0,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
 /** A row of my_artisan_jobs() (0023, 0027): what an artisan may see of a job. */

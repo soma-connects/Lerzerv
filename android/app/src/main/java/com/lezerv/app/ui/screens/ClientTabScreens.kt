@@ -311,9 +311,9 @@ internal fun AccountRows(rows: List<AccountRow>, modifier: Modifier = Modifier) 
 }
 
 @Composable
-internal fun AccountHeader(ini: String, name: String, sub: @Composable () -> Unit) {
+internal fun AccountHeader(ini: String, name: String, photo: String? = null, sub: @Composable () -> Unit) {
     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Initials(ini, 64, 68, 28, solid = true)
+        Initials(ini, 64, 68, 28, solid = true, photo = photo)
         Column { Txt(name.uppercase(), heading(28, 28, weight = 700)); sub() }
     }
 }
@@ -343,8 +343,12 @@ private fun liveSwitchRow(s: LezervState): List<AccountRow> =
 fun ClientAccountScreen(s: LezervState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         val acc = s.account
-        if (acc.signedIn) Box(Modifier.tap { s.push(Pushed.EditProfile) }) {
-            AccountHeader(acc.initials, acc.name) { Txt("${acc.phoneMasked} · ${acc.currentAddress?.area ?: "No address yet"}", body(13, color = Lz.Neutral800)) }
+        if (acc.signedIn) Box(Modifier.tap { s.push(Pushed.EditProfile) }.semantics { contentDescription = "Edit profile" }) {
+            AccountHeader(acc.initials, acc.name, acc.photo) {
+                Txt("${acc.contactLine} · ${acc.currentAddress?.area ?: "No address yet"}", body(13, color = Lz.Neutral800))
+                val done = if (s.isLive) s.live?.jobs.orEmpty().count { it.status == "completed" } else s.past.count { !it.cancelled }
+                Txt("${if (done == 0) "No" else "$done"} job${if (done == 1) "" else "s"} with Lezerv · EDIT PROFILE", label(11, .06f, Lz.Accent700), Modifier.padding(top = 4.dp))
+            }
         } else Column(Modifier.padding(20.dp)) {
             // Guests can browse; this is their way in (Board flow 1g).
             Txt("YOU’RE LOOKING AROUND", heading(28, 28, weight = 700))

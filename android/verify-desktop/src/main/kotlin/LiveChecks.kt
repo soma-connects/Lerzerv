@@ -25,6 +25,9 @@ import kotlinx.coroutines.SupervisorJob
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.TimeZone
+import com.lezerv.app.data.ratingText
+import com.lezerv.app.state.BIO_MAX
+import com.lezerv.app.data.remote.MapArtisanDto
 
 /** 5 Oct 2026, 13:00 in Lagos. */
 val LIVE_NOW: Long = OffsetDateTime.parse("2026-10-05T12:00:00Z").toInstant().toEpochMilli()
@@ -448,6 +451,45 @@ fun main() {
         amaka.live?.loadArtisanServices("7f3e", force = true)
         val updatedServices = amaka.servicesFor("7f3e")
         check("client gets updated starting price", updatedServices?.firstOrNull { it.name == "Leak repair" }?.fromPriceNaira == 8500)
+    }
+
+    // ── profiles: photos, "about you", your own profile, ratings ──
+    run {
+        val world = FakeWorld()
+        val photo = "https://fakeproject.supabase.co/storage/v1/object/public/avatars/art-user-2/avatar_1.jpg"
+        world.artisans.replaceAll { if (it.id == "c1a0") it.copy(avatarUrl = photo) else it }
+        world.artisans.add(MapArtisanDto("n3w1", "Kemi Adeyemi", null, "Lagos", 1, true, true, 0.0, 0, 0, 1.2, 6.447, 3.475, listOf("cleaning")))
+        world.artisanUser["n3w1"] = "art-user-4"
+        val amakaApi = FakeBackend(sessionUser = "user-1", world = world)
+        val tundeApi = FakeBackend(sessionUser = "art-user", world = world)
+        val amaka = liveApp(amakaApi)
+        val tunde = liveApp(tundeApi)
+        check("an artisan's photo comes with them from the map", amaka.artisan("c1a0")?.photo == photo && amaka.artisan("7f3e")?.photo == null)
+        check("no reviews yet reads 'New', not ★ 0.0", ratingText(0.0, 0) == "New" && ratingText(4.83, 156) == "★ 4.8")
+        check("the client header shows how we reach them", amaka.account.contactLine == "+234 803 ••• 4417")
+
+        tunde.account.changePhoto()
+        check("without a photo picker, changing the photo says where it works", tunde.snack?.contains("Android") == true)
+        tunde.pickPhoto = { done -> done(ByteArray(2048)) }
+        tunde.account.changePhoto()
+        val url = tunde.account.photo
+        check("a picked photo is uploaded and becomes the account photo", tundeApi.calls.any { it == "uploadAvatar 2048 bytes" } && url?.contains("/avatars/art-user/") == true)
+        check("…the artisan's own card shows it at once", tunde.live?.me?.avatarUrl == url && tunde.artisan("7f3e")?.photo == url)
+        check("…and clients get it with the next map load", world.artisans.first { it.id == "7f3e" }.avatarUrl == url)
+
+        tunde.account.editAbout()
+        check("About you opens with what clients read now", tunde.top == Pushed.EditAbout && tunde.account.bioDraft == "Leaks and drains." && tunde.account.yearsDraft == 9)
+        tunde.account.bioDraft = "x".repeat(BIO_MAX + 1); tunde.account.saveAbout()
+        check("a bio longer than the limit isn't sent", tunde.snack?.startsWith("Keep it under") == true && tundeApi.calls.none { it.startsWith("updateArtisanAbout") })
+        tunde.account.bioDraft = "Leaks,   drains and water heaters.\nLekki and Ikate."; tunde.account.yearsDraft = 10
+        tunde.account.saveAbout()
+        check("saving sends the tidied bio and the years", tundeApi.calls.any { it == "updateArtisanAbout 10 | Leaks, drains and water heaters. Lekki and Ikate." } && tunde.top != Pushed.EditAbout)
+        check("…and the profile shows it at once", tunde.profileArtisan("7f3e")?.bio == "Leaks, drains and water heaters. Lekki and Ikate.")
+
+        val kemi = liveApp(FakeBackend(sessionUser = "art-user-4", world = world))
+        kemi.replaceArtisans(emptyList())
+        check("an artisan the map didn't load still sees their own profile", kemi.profileArtisan("n3w1")?.let { it.name == "Kemi Adeyemi" && it.reviews == 0 } == true)
+        check("…and nobody else's appears that way", kemi.profileArtisan("7f3e") == null)
     }
 
     // ── time labels ──

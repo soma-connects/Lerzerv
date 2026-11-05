@@ -76,6 +76,8 @@ import com.lezerv.app.ui.theme.Lz
 import com.lezerv.app.ui.theme.body
 import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
+import com.lezerv.app.data.ratingText
+import com.lezerv.app.ui.components.Initials
 
 /** CSS `ease`. */
 internal val CssEase = CubicBezierEasing(.25f, .1f, .25f, 1f)
@@ -251,15 +253,13 @@ private fun ScaleBar(s: LezervState, modifier: Modifier) {
 private fun SelectedArtisan(s: LezervState, a: Artisan) {
     Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.blueprint().size(68.dp, 76.dp).background(Lz.Accent100).border(1.dp, Lz.Accent), contentAlignment = Alignment.Center) {
-                Txt(a.ini, heading(30, weight = 700, color = Lz.Accent800))
-            }
+            Initials(a.ini, 68, 76, 30, Modifier.blueprint(), photo = a.photo)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Txt(a.name.uppercase(), heading(26, 26, weight = 700), Modifier.weight(1f, fill = false), ellipsis = true)
                     if (a.verified) LzIcon("badge-check", 18, Lz.Accent)
                 }
-                Txt("${a.service.label} · ★ ${fixed1(a.rating)} (${a.reviews}) · ${a.jobs} jobs", body(13, color = Lz.Neutral800))
+                Txt("${a.service.label} · ${ratingText(a.rating, a.reviews)}${if (a.reviews > 0) " (${a.reviews})" else ""} · ${a.jobs} jobs", body(13, color = Lz.Neutral800))
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AvailTag(a)
@@ -325,7 +325,7 @@ private fun ColumnScope.NearbyList(s: LezervState, list: List<Artisan>) {
                     }
                     Column(Modifier.weight(1f)) {
                         Txt(a.name.uppercase(), heading(20, 22), ellipsis = true)
-                        Txt("${a.service.label} · ★ ${fixed1(a.rating)} · ${if (a.online) "Available now" else a.busyLabel}", body(12, 17, color = Lz.Neutral800))
+                        Txt("${a.service.label} · ${ratingText(a.rating, a.reviews)} · ${if (a.online) "Available now" else a.busyLabel}", body(12, 17, color = Lz.Neutral800))
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         // Area-placed artisans: the area they serve, not a distance we don't know.

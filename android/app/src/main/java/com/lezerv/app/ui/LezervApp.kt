@@ -39,6 +39,7 @@ import com.lezerv.app.ui.components.borderTop
 import com.lezerv.app.ui.components.tap
 import com.lezerv.app.ui.icons.LzIcon
 import com.lezerv.app.ui.screens.ArtisanAccountScreen
+import com.lezerv.app.ui.screens.EditAboutScreen
 import com.lezerv.app.ui.screens.ArtisanJobsScreen
 import com.lezerv.app.ui.screens.ArtisanMapScreen
 import com.lezerv.app.ui.screens.ArtisanNavigateScreen
@@ -139,6 +140,7 @@ private fun CurrentScreen(s: LezervState) {
         Pushed.Safety -> SafetyScreen(s)
         Pushed.Settings -> SettingsScreen(s)
         Pushed.EditProfile -> EditProfileScreen(s)
+        Pushed.EditAbout -> EditAboutScreen(s)
         is Pushed.Legal -> LegalScreen(s, top.privacy)
         Pushed.Invite -> InviteScreen(s)
         Pushed.Services -> ServicesScreen(s)
@@ -230,7 +232,8 @@ private fun pushedTitle(s: LezervState, p: Pushed): Pair<String, String> = when 
     Pushed.Help -> "Help" to "Answers and support"
     Pushed.Safety -> "Safety" to "Tools for you and your home"
     Pushed.Settings -> "Settings" to (if (s.isLive) "Notifications and account" else "Notifications, language, account")
-    Pushed.EditProfile -> "Edit profile" to "Name, phone and email"
+    Pushed.EditProfile -> "Edit profile" to "Photo, name, phone and email"
+    Pushed.EditAbout -> "About you" to "What clients read on your profile"
     is Pushed.Legal -> (if (p.privacy) "Privacy policy" else "Terms of service") to (if (s.demo) "Draft for review" else "Lezerv")
     Pushed.Invite -> "Invite friends" to "Share Lezerv"
     Pushed.Services -> "Services and prices" to "What clients can book you for"

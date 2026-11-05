@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 fun main() = runBlocking {
     val sent = mutableListOf<String>()
     var mapArtisansExists = false
+    var upload: HttpRequestData? = null
     val json = headersOf(HttpHeaders.ContentType, "application/json")
 
     fun bodyOf(r: HttpRequestData): String = (r.body as? OutgoingContent.ByteArrayContent)?.bytes()?.decodeToString() ?: ""
@@ -35,6 +36,8 @@ fun main() = runBlocking {
         sent += "${r.method.value} $path?${r.url.encodedQuery} ${bodyOf(r)}"
         when {
             path == "/auth/v1/otp" -> respond("{}", HttpStatusCode.OK, json)
+            path.startsWith("/storage/v1/object/avatars/") -> { upload = r; respond("""{"Key":"avatars/x"}""", HttpStatusCode.OK, json) }
+            path == "/rest/v1/rpc/set_avatar_url" -> respond("", HttpStatusCode.NoContent, json)
             path == "/auth/v1/verify" -> respond(SESSION, HttpStatusCode.OK, json)
             path == "/auth/v1/user" -> respond(USER, HttpStatusCode.OK, json)
             path == "/rest/v1/service_categories" -> respond(
@@ -166,6 +169,18 @@ fun main() = runBlocking {
     check("going offline calls set_artisan_availability", sent.last().startsWith("POST /rest/v1/rpc/set_artisan_availability") && sent.last().contains("\"p_available\":false"))
     api.setRadius(7)
     check("the radius is a PATCH on the artisan's own row", sent.last().startsWith("PATCH /rest/v1/artisans?") && sent.last().contains("\"service_radius_km\":7"))
+    api.updateArtisanAbout("Leaks and drains.", 9)
+    check("About you is a PATCH of bio and years on the artisan's own row",
+        sent.last().startsWith("PATCH /rest/v1/artisans?") && sent.last().contains("user_id=eq.user-1") && sent.last().contains("\"bio\":\"Leaks and drains.\"") && sent.last().contains("\"years_experience\":9"))
+    val photoUrl = api.uploadAvatar(ByteArray(16) { 0x41 })
+    val up = upload
+    check("a photo goes into the person's own avatars folder, as a JPEG that may replace one",
+        up != null && up.method.value == "POST" && up.url.toString().startsWith("https://test.supabase.co/storage/v1/object/avatars/user-1/avatar_") &&
+            up.headers["x-upsert"] == "true" && up.headers["apikey"] == "anon-key" && up.headers[HttpHeaders.Authorization] == "Bearer test-token" &&
+            up.body.contentType?.toString() == "image/jpeg")
+    check("…then set_avatar_url saves its public URL, which is what the app shows",
+        photoUrl.startsWith("https://test.supabase.co/storage/v1/object/public/avatars/user-1/avatar_") &&
+            sent.last().startsWith("POST /rest/v1/rpc/set_avatar_url") && sent.last().contains("\"p_url\":\"$photoUrl\""))
     val offer = api.artisanJobs().single()
     check("my_artisan_jobs parsed, details readable", offer.offerPending && offer.clientFirstName == "Amaka" && offer.detail("when") == "Now" && offer.detail("estimate") == "₦15,750")
     check("…with the area's centre for an offer, and no pin yet (0027)", offer.areaLat == 6.445 && offer.areaLng == 3.49 && offer.lat == null)

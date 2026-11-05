@@ -35,6 +35,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.CancellationException
 import com.lezerv.app.ui.icons.LzIcon
 import com.lezerv.app.ui.theme.Lz
 import com.lezerv.app.ui.theme.heading
@@ -127,11 +133,21 @@ fun Tag(text: String, bg: Color = Color.Transparent, fg: Color = Lz.Ink, border:
 
 /** Initials block used as an avatar ("TB", "AO"). */
 @Composable
-fun Initials(text: String, w: Int, h: Int, fontSize: Int, modifier: Modifier = Modifier, solid: Boolean = false) {
+fun Initials(text: String, w: Int, h: Int, fontSize: Int, modifier: Modifier = Modifier, solid: Boolean = false, photo: String? = null) {
+    // The photo, once loaded; the initials while it loads, when there is none, or if it fails.
+    val loader = LocalPhotoLoader.current
+    val px = with(LocalDensity.current) { maxOf(w, h).dp.roundToPx() }
+    val image by produceState<ImageBitmap?>(null, photo, loader) {
+        value = if (photo == null || loader == null) null else try { loader.load(photo, px) } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
+    }
     Box(
         modifier.size(w.dp, h.dp).background(if (solid) Lz.Accent else Lz.Accent100).border(1.dp, Lz.Accent),
         contentAlignment = Alignment.Center,
-    ) { Txt(text, heading(fontSize, weight = 700, color = if (solid) Lz.White else Lz.Accent800)) }
+    ) {
+        val img = image
+        if (img != null) Image(img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize().padding(1.dp))
+        else Txt(text, heading(fontSize, weight = 700, color = if (solid) Lz.White else Lz.Accent800))
+    }
 }
 
 // ───────────────────────────── Buttons ─────────────────────────────

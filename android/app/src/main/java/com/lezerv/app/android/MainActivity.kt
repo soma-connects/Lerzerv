@@ -15,6 +15,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,10 +36,13 @@ import com.lezerv.app.data.remote.SupabaseApi
 import com.lezerv.app.data.remote.createLezervClient
 import com.lezerv.app.state.LezervState
 import com.lezerv.app.ui.LezervApp
+import com.lezerv.app.ui.components.LocalPhotoLoader
 import com.lezerv.app.ui.map.LocalGeoMap
 import com.lezerv.app.ui.theme.LzFonts
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Holds the app state across configuration changes (rotation, dark-mode toggle…),
@@ -62,6 +66,9 @@ class MainViewModel : ViewModel() {
 /** One map renderer for the whole app (it holds no per-screen state). */
 private val geoMap = MapLibreGeoMap(BuildConfig.MAP_STYLE_URL)
 
+/** Profile photos, cached for the whole app (survives rotation). */
+private val photoLoader = AndroidPhotoLoader()
+
 private val fonts = LzFonts(
     heading = FontFamily(
         Font(R.font.barlow_condensed_medium, FontWeight.Medium),
@@ -79,6 +86,18 @@ private val fonts = LzFonts(
 class MainActivity : ComponentActivity() {
     // Android 13+ asks the user before an app may post notifications.
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    /** Android's photo picker: no storage permission needed, the person picks one photo. */
+    private var onPhotoPicked: ((ByteArray) -> Unit)? = null
+    private val photoPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val done = onPhotoPicked
+        onPhotoPicked = null
+        if (uri == null || done == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            val jpeg = withContext(Dispatchers.IO) { runCatching { photoJpeg(contentResolver, uri) }.getOrNull() }
+            if (jpeg == null) appState.toast("Couldn't read that photo. Try another one.") else done(jpeg)
+        }
+    }
 
     private lateinit var connectivity: ConnectivityManager
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -100,6 +119,10 @@ class MainActivity : ComponentActivity() {
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri))) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a maps app for directions") }
         }
         // Browser: checkout via Paystack authorization url or external links.
+        state.pickPhoto = { onPicked ->
+            onPhotoPicked = onPicked
+            photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
         state.openBrowser = { url ->
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: android.content.ActivityNotFoundException) { state.toast("Install a browser to complete payment") }
         }
@@ -126,7 +149,7 @@ class MainActivity : ComponentActivity() {
             // System back: close sheets, pop pushed screens, then return to the home tab.
             BackHandler(enabled = state.canGoBack) { state.back() }
             // The real map for live screens (the demo keeps the drawn one, see PannableMap).
-            CompositionLocalProvider(LocalGeoMap provides geoMap) {
+            CompositionLocalProvider(LocalGeoMap provides geoMap, LocalPhotoLoader provides photoLoader) {
                 // safeDrawingPadding keeps content clear of the status bar, gesture bar and keyboard.
                 LezervApp(state, fonts, Modifier.safeDrawingPadding(), runTicker = false)
             }
@@ -188,6 +211,7 @@ class MainActivity : ComponentActivity() {
         appState.share = null
         appState.openMaps = null
         appState.openBrowser = null
+        appState.pickPhoto = null
         appState.attachLocator(null) // it holds this Activity
         appState.notificationsAllowed = null
         Push.onToken = null

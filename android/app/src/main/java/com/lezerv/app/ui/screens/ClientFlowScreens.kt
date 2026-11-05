@@ -95,6 +95,7 @@ import com.lezerv.app.ui.theme.heading
 import com.lezerv.app.ui.theme.label
 import kotlin.math.ceil
 import com.lezerv.app.state.LiveFeatures
+import com.lezerv.app.data.artisanProfileUrl
 
 // ───────────────────────────── shared bits ─────────────────────────────
 
@@ -149,19 +150,20 @@ internal fun HomePin(x: Float, y: Float, stem: Int = 10) = com.lezerv.app.ui.map
 
 @Composable
 fun ProfileScreen(s: LezervState, id: String) {
-    val a = s.artisan(id) ?: return
+    val a = s.profileArtisan(id) ?: return
+    // An artisan looking at their own profile ("See your profile") can't book themselves.
+    val mine = s.live?.me?.id == id
     ScrollWithBar(bar = {
         val fromPrice = s.servicesFor(a.id)?.filter { it.active }?.minOfOrNull { it.fromPriceNaira } ?: a.from
         BarFigure("From", naira(fromPrice), a.unit, modifier = Modifier.weight(1f))
-        PrimaryButton({ s.startBooking(a.id) }) {
+        if (mine) Txt("THIS IS HOW CLIENTS\nSEE YOUR PROFILE", label(11, .06f, Lz.Neutral700))
+        else PrimaryButton({ s.startBooking(a.id) }) {
             Txt((if (a.laundry) "Book pickup" else "Book").uppercase(), heading(20, tracking = .05f, color = Color.White))
             LzIcon("arrow-right", 20, Color.White)
         }
     }) {
         Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.blueprint().size(96.dp, 112.dp).background(Lz.Accent100).border(1.dp, Lz.Accent), contentAlignment = Alignment.Center) {
-                Txt(a.ini, heading(42, weight = 700, color = Lz.Accent800))
-            }
+            Initials(a.ini, 96, 112, 42, Modifier.blueprint(), photo = a.photo)
             Column(Modifier.height(112.dp), verticalArrangement = Arrangement.SpaceBetween) {
                 Txt(a.name.uppercase(), heading(38, 36, weight = 700))
                 @OptIn(ExperimentalLayoutApi::class)
@@ -173,7 +175,7 @@ fun ProfileScreen(s: LezervState, id: String) {
             }
         }
         Row(Modifier.padding(horizontal = 20.dp).fillMaxWidth().borderTop(2.dp, Lz.Ink).borderBottom(2.dp, Lz.Ink)) {
-            Stat("Rating", fixed1(a.rating), "${a.reviews} reviews", Modifier.weight(1f).padding(vertical = 12.dp))
+            Stat("Rating", if (a.reviews == 0) "New" else fixed1(a.rating), if (a.reviews == 0) "no reviews yet" else "${a.reviews} reviews", Modifier.weight(1f).padding(vertical = 12.dp))
             Stat("Jobs", "${a.jobs}", "on Lezerv", Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp))
             Stat("Away", (if (a.areaLabel != null) "~" else "") + fixed1(a.km), a.areaLabel?.let { "km · serves $it" } ?: "km · ${a.eta} min",
                 Modifier.weight(1f).borderLeft(1.dp, Lz.Divider).padding(horizontal = 14.dp, vertical = 12.dp))
@@ -190,6 +192,10 @@ fun ProfileScreen(s: LezervState, id: String) {
         }
         SectionRule("01", "About", Modifier.padding(top = 26.dp, bottom = 10.dp))
         Txt(a.bio, body(15, 23), Modifier.padding(horizontal = 20.dp))
+        if (s.isLive) Row(
+            Modifier.padding(start = 20.dp, top = 10.dp).heightIn(min = 44.dp).tap { s.shareText("${a.name} on Lezerv: ${artisanProfileUrl(a.id)}") },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) { LzIcon("send", 16, Lz.Accent700); Txt(if (mine) "SHARE YOUR PROFILE" else "SHARE THIS PROFILE", label(12, .08f, Lz.Accent700)) }
         SectionRule("02", "Services and prices", Modifier.padding(top = 26.dp, bottom = 4.dp))
         Column(Modifier.padding(horizontal = 20.dp)) {
             val customServices = s.servicesFor(a.id)?.filter { it.active }

@@ -88,6 +88,7 @@ fun MapArtisanDto.toArtisan(plane: LocalPlane = LocalPlane(LEKKI_PHASE_1)): Arti
         busyLabel = "Not taking jobs now",
         slug = slug,
         areaLabel = areaName?.takeIf { approximate },
+        photo = avatarUrl?.takeIf { it.isNotBlank() },
     )
 }
 

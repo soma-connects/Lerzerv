@@ -168,6 +168,12 @@ fun main(args: Array<String>) {
     // First store release: unfinished features off (LiveFeatures), so no payments, tracking or in-app sign-up.
     live().apply { openTab(Tab.ClientAccount) }.let { shot("108-live-account", it) }
     live().withAddress().apply { startBooking("7f3e"); option = 1; sendRequest(); answerPrime(false); openCancel(liveActive.first().id) }.let { shot("109-live-cancel", it) }
+    // Profiles: the artisan's account with stats and "Your profile", About you, own profile, a "New" artisan.
+    liveApp(FakeBackend("art-user")).apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount) }.let { shot("110-live-artisan-account", it) }
+    liveApp(FakeBackend("art-user")).apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); account.editAbout() }.let { shot("111-live-about-you", it) }
+    liveApp(FakeBackend("art-user")).apply { switchRole(Role.Artisan); openTab(Tab.ArtisanAccount); push(Pushed.Profile("7f3e")) }.let { shot("112-live-own-profile", it) }
+    liveApp(FakeBackend("user-1").apply { world.artisans.add(com.lezerv.app.data.remote.MapArtisanDto("n3w1", "Kemi Adeyemi", "Deep cleans and move-ins.", "Lagos", 1, true, true, 0.0, 0, 0, 1.2, 6.447, 3.475, listOf("cleaning"))) })
+        .apply { push(Pushed.Profile("n3w1")) }.let { shot("113-live-new-artisan", it) }
 
     // Behaviour checks for the new rules (fail loudly if a rule breaks)
     fun check(name: String, ok: Boolean) { println((if (ok) "PASS  " else "FAIL  ") + name); if (!ok) error("check failed: $name") }
