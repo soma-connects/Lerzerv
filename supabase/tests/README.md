@@ -30,6 +30,7 @@ python3 supabase/tests/test_direct_booking.py /tmp/0019_site_visits_and_photos.s
 | `test_security_hotfix.py` | 0033: with 0028–0032 applied (from their branches), shows each hole (signed-out escrow release, the escrow_ledger view, clients reading exact GPS, artisans writing their own artisan_private), then that 0033 closes it and normal use still works |
 | `test_booking_fixes.py` | 0034: with 0028–0033 applied, shows 0029's bugs (artisans can't decline or quote, clients can't accept), then that 0034 fixes them, repairs jobs booked meanwhile and keeps real agreements |
 | `test_avatar_guard.py` | 0035: profile photos only from the person's own folder in the avatars bucket; older photos, bio edits and sign-up still work |
+| `test_rivers_areas.py` | 0036: Port Harcourt and Omoku as service areas (artisans can serve them, visitors see them), and customer emails pointing to lezervlimited@gmail.com |
 
 The Edge Functions have their own tests, run with Node 22+:
 `node --experimental-strip-types supabase/functions/send-push/push.test.ts` and

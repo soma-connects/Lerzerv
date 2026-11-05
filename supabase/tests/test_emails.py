@@ -59,7 +59,7 @@ try:
     check("the name is escaped, never HTML",
           "Welcome, &lt;b&gt;Amaka&lt;/b&gt;!" in body["html"] and "<b>Amaka" not in body["html"])
     check("a customer email says nothing about admin recipients",
-          "admin_alert_recipients" not in body["html"] and "support@lezerv.com" in body["html"])
+          "admin_alert_recipients" not in body["html"] and "lezervlimited@gmail.com" in body["html"])
 
     before = len(sent())
     q("update auth.users set last_sign_in_at = now() where id = %s", amaka)

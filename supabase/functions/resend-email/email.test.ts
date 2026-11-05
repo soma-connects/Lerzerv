@@ -63,7 +63,7 @@ let res = await handle(post({ ...GOOD, from: "PayPal <security@paypal.com>", rep
 check("the database's key sends it", res.status === 200 && calls.length === 1 && calls[0].url === "https://api.resend.com/emails");
 check("with Lezerv's Resend key", (calls[0].init.headers as Record<string, string>)["Authorization"] === "Bearer re_test");
 check("the sender and reply-to are fixed, whatever the caller asks for",
-  sentBody().from === "Lezerv <onboarding@resend.dev>" && sentBody().reply_to === "support@lezerv.com");
+  sentBody().from === "Lezerv <onboarding@resend.dev>" && sentBody().reply_to === "lezervlimited@gmail.com");
 check("to, subject and html pass through",
   JSON.stringify(sentBody().to) === JSON.stringify(GOOD.to) && sentBody().subject === GOOD.subject && sentBody().html === GOOD.html);
 check("Resend's answer comes back", (await res.json()).id === "email_123");

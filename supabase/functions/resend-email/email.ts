@@ -31,7 +31,7 @@ export interface Deps {
 
 const RESEND = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Lezerv <onboarding@resend.dev>";
-const REPLY_TO = "support@lezerv.com";
+const REPLY_TO = "lezervlimited@gmail.com"; // the inbox the Lezerv team reads
 const MAX_RECIPIENTS = 50;
 const MAX_SUBJECT = 300;
 const MAX_HTML = 200_000;

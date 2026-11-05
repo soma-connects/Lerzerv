@@ -122,7 +122,7 @@ get nothing (the outbox shows those as `failed` with HTTP 403).
    shows at your domain registrar. Wait for **Verified**.
 2. Set the function secret `EMAIL_FROM` to e.g. `Lezerv <hello@lezerv.com>`.
 
-Replies go to `support@lezerv.com`.
+Replies go to `lezervlimited@gmail.com` (the `REPLY_TO` constant in `resend-email/email.ts`).
 
 ## Check it works
 
