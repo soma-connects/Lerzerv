@@ -18,7 +18,7 @@ const Privacy: React.FC = () => {
   return (
     <div className="legal-page container section">
       <h1>Privacy Policy</h1>
-      <p className="last-updated">Last updated: 10 October 2026 · Covers lezerv.com and the Lezerv Android app</p>
+      <p className="last-updated">Last updated: 5 November 2026 · Covers lezerv.com and the Lezerv Android app</p>
 
       <section>
         <h2>1. Who we are</h2>
@@ -32,6 +32,11 @@ const Privacy: React.FC = () => {
       <section>
         <h2>2. What we collect</h2>
         <p><strong>Your account:</strong> name, phone number and/or email, and your password if you sign in with email (stored only in scrambled form).</p>
+        <p>
+          <strong>Your profile photo, if you add one:</strong> an artisan&apos;s photo is public, shown to clients on their profile
+          and on the map. A client&apos;s photo is not shown to artisans or other clients. The app shrinks photos on your phone
+          before uploading them, which also removes hidden details such as where the photo was taken.
+        </p>
         <p><strong>Places:</strong> addresses you save, and, if you choose "use my location" on an address, the exact point of that address.</p>
         <p>
           <strong>Your location, only while you use the app:</strong> to show artisans near you, the app reads your phone's location
