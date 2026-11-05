@@ -1,78 +1,119 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, MessageCircle, Mail, ClipboardList } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Link, useLocation } from 'react-router-dom';
+import { MapPin, MessageCircle, Mail, ClipboardList, ArrowRight } from 'lucide-react';
+import { LinkButton } from '../ui/LinkButton';
+import { BrandLogo } from '../ui/BrandLogo';
 import './Footer.css';
 
-const serviceLinks: [string, string][] = [
-  ['Cleaning', '/find-artisans?category=cleaning'],
-  ['Laundry', '/find-artisans?category=laundry'],
-  ['Cooking', '/find-artisans?category=cooking'],
-  ['Plumbing', '/find-artisans?category=plumbing'],
-  ['Electrical', '/find-artisans?category=electrical'],
-  ['Generator & Power', '/find-artisans?category=generator-power'],
-  ['AC & Refrigeration', '/find-artisans?category=ac-refrigeration'],
-  ['Browse all services', '/services'],
+const columns: { title: string; links: [string, string][] }[] = [
+  {
+    title: 'Services',
+    links: [
+      ['Cleaning', '/find-artisans?category=cleaning'],
+      ['Laundry', '/find-artisans?category=laundry'],
+      ['Cooking', '/find-artisans?category=cooking'],
+      ['Plumbing', '/find-artisans?category=plumbing'],
+      ['Electrical', '/find-artisans?category=electrical'],
+      ['Generator & Power', '/find-artisans?category=generator-power'],
+      ['AC & Refrigeration', '/find-artisans?category=ac-refrigeration'],
+    ],
+  },
+  {
+    title: 'For artisans',
+    links: [
+      ['Become an artisan', '/become-artisan'],
+      ['My jobs', '/my-jobs'],
+      ['Refer & earn', '/ambassador'],
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      ['About us', '/about'],
+      ['How it works', '/services'],
+      ['Blog & Events', '/blog'],
+      ['Careers', '/careers'],
+      ['Contact', '/contact'],
+      ['Track order', '/track'],
+    ],
+  },
 ];
+
+const legalLinks: [string, string][] = [
+  ['Privacy', '/privacy'],
+  ['Terms', '/terms'],
+  ['Delete account', '/delete-account'],
+];
+
+// Pages that already end with their own "Request for Service" call to action,
+// so the footer doesn't repeat it right underneath.
+const NO_CTA = ['/', '/post-job', '/login', '/signup', '/forgot-password', '/reset-password', '/admin'];
 
 export const Footer: React.FC = () => {
   const year = new Date().getFullYear();
+  const { pathname } = useLocation();
+  const showCta = !NO_CTA.includes(pathname) && !pathname.startsWith('/payment');
+
   return (
-    <footer className="footer">
-      {/* CTA strip */}
-      <div className="footer-cta">
-        <div className="container footer-cta-inner">
-          <div>
-            <h3>Need something fixed?</h3>
-            <p>Request for a service and we'll match you with a verified artisan near you.</p>
-          </div>
-          <Link to="/post-job"><Button variant="secondary" size="lg" leftIcon={<ClipboardList size={18} />}>Request for Service</Button></Link>
-        </div>
-      </div>
-
-      <div className="container footer-main">
-        <div className="footer-brand">
-          <Link to="/" className="footer-logo"><img src="/logo.png" alt="Lezerv" className="footer-logo-img" /></Link>
-          <p className="footer-tagline">Verified home-service professionals across Lagos. Reliable help, made simple.</p>
-          <div className="footer-locations"><MapPin size={14} /> Lagos · Abuja · Port Harcourt</div>
-          <div className="footer-social">
-            <a href="https://wa.me/2349046367604" target="_blank" rel="noopener noreferrer" className="social-btn" aria-label="WhatsApp"><MessageCircle size={18} /></a>
-            <a href="mailto:hello@lezerv.com" className="social-btn" aria-label="Email"><Mail size={18} /></a>
+    <footer className={`ftr ${showCta ? 'ftr-has-cta' : ''}`}>
+      {showCta && (
+        <div className="container">
+          <div className="ftr-cta">
+            <div className="ftr-cta-text">
+              <h2>Need something fixed at home?</h2>
+              <p>Tell us what you need and we'll match you with a verified artisan near you.</p>
+            </div>
+            <LinkButton to="/post-job" size="lg" leftIcon={<ClipboardList size={18} />}>Request for Service</LinkButton>
           </div>
         </div>
+      )}
 
-        <div className="footer-cols">
-          <div className="footer-col">
-            <span className="footer-col-title">Services</span>
-            {serviceLinks.map(([name, path]) => <Link key={name} to={path} className="footer-link">{name}</Link>)}
-          </div>
-          <div className="footer-col">
-            <span className="footer-col-title">For Artisans</span>
-            <Link to="/become-artisan" className="footer-link">Become an artisan</Link>
-            <Link to="/my-jobs" className="footer-link">My jobs</Link>
-            <Link to="/ambassador" className="footer-link">Refer &amp; earn</Link>
-          </div>
-          <div className="footer-col">
-            <span className="footer-col-title">Company</span>
-            <Link to="/about" className="footer-link">About us</Link>
-            <Link to="/blog" className="footer-link">Blog &amp; Events</Link>
-            <Link to="/careers" className="footer-link">Careers</Link>
-            <Link to="/contact" className="footer-link">Contact</Link>
-            <Link to="/track" className="footer-link">Track order</Link>
-          </div>
-          <div className="footer-col">
-            <span className="footer-col-title">Legal</span>
-            <Link to="/privacy" className="footer-link">Privacy policy</Link>
-            <Link to="/terms" className="footer-link">Terms of service</Link>
-            <Link to="/delete-account" className="footer-link">Delete account</Link>
-          </div>
-        </div>
-      </div>
+      <div className="ftr-panel">
+        <div className="container">
+          <div className="ftr-main">
+            <div className="ftr-brand">
+              <Link to="/" aria-label="Lezerv home" className="ftr-logo"><BrandLogo tone="light" /></Link>
+              <p className="ftr-tagline">Verified home-service professionals, booked in a few taps. Reliable help, made simple.</p>
+              <p className="ftr-location"><MapPin size={15} /> Lagos · Abuja · Port Harcourt</p>
 
-      <div className="footer-bottom">
-        <div className="container footer-bottom-inner">
-          <span>© {year} Lezerv. All rights reserved.</span>
-          <span className="footer-madein">Built in Lagos 🇳🇬</span>
+              <div className="ftr-contact">
+                <a href="https://wa.me/2349046367604" target="_blank" rel="noopener noreferrer" className="ftr-contact-link">
+                  <span className="ftr-contact-icon"><MessageCircle size={17} /></span>
+                  <span><small>WhatsApp</small>+234 904 636 7604</span>
+                </a>
+                <a href="mailto:hello@lezerv.com" className="ftr-contact-link">
+                  <span className="ftr-contact-icon"><Mail size={17} /></span>
+                  <span><small>Email</small>hello@lezerv.com</span>
+                </a>
+              </div>
+            </div>
+
+            <nav className="ftr-cols" aria-label="Footer">
+              {columns.map((col) => (
+                <div className="ftr-col" key={col.title}>
+                  <h3 className="ftr-col-title">{col.title}</h3>
+                  <ul>
+                    {col.links.map(([name, path]) => (
+                      <li key={name}><Link to={path} className="ftr-link">{name}</Link></li>
+                    ))}
+                  </ul>
+                  {col.title === 'Services' && (
+                    <Link to="/services" className="ftr-link ftr-link-all">All services <ArrowRight size={14} /></Link>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          <div className="ftr-bottom">
+            <span>© {year} Lezerv. All rights reserved.</span>
+            <ul className="ftr-legal">
+              {legalLinks.map(([name, path]) => (
+                <li key={name}><Link to={path} className="ftr-link">{name}</Link></li>
+              ))}
+            </ul>
+            <span className="ftr-made">Built in Lagos 🇳🇬</span>
+          </div>
         </div>
       </div>
     </footer>

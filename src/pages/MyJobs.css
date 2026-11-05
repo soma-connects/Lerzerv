@@ -55,7 +55,7 @@
   padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--color-outline-variant);
   background: var(--color-primary); color: var(--color-on-primary);
 }
-.chat-head h3 { font-size: var(--font-size-body-lg); }
+.chat-head h3 { color: inherit; font-size: var(--font-size-body-lg); }
 .chat-sub { font-size: var(--font-size-body-sm); opacity: 0.85; }
 .chat-close { background: none; border: none; color: var(--color-on-primary); cursor: pointer; }
 
@@ -220,7 +220,7 @@
 .quote-label input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.12);
 }
 
 .quote-preview {

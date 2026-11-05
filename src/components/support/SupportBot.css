@@ -14,7 +14,7 @@
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  box-shadow: 0 6px 20px rgba(0, 42, 66, 0.35), var(--shadow-md);
+  box-shadow: 0 6px 20px rgba(19, 38, 26, 0.35), var(--shadow-md);
   transition: transform var(--transition-normal), background-color var(--transition-normal);
 }
 
@@ -313,7 +313,7 @@
 .sb-composer input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.12);
 }
 
 .sb-composer button {
@@ -388,7 +388,7 @@
 .sb-form textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.12);
 }
 
 .sb-error {

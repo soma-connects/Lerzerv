@@ -120,7 +120,7 @@
 
 .si-row.is-active {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 2px rgba(19, 38, 26, 0.12);
   background: var(--color-surface-container-low);
 }
 
@@ -316,7 +316,7 @@
 .si-reply textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.12);
 }
 
 .si-reply button {

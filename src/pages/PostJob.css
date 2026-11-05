@@ -95,7 +95,7 @@
   border-style: solid;
   border-color: var(--color-primary);
   color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.12);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.12);
 }
 
 .pj-photo-list {
