@@ -181,6 +181,23 @@ export const artisanService = {
     return best;
   },
 
+  /**
+   * The client's start code for a job (job_private, migration 0023). Only the
+   * job's client (and admins) can read it. Jobs booked without the start-code
+   * flow have none: returns null then, or if it can't be read.
+   */
+  getStartCode: async (jobId: string): Promise<{ code: string; locked: boolean } | null> => {
+    const { data, error } = await supabase
+      .from('job_private')
+      .select('start_code, wrong_code_attempts')
+      .eq('job_id', jobId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as { start_code: string; wrong_code_attempts: number | null };
+    // 0023 locks the code after 5 wrong tries.
+    return { code: row.start_code, locked: (row.wrong_code_attempts ?? 0) >= 5 };
+  },
+
   /** Geo-search for available artisans near a point. (legacy) */
   search: async (
     lat: number,
