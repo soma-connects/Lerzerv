@@ -153,6 +153,34 @@ export const artisanService = {
     return data || [];
   },
 
+  /**
+   * Each artisan's own lowest "from" price, in naira (migration 0028's
+   * artisan_services: artisans set these themselves). With a category, only
+   * their prices for that service count. An artisan with no price listed is
+   * left out: they price after a visit. Returns null if prices can't be read
+   * (e.g. the table isn't there), so the page can simply not show prices.
+   */
+  fromPrices: async (artisanIds: string[], categorySlug?: string): Promise<Record<string, number> | null> => {
+    if (artisanIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('artisan_services')
+      .select('artisan_id, from_price_kobo, service_categories(slug)')
+      .eq('active', true)
+      .in('artisan_id', artisanIds);
+    if (error) return null;
+    type Row = { artisan_id: string; from_price_kobo: number; service_categories: { slug: string } | { slug: string }[] | null };
+    const best: Record<string, number> = {};
+    for (const row of (data || []) as unknown as Row[]) {
+      // The joined category can come back as one object or a one-item list.
+      const cat = Array.isArray(row.service_categories) ? row.service_categories[0] : row.service_categories;
+      if (categorySlug && cat?.slug !== categorySlug) continue;
+      const naira = Math.round(Number(row.from_price_kobo) / 100);
+      if (!Number.isFinite(naira) || naira <= 0) continue;
+      if (best[row.artisan_id] === undefined || naira < best[row.artisan_id]) best[row.artisan_id] = naira;
+    }
+    return best;
+  },
+
   /** Geo-search for available artisans near a point. (legacy) */
   search: async (
     lat: number,
