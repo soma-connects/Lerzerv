@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import type { ComponentType } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { LocationProvider } from './contexts/LocationContext';
 import { Layout } from './components/layout/Layout';
 import { ChunkErrorBoundary } from './components/ChunkErrorBoundary';
 
@@ -66,6 +67,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
+      <LocationProvider>
         <Layout>
         <ChunkErrorBoundary>
         <Suspense fallback={<div className="loading">Loading...</div>}>
@@ -98,6 +100,7 @@ const App: React.FC = () => {
         </Suspense>
         </ChunkErrorBoundary>
       </Layout>
+      </LocationProvider>
     </AuthProvider>
     </Router>
   );

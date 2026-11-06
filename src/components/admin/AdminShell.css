@@ -1,0 +1,203 @@
+/* ============================================================
+   Admin dashboard shell: dark sidebar + top bar + content.
+   "adm-" prefix. The inner tab sections keep Admin.css.
+   ============================================================ */
+.adm {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  background: var(--color-surface-container-low);
+}
+
+/* ── Sidebar ── */
+.adm-side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  width: 16rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.1rem 0.75rem;
+  overflow-y: auto;
+  background: var(--color-inverse-surface);
+  color: rgba(238, 243, 238, 0.78);
+}
+.adm-brand { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0.5rem; color: #fff; }
+.adm-brand-mark { width: 2.25rem; height: 2.25rem; border-radius: 0.7rem; background: #fff; display: grid; place-items: center; padding: 0.2rem; }
+.adm-brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+.adm-brand strong { font-size: 1.15rem; font-weight: var(--font-weight-black); letter-spacing: -0.02em; }
+.adm-brand small { font-size: 0.8rem; color: var(--color-inverse-primary); font-weight: var(--font-weight-semibold); }
+
+.adm-nav { display: flex; flex-direction: column; gap: 0.9rem; flex: 1; }
+.adm-nav-group { display: flex; flex-direction: column; gap: 2px; }
+.adm-nav-title {
+  padding: 0 0.7rem 0.3rem;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(238, 243, 238, 0.45);
+}
+.adm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.5rem;
+  padding: 0 0.7rem;
+  border-radius: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  color: rgba(238, 243, 238, 0.8);
+  text-align: left;
+  width: 100%;
+}
+.adm-nav-item svg { flex-shrink: 0; opacity: 0.85; }
+.adm-nav-item:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.adm-nav-item.active { background: rgba(143, 211, 170, 0.16); color: #fff; }
+.adm-nav-item.active svg { color: var(--color-inverse-primary); opacity: 1; }
+.adm-nav-item > span:nth-child(2) { flex: 1; }
+.adm-count {
+  min-width: 1.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-full);
+  background: #f5a623;
+  color: #2a1700;
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-black);
+  text-align: center;
+}
+
+.adm-side-foot { display: flex; flex-direction: column; gap: 2px; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.adm-side-user { padding: 0.4rem 0.7rem; font-size: 0.78rem; color: rgba(238, 243, 238, 0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Main column ── */
+.adm-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.adm-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding: 0.6rem clamp(1rem, 3vw, 2rem);
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+.adm-top h1 { font-size: 1.35rem; flex: 1; min-width: 0; }
+.adm-top-sub { font-size: 0.82rem; color: var(--color-on-surface-variant); }
+.adm-burger {
+  display: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  place-items: center;
+  border: 1px solid var(--color-outline-variant);
+  background: #fff;
+  color: var(--color-ink);
+  flex-shrink: 0;
+}
+.adm-site-link { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; font-weight: var(--font-weight-bold); color: var(--color-primary); padding: 0.5rem 0.75rem; border-radius: var(--radius-full); }
+.adm-site-link:hover { background: var(--color-primary-fixed); }
+.adm-content { padding: clamp(1rem, 3vw, 2rem); display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.adm-scrim { display: none; }
+
+/* ── Overview ── */
+.adm-ov { display: flex; flex-direction: column; gap: 1.25rem; }
+.adm-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.9rem; }
+.adm-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-2xl);
+  background: #fff;
+  border: 1px solid var(--color-outline-variant);
+  text-align: left;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.adm-stat:hover { border-color: var(--color-primary-fixed-dim); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.adm-stat-label { font-size: 0.85rem; font-weight: var(--font-weight-semibold); color: var(--color-on-surface-variant); }
+.adm-stat-value { font-size: 2rem; font-weight: var(--font-weight-black); letter-spacing: -0.02em; color: var(--color-ink); line-height: 1.1; }
+.adm-stat-sub { font-size: 0.8rem; color: var(--color-on-surface-variant); }
+
+.adm-ov-row { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.adm-panel {
+  padding: 1.2rem;
+  border-radius: var(--radius-2xl);
+  background: #fff;
+  border: 1px solid var(--color-outline-variant);
+  min-width: 0;
+}
+.adm-panel h2 { font-size: 1.05rem; margin-bottom: 0.8rem; }
+.adm-panel h2 small { font-size: 0.78rem; font-weight: var(--font-weight-medium); color: var(--color-on-surface-variant); margin-left: 0.35rem; }
+.adm-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.8rem; }
+.adm-panel-head h2 { margin: 0; }
+.adm-link { font-size: 0.88rem; font-weight: var(--font-weight-bold); color: var(--color-primary); }
+.adm-link:hover { text-decoration: underline; }
+.adm-empty { display: flex; align-items: center; gap: 0.5rem; padding: 1rem 0; color: var(--color-on-surface-variant); }
+.adm-empty svg { color: var(--color-primary); }
+
+.adm-todo { flex: 3 1 26rem; }
+.adm-todo ul { display: flex; flex-direction: column; gap: 0.55rem; }
+.adm-todo li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container-low);
+}
+.adm-todo-text { flex: 1 1 12rem; font-size: 0.9rem; color: var(--color-on-surface); }
+.adm-tag { padding: 0.15rem 0.6rem; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: var(--font-weight-bold); }
+.adm-tag.amber { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
+.adm-tag.green { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+.adm-tag.red { background: var(--color-error-container); color: var(--color-on-error-container); }
+
+.adm-cities { flex: 2 1 18rem; display: flex; flex-direction: column; gap: 0.9rem; }
+.adm-cities h2 { margin-bottom: 0; }
+.adm-city { display: flex; flex-direction: column; gap: 0.35rem; }
+.adm-city-row { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: var(--font-weight-semibold); }
+.adm-city-row span:last-child { color: var(--color-on-surface-variant); }
+.adm-bar { height: 0.6rem; border-radius: var(--radius-full); background: var(--color-surface-container); overflow: hidden; }
+.adm-bar > div { height: 100%; border-radius: inherit; background: var(--color-primary); }
+
+/* Tables scroll sideways in their own box on phones, never the page */
+.adm-table-wrap { overflow-x: auto; }
+.adm-table { width: 100%; min-width: 40rem; border-collapse: collapse; font-size: 0.9rem; }
+.adm-table th { text-align: left; font-weight: var(--font-weight-semibold); color: var(--color-on-surface-variant); padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--color-outline-variant); }
+.adm-table td { padding: 0.75rem; border-bottom: 1px solid var(--color-surface-container); }
+.adm-ref { font-weight: var(--font-weight-bold); white-space: nowrap; }
+.adm-muted { color: var(--color-on-surface-variant); }
+.adm-pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: var(--font-weight-bold); background: var(--color-surface-container); color: var(--color-on-surface); }
+.adm-pill.s-open { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
+.adm-pill.s-assigned { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+.adm-pill.s-in_progress { background: var(--color-secondary-container); color: var(--color-on-secondary-container); }
+
+/* Wide tables inside the existing tab sections also get a scroll box */
+.adm-content table { max-width: 100%; }
+.adm-content .admin-content-card { min-width: 0; overflow-x: auto; }
+
+/* ── Tablet / phone: the sidebar becomes a drawer ── */
+@media (max-width: 960px) {
+  .adm-side {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1100;
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+    box-shadow: var(--shadow-xl);
+  }
+  .adm-side.open { transform: none; }
+  .adm-scrim { display: block; position: fixed; inset: 0; z-index: 1090; background: rgba(19, 38, 26, 0.45); border: 0; }
+  .adm-burger { display: grid; }
+  .adm-site-link span { display: none; }
+}

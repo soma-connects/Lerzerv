@@ -81,6 +81,7 @@
 
 .search-input-wrapper input {
   flex: 1;
+  min-width: 0; /* lets the field shrink on narrow phones so the button fits */
   border: none;
   background: transparent;
   outline: none;

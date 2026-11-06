@@ -7,8 +7,8 @@ import './About.css';
 const About: React.FC = () => {
   useSEO({
     title: "About Us | Nigeria's Trusted Home Services Network - Lezerv",
-    description: "Learn about Lezerv, the leading platform connecting homes and businesses with verified cleaners, plumbers, electricians, and carpenters in Lagos, Abuja, and beyond.",
-    keywords: 'about lezerv, home services platform nigeria, verified cleaning company lagos, trusted artisans abuja, handyman network nigeria'
+    description: "Learn about Lezerv, the leading platform connecting homes and businesses with verified cleaners, plumbers, electricians, and carpenters in Lagos, Port Harcourt and Omoku.",
+    keywords: 'about lezerv, home services platform nigeria, verified cleaning company lagos, trusted artisans port harcourt, handyman network nigeria'
   });
 
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
@@ -43,7 +43,7 @@ const About: React.FC = () => {
 
   const stats = [
     { number: "500+", label: "Verified Artisans", icon: <Users size={24} /> },
-    { number: "Lagos & Abuja", label: "Cities Covered", icon: <MapPin size={24} /> },
+    { number: "Lagos & Rivers", label: "States Covered", icon: <MapPin size={24} /> },
     { number: "10,000+", label: "Jobs Completed", icon: <Phone size={24} /> }
   ];
 
@@ -62,7 +62,7 @@ const About: React.FC = () => {
               <span className="about-label">About Lezerv</span>
               <h1>Bringing Reliability to Every Nigerian Home</h1>
               <p>
-                Founded to solve the most common headache for homeowners in Lagos, Abuja, and beyond: finding artisans you can actually trust. We bridge the gap between skilled professionals and the homes that need them.
+                Founded to solve the most common headache for homeowners in Lagos and Rivers State: finding artisans you can actually trust. We bridge the gap between skilled professionals and the homes that need them.
               </p>
               <div className="about-hero-stats">
                 {stats.map((stat, index) => (
@@ -173,7 +173,7 @@ const About: React.FC = () => {
                 {!imagesLoaded['story1'] && <div className="image-skeleton" aria-hidden="true" />}
                 <img
                   src="https://images.unsplash.com/photo-1607756882482-0638bb851ee6?auto=format&fit=crop&w=800&q=80"
-                  alt="Lezerv laundry delivery service in Abuja"
+                  alt="Lezerv laundry service"
                   onLoad={() => handleImageLoad('story1')}
                   style={{ opacity: imagesLoaded['story1'] ? 1 : 0 }}
                   loading="lazy"
@@ -199,7 +199,7 @@ const About: React.FC = () => {
         <div className="container">
           <div className="trust-content">
             <h2>Join the Community of Satisfied Homeowners</h2>
-            <p>From Lekki to Gwarinpa, from Victoria Island to Wuse — we are building a network you can rely on.</p>
+            <p>From Lekki to Omoku, from Victoria Island to Port Harcourt — we are building a network you can rely on.</p>
           </div>
         </div>
       </section>

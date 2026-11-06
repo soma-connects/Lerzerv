@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, MessageSquare, Send, X, Check, Star, Briefcase, Ban, Play, MapPin, Hand, ClipboardList,
-  Receipt, ThumbsUp, ThumbsDown, CalendarClock, Eye, Camera, RotateCcw, CalendarDays,
+  Receipt, ThumbsUp, ThumbsDown, CalendarClock, Eye, Camera, RotateCcw, CalendarDays, Route,
 } from 'lucide-react';
+import { JobTracker } from '../components/jobs/JobTracker';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { artisanService } from '../services/artisanService';
@@ -351,6 +352,7 @@ const MyJobs: React.FC = () => {
   const [chatJob, setChatJob] = useState<any | null>(null);
   const [reviewJob, setReviewJob] = useState<any | null>(null);
   const [rebookJob, setRebookJob] = useState<any | null>(null);
+  const [trackJob, setTrackJob] = useState<any | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -583,6 +585,9 @@ const MyJobs: React.FC = () => {
                     ) : null}
                   </div>
                   <div className="job-actions">
+                    <Button size="sm" variant={['open', 'assigned', 'in_progress'].includes(j.status) ? 'primary' : 'outline'} leftIcon={<Route size={16} />} onClick={() => setTrackJob(j)}>
+                      Track job
+                    </Button>
                     {j.conversation_id && <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />} onClick={() => setChatJob(j)}>Chat</Button>}
                     {['open', 'assigned'].includes(j.status) && <Button size="sm" variant="text" leftIcon={<Ban size={16} />} disabled={busyId === j.id} onClick={() => act(() => artisanService.updateJobStatus(j.id, 'cancelled'), j.id)}>Cancel</Button>}
                     {j.status === 'completed' && <Button size="sm" variant="primary" leftIcon={<Star size={16} />} onClick={() => setReviewJob(j)}>Leave review</Button>}
@@ -600,6 +605,15 @@ const MyJobs: React.FC = () => {
       </div>
 
       <AnimatePresence>{chatJob && <ChatPanel job={chatJob} myUserId={myUserId!} onClose={() => setChatJob(null)} />}</AnimatePresence>
+      <AnimatePresence>
+        {trackJob && (
+          <JobTracker
+            job={trackJob}
+            onClose={() => setTrackJob(null)}
+            onChat={trackJob.conversation_id ? () => { const j = trackJob; setTrackJob(null); setChatJob(j); } : undefined}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>{reviewJob && <ReviewModal job={reviewJob} onClose={() => setReviewJob(null)} onDone={() => { setReviewJob(null); load(); }} />}</AnimatePresence>
       <AnimatePresence>{rebookJob && <RebookModal job={rebookJob} onClose={() => setRebookJob(null)} onDone={() => { setRebookJob(null); load(); }} />}</AnimatePresence>
       <AnimatePresence>{quoteJob && <QuoteModal job={quoteJob} onClose={() => setQuoteJob(null)} onDone={() => { setQuoteJob(null); load(); }} />}</AnimatePresence>

@@ -13,7 +13,7 @@
 }
 .blog-hero-inner { max-width: 760px; margin: 0 auto; text-align: center; }
 .blog-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-body-sm); font-weight: var(--font-weight-semibold); background: rgba(255,255,255,0.12); padding: 5px 14px; border-radius: var(--radius-full); margin-bottom: var(--spacing-md); }
-.blog-hero h1 { font-size: var(--font-size-h1); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: var(--spacing-sm); }
+.blog-hero h1 { color: inherit; font-size: var(--font-size-h1); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: var(--spacing-sm); }
 .blog-hero p { color: var(--color-primary-fixed); font-size: var(--font-size-body-lg); opacity: 0.95; }
 
 /* Grid */

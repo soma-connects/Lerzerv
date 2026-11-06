@@ -36,7 +36,7 @@ const SUBJECT_OPTIONS = [
 const Contact: React.FC = () => {
   useSEO({
     title: 'Contact Us | Lezerv Home Services & Support Nigeria',
-    description: 'Get in touch with Lezerv. Contact our support team for cleaning, plumbing, electrical, and other home service bookings or partnerships in Lagos and Abuja.',
+    description: 'Get in touch with Lezerv. Contact our support team for cleaning, plumbing, electrical, and other home service bookings or partnerships in Lagos, Port Harcourt and Omoku.',
     keywords: 'contact lezerv, lezerv phone number, support home services nigeria, cleaning service contact, local artisan support lagos'
   });
 
@@ -424,7 +424,7 @@ const Contact: React.FC = () => {
                   </div>
                   <div className="quick-content">
                     <span className="quick-label">Email Us</span>
-                    <a href="mailto:support@lezerv.com" className="quick-value">support@lezerv.com</a>
+                    <a href="mailto:lezervlimited@gmail.com" className="quick-value">lezervlimited@gmail.com</a>
                     <span className="quick-meta">Response in 2-4 hrs</span>
                   </div>
                 </div>

@@ -1,28 +1,36 @@
+/* Pill-shaped buttons. One base class (.btn) + one variant + one size. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-button);
+  gap: 0.5rem;
   font-family: var(--font-family-body);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-button);
   line-height: 1.2;
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg);
-  transition: var(--transition-fast);
-  gap: var(--spacing-sm);
+  letter-spacing: -0.005em;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  background: none;
   white-space: nowrap;
   user-select: none;
   cursor: pointer;
-  background: none;
+  position: relative;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(1px) scale(0.99);
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .btn:disabled {
@@ -31,62 +39,145 @@
   transform: none;
 }
 
-/* Variants */
+/* ---------- Variants ---------- */
+
+/* Main action: solid green */
 .btn-primary {
   background-color: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(14, 110, 47, 0.22);
 }
-
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-on-primary-fixed-variant);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px rgba(14, 110, 47, 0.28);
 }
 
+/* Softer action: pale green fill. Reads well on white AND on dark green. */
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-on-secondary);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--color-on-secondary-fixed-variant);
-}
-
-.btn-outline {
-  border: 1px solid var(--color-outline-variant);
-  color: var(--color-primary);
-  background-color: var(--color-surface-container-lowest);
-}
-
-.btn-outline:hover:not(:disabled) {
   background-color: var(--color-primary-fixed);
-  border-color: var(--color-primary);
+  color: var(--color-on-primary-fixed);
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-primary-fixed-dim);
 }
 
+/* Quiet action: white with a hairline border */
+.btn-outline {
+  background-color: var(--color-surface-container-lowest);
+  border-color: var(--color-outline-variant);
+  color: var(--color-ink);
+}
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-fixed);
+}
+
+/* Link-style action */
 .btn-text {
   color: var(--color-primary);
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
 }
-
 .btn-text:hover:not(:disabled) {
-  background-color: var(--color-surface-container-low);
+  background-color: var(--color-primary-fixed);
 }
 
-/* Sizes */
+/* For dark green banners: white button */
+.btn-light {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.btn-light:hover:not(:disabled) {
+  background-color: var(--color-primary-fixed);
+}
+
+/* For dark green banners: see-through with a white border */
+.btn-outline-light {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+}
+.btn-outline-light:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #ffffff;
+}
+
+/* Destructive action */
+.btn-danger {
+  background-color: var(--color-error);
+  color: var(--color-on-error);
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-on-error-container);
+}
+
+/* ---------- Sizes ---------- */
 .btn-sm {
   padding: 0.5rem 1rem;
+  min-height: 2.25rem;
   font-size: var(--font-size-body-sm);
 }
 
 .btn-md {
-  padding: 0.75rem 1.5rem;
+  padding: 0.7rem 1.35rem;
+  min-height: 2.75rem; /* 44px: comfortable finger target */
 }
 
 .btn-lg {
-  padding: 1rem 2rem;
-  font-size: var(--font-size-body-lg);
+  padding: 0.9rem 1.75rem;
+  min-height: 3.25rem;
+  font-size: 1.0625rem;
 }
 
-.btn-icon-left, .btn-icon-right {
-  display: flex;
+.btn-full-width {
+  width: 100%;
+}
+
+.btn-icon-left,
+.btn-icon-right {
+  display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-icon-right {
+  transition: transform var(--transition-fast);
+}
+.btn:hover:not(:disabled) .btn-icon-right {
+  transform: translateX(2px);
+}
+
+/* Loading: hide the label and show a small spinner in its place */
+.btn-loading {
+  color: transparent !important;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-color: var(--btn-spinner, rgba(255, 255, 255, 0.9)) transparent var(--btn-spinner, rgba(255, 255, 255, 0.9)) transparent;
+  animation: btn-spin 0.7s linear infinite;
+}
+.btn-outline.btn-loading,
+.btn-secondary.btn-loading,
+.btn-text.btn-loading,
+.btn-light.btn-loading {
+  --btn-spinner: var(--color-primary);
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Long labels may wrap on very small phones instead of overflowing */
+@media (max-width: 380px) {
+  .btn {
+    white-space: normal;
+    text-align: center;
+  }
 }

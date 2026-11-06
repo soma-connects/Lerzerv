@@ -147,7 +147,7 @@
 
 .apply-card .form-control:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.1);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.1);
 }
 
 .apply-card .form-control::placeholder {

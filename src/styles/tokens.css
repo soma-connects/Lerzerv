@@ -1,107 +1,138 @@
+/*
+ * Lezerv design tokens — "soft and friendly" in Lezerv green.
+ *
+ * Every page reads its colours, sizes and corners from these variables, so
+ * changing a value here restyles the whole site at once. The names follow
+ * Material 3 ("primary", "on-primary", "surface-container"…) because the
+ * existing pages already use them:
+ *   - "x"            → the colour itself (e.g. a button background)
+ *   - "on-x"         → text/icons drawn ON TOP of x (always readable on x)
+ *   - "x-container"  → a softer/deeper version of x for larger areas
+ *   - "x-fixed"      → a pale tint of x for chips, badges and icon tiles
+ */
 :root {
-  /* Colors */
-  --color-primary: #002a42;
+  /* ---------- Brand: Lezerv green ---------- */
+  --color-primary: #0e6e2f;              /* buttons, links, active states */
   --color-on-primary: #ffffff;
-  --color-primary-container: #10415e;
-  --color-on-primary-container: #83adcf;
-  --color-primary-fixed: #cae6ff;
-  --color-on-primary-fixed: #001e30;
-  --color-primary-fixed-dim: #a1cbee;
-  --color-on-primary-fixed-variant: #1d4b68;
+  --color-primary-container: #0b5a27;    /* deep green panels (banners) */
+  --color-on-primary-container: #c4ebd0; /* readable text on those panels */
+  --color-primary-fixed: #e2f3e7;        /* pale green tint for chips/tiles */
+  --color-on-primary-fixed: #062b14;
+  --color-primary-fixed-dim: #a9dbb8;
+  --color-on-primary-fixed-variant: #0a5424; /* hover shade of primary */
+  --color-primary-dim: #0a5424;
 
-  --color-secondary: #006c4a;
+  /* Secondary: a brighter leaf green, used for success and accents */
+  --color-secondary: #187a42;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #82f5c1;
-  --color-on-secondary-container: #00714e;
-  --color-secondary-fixed: #85f8c4;
-  --color-on-secondary-fixed: #002114;
-  --color-secondary-fixed-dim: #68dba9;
-  --color-on-secondary-fixed-variant: #005137;
+  --color-secondary-container: #cdeed9;
+  --color-on-secondary-container: #0b4f29;
+  --color-secondary-fixed: #dcf3e4;
+  --color-on-secondary-fixed: #0b3d20;
+  --color-secondary-fixed-dim: #8fd3aa;
+  --color-on-secondary-fixed-variant: #11633a;
 
-  --color-tertiary: #3b2200;
+  /* Tertiary: warm amber, for "featured", ratings and gentle highlights */
+  --color-tertiary: #9a5b00;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #583600;
-  --color-on-tertiary-container: #ea9600;
-  --color-tertiary-fixed: #ffddb8;
-  --color-on-tertiary-fixed: #2a1700;
-  --color-tertiary-fixed-dim: #ffb95f;
-  --color-on-tertiary-fixed-variant: #653e00;
+  --color-tertiary-container: #fdebc8;
+  --color-on-tertiary-container: #6e4100;
+  --color-tertiary-fixed: #fff1d9;
+  --color-on-tertiary-fixed: #4a2c00;
+  --color-tertiary-fixed-dim: #f5c779;
+  --color-on-tertiary-fixed-variant: #7a4800;
 
-  --color-error: #ba1a1a;
+  /* Feedback */
+  --color-error: #b3261e;
   --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+  --color-error-container: #fde4e1;
+  --color-on-error-container: #8c1d18;
 
-  --color-background: #f9f9fc;
-  --color-on-background: #1a1c1e;
+  /* ---------- Neutrals: warm off-whites instead of cold greys ---------- */
+  --color-background: #f8f6f1;
+  --color-on-background: #18211b;
 
-  --color-surface: #f9f9fc;
-  --color-on-surface: #1a1c1e;
-  --color-surface-variant: #e2e2e5;
-  --color-on-surface-variant: #42474d;
-  --color-surface-tint: #386281;
-  --color-surface-bright: #f9f9fc;
-  --color-surface-dim: #d9dadc;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f3f3f6;
-  --color-surface-container: #eeeef0;
-  --color-surface-container-high: #e8e8eb;
-  --color-surface-container-highest: #e2e2e5;
+  --color-surface: #fbfaf7;
+  --color-on-surface: #18211b;
+  --color-surface-variant: #ebe6dc;
+  --color-on-surface-variant: #545c55;   /* secondary text */
+  --color-surface-tint: #0e6e2f;
+  --color-surface-bright: #ffffff;
+  --color-surface-dim: #e2dcd0;
+  --color-surface-container-lowest: #ffffff; /* cards */
+  --color-surface-container-low: #f5f2ec;
+  --color-surface-container: #efebe3;
+  --color-surface-container-high: #e9e4da;
+  --color-surface-container-highest: #e2dcd0;
 
-  --color-outline: #72787e;
-  --color-outline-variant: #c2c7ce;
-  --color-inverse-surface: #2f3133;
-  --color-inverse-on-surface: #f0f0f3;
-  --color-inverse-primary: #a1cbee;
+  --color-outline: #8b877e;
+  --color-outline-variant: #e3ddd2;      /* hairline borders */
+  --color-inverse-surface: #14261a;      /* dark green-ink (footer) */
+  --color-inverse-on-surface: #eef3ee;
+  --color-inverse-primary: #8fd3aa;
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2.5rem;
-  --spacing-2xl: 4rem;
-  --spacing-margin: 2rem;
+  /* Brand ink used for headings — a very dark green, softer than black */
+  --color-ink: #13261a;
+
+  /* ---------- Spacing (4px rhythm) ---------- */
+  --spacing-xs: 0.25rem;  /* 4  */
+  --spacing-sm: 0.5rem;   /* 8  */
+  --spacing-md: 1rem;     /* 16 */
+  --spacing-lg: 1.5rem;   /* 24 */
+  --spacing-xl: 2.5rem;   /* 40 */
+  --spacing-2xl: 4rem;    /* 64 */
+  --spacing-3xl: 6rem;    /* 96 */
+  --spacing-margin: clamp(1rem, 4vw, 2rem); /* page side gutter */
   --spacing-gutter: 1.5rem;
+  --section-space: clamp(3.5rem, 8vw, 6rem); /* gap between page sections */
 
-  /* Border Radius */
-  --radius-default: 0.25rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-full: 9999px;
+  /* ---------- Corners: rounder = friendlier ---------- */
+  --radius-sm: 0.5rem;     /* 8  */
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;    /* 12 */
+  --radius-lg: 0.75rem;    /* 12 — inputs, small cards */
+  --radius-xl: 1rem;       /* 16 — cards */
+  --radius-2xl: 1.5rem;    /* 24 — big panels and banners */
+  --radius-full: 9999px;   /* pills and circles */
 
-  /* Typography */
-  --font-family-body: 'Public Sans', sans-serif;
-  --font-family-heading: 'Public Sans', sans-serif;
+  /* ---------- Typography ---------- */
+  --font-family-body: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-family-heading: var(--font-family-body);
 
-  --font-size-h1: 2.5rem; /* 40px */
-  --font-size-h2: 2rem;   /* 32px */
-  --font-size-h3: 1.5rem; /* 24px */
-  --font-size-body-lg: 1.125rem; /* 18px */
-  --font-size-body-md: 1rem;    /* 16px */
-  --font-size-body-sm: 0.875rem; /* 14px */
-  --font-size-button: 1rem;     /* 16px */
-  --font-size-label: 0.75rem;   /* 12px */
+  /* clamp(min, preferred, max): text grows with the screen but never
+     gets smaller than min (phones) or bigger than max (desktops). */
+  --font-size-h1: clamp(2.125rem, 1.4rem + 3vw, 3.5rem);
+  --font-size-h2: clamp(1.625rem, 1.2rem + 1.8vw, 2.375rem);
+  --font-size-h3: clamp(1.1875rem, 1.05rem + 0.5vw, 1.375rem);
+  --font-size-h4: 1.0625rem;
+  --font-size-body-lg: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --font-size-body-md: 1rem;
+  --font-size-body: 1rem;
+  --font-size-body-sm: 0.875rem;
+  --font-size-small: 0.875rem;
+  --font-size-button: 0.975rem;
+  --font-size-label: 0.75rem;
 
   --font-weight-regular: 400;
+  --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-black: 800;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.16);
+  /* ---------- Shadows: soft, slightly green-tinted ---------- */
+  --shadow-sm: 0 1px 2px rgba(19, 38, 26, 0.05), 0 1px 3px rgba(19, 38, 26, 0.04);
+  --shadow-md: 0 4px 14px rgba(19, 38, 26, 0.07);
+  --shadow-lg: 0 12px 32px rgba(19, 38, 26, 0.09);
+  --shadow-xl: 0 20px 48px rgba(19, 38, 26, 0.13);
+  --focus-ring: 0 0 0 3px rgba(14, 110, 47, 0.28);
 
-  /* Transitions */
-  --transition-fast: 150ms ease-in-out;
-  --transition-normal: 250ms ease-in-out;
-  --transition-slow: 400ms ease-in-out;
-}
+  /* ---------- Motion ---------- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
 
-.dark {
-  /* Dark mode overrides would go here if needed */
-  /* For now keeping it light as requested */
+  /* ---------- Layout ---------- */
+  --container-max: 75rem;  /* 1200px */
+  --header-height: 4.25rem;
 }

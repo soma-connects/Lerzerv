@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { SupportBot } from '../support/SupportBot';
@@ -9,6 +10,14 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { pathname } = useLocation();
+
+  // The admin dashboard has its own sidebar and top bar, so it is shown
+  // without the public website's header, footer and chat assistant.
+  if (pathname.startsWith('/admin')) {
+    return <div className="layout layout-bare">{children}</div>;
+  }
+
   return (
     <div className="layout">
       <Header />

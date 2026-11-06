@@ -2,9 +2,12 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .layout-content {
   flex: 1;
-  padding-top: 4.75rem; /* Match header height */
+  /* The header is "fixed" (it floats over the page), so push content down
+     by exactly its height or the top of every page would hide under it. */
+  padding-top: var(--header-height);
 }

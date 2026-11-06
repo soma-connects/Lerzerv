@@ -207,6 +207,8 @@
 .story {
   padding: var(--spacing-2xl) 0;
   background-color: var(--color-surface-container-lowest);
+  /* the pictures slide in from the side; trim them until they arrive */
+  overflow-x: clip;
 }
 
 .story-grid {
@@ -274,7 +276,8 @@
 /* Story Images */
 .story-images {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr): columns may shrink below the pictures' natural width */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--spacing-md);
   align-items: start;
 }

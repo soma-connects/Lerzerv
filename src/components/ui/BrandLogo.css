@@ -1,0 +1,37 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  line-height: 1;
+}
+
+.brand-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-word {
+  font-family: var(--font-family-heading);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.035em;
+}
+
+.brand-dark .brand-word { color: var(--color-ink); }
+
+.brand-light .brand-mark {
+  background: #ffffff;
+  padding: 0.3rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+.brand-light .brand-word { color: #ffffff; }

@@ -104,7 +104,7 @@ const getJobDetailsFallback = (job: TJob | null) => {
     details.description = job.description || "Join Lezerv as a Carpentry & Woodwork Partner! Connect with premium homeowners needing custom furniture installations, door repairs, kitchen cabinet fittings, and direct upholstery maintenance.";
     details.responsibilities = job.responsibilities || "Assemble, repair, and install wooden structures, door locks, and door frames.\nRepair broken cabinets, drawers, tables, chairs, and household fittings.\nConduct woodwork finishings, varnishing, and structural remodeling.\nTake precise measurements and cut materials with standard safety tools.";
   } else if (title.includes('generator') || title.includes('technician')) {
-    details.description = job.description || "Join Lezerv as a Power Generator Technician! Service diesel and petrol generators for high-end residential estates and corporate offices across Lagos, Abuja, and major cities.";
+    details.description = job.description || "Join Lezerv as a Power Generator Technician! Service diesel and petrol generators for high-end residential estates and corporate offices across Lagos, Port Harcourt and Omoku.";
     details.responsibilities = job.responsibilities || "Perform routine generator servicing, oil replacement, and filter changes.\nDiagnose mechanical failures, starter issues, and radiator faults.\nMaintain diesel and petrol engines, injectors, and control modules.\nEnsure safe fuel lines and exhaust piping structures on all sites.";
   }
   

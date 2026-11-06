@@ -11,14 +11,15 @@ import { artisanService } from '../services/artisanService';
 import type { IServiceCategory, IServiceArea } from '../types/marketplace';
 import './ArtisanOnboard.css';
 import { useSEO } from '../hooks/useSEO';
+import { useRegionMaybe } from '../contexts/LocationContext';
 
-const CITIES = ['Lagos', 'Abuja', 'Port Harcourt'];
+const CITIES = ['Lagos', 'Port Harcourt', 'Omoku'];
 
 const ArtisanOnboard: React.FC = () => {
   useSEO({
     title: 'Become an Artisan / Service Provider | Lezerv Nigeria',
-    description: "Grow your home service business. Join Lezerv to get connected with customers needing professional cleaning, plumbing, electrical installations, AC servicing, and repairs in Lagos and Abuja.",
-    keywords: 'register as artisan lagos, handyman jobs abuja, get cleaning jobs lagos, artisan recruitment nigeria, work as plumber nigeria'
+    description: "Grow your home service business. Join Lezerv to get connected with customers needing professional cleaning, plumbing, electrical installations, AC servicing, and repairs in Lagos, Port Harcourt and Omoku.",
+    keywords: 'register as artisan lagos, handyman jobs port harcourt, artisan jobs omoku, get cleaning jobs lagos, artisan recruitment nigeria, work as plumber nigeria'
   });
 
   const { user, loading: authLoading } = useAuth();
@@ -32,7 +33,8 @@ const ArtisanOnboard: React.FC = () => {
 
   // form fields
   const [displayName, setDisplayName] = useState('');
-  const [city, setCity] = useState('Lagos');
+  const region = useRegionMaybe();
+  const [city, setCity] = useState(region?.city && CITIES.includes(region.city) ? region.city : 'Lagos');
   const [bio, setBio] = useState('');
   const [years, setYears] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
@@ -92,6 +94,17 @@ const ArtisanOnboard: React.FC = () => {
     setSelected((prev) =>
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
     );
+  };
+
+  // Areas in the chosen city (all areas if that city has none set up yet).
+  const inCity = (c: string) => areas.filter((a) => (a.city || 'Lagos') === c);
+  const cityAreas = inCity(city).length > 0 ? inCity(city) : areas;
+
+  // Switching city drops areas picked in the other city.
+  const changeCity = (c: string) => {
+    setCity(c);
+    const keep = new Set(inCity(c).map((a) => a.slug));
+    if (keep.size > 0) setSelectedAreas((prev) => prev.filter((s) => keep.has(s)));
   };
 
   const toggleArea = (slug: string) => {
@@ -282,7 +295,7 @@ const ArtisanOnboard: React.FC = () => {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="city">City</label>
-                <select id="city" value={city} onChange={(e) => setCity(e.target.value)} className="select-input">
+                <select id="city" value={city} onChange={(e) => changeCity(e.target.value)} className="select-input">
                   {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -320,9 +333,9 @@ const ArtisanOnboard: React.FC = () => {
 
           <section className="form-section">
             <h2>Areas you work in</h2>
-            <p className="section-hint">Pick every Lagos area you can take jobs in — we'll only show you jobs in these areas.</p>
+            <p className="section-hint">Pick every area in {city} you can take jobs in — we'll only show you jobs in these areas.</p>
             <div className="chip-grid">
-              {areas.map((a) => (
+              {cityAreas.map((a) => (
                 <button type="button" key={a.slug}
                   className={`chip ${selectedAreas.includes(a.slug) ? 'selected' : ''}`}
                   onClick={() => toggleArea(a.slug)}>

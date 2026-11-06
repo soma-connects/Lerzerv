@@ -53,13 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     // 1. Hardcoded admin emails
+    // Lowercase, because Supabase stores addresses in lowercase. (This only
+    // decides which menus the website shows; the database enforces admin rights.)
     const adminEmails = [
-      'Lezervlimited@gmail.com', 
-      'admin@lezerv.com', 
-      'pauljizy@gmail.com', 
+      'lezervlimited@gmail.com',
+      'admin@lezerv.com',
+      'pauljizy@gmail.com',
       'preciouspeter3173@gmail.com'
     ];
-    const isHardcodedAdmin = adminEmails.includes(user.email ?? '');
+    const isHardcodedAdmin = adminEmails.includes((user.email ?? '').toLowerCase());
     
     if (isHardcodedAdmin) {
       setIsAdmin(true);

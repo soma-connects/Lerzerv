@@ -41,7 +41,7 @@ export const bookingStorage = {
           details: 'Mikano 20KVA routine check.',
           date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
           time: 'afternoon',
-          location: { city: 'Abuja', estate: 'Gwarinpa', address: 'House 5, 2nd Avenue' },
+          location: { city: 'Port Harcourt', estate: 'GRA Phase 2', address: 'House 5, 2nd Avenue' },
           customer: { name: 'Paul Peters', phone: '08012345678', email: 'paul@example.com' },
           status: 'confirmed',
           createdAt: new Date(Date.now() - 86400000).toISOString(),

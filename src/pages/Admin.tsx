@@ -25,7 +25,13 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
+import {
+  LayoutDashboard, ClipboardList, CalendarCheck, Headphones, HardHat, Users, Newspaper, Tag, CreditCard,
+  Menu, LogOut, ExternalLink, Inbox,
+} from 'lucide-react';
+import { AdminOverview, type AdminTab } from '../components/admin/AdminOverview';
+import '../components/admin/AdminShell.css';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pricingService } from '../services/pricingService';
@@ -79,8 +85,11 @@ type TToast = {
 };
 
 const Admin: React.FC = () => {
-  const { user, isAdmin, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'jobs' | 'users' | 'settings' | 'applications' | 'ambassadors' | 'artisans' | 'dispatch' | 'blog' | 'support'>('bookings');
+  const { user, isAdmin, loading, signOut } = useAuth();
+  const [activeTab, setActiveTabRaw] = useState<AdminTab>('overview');
+  const [navOpen, setNavOpen] = useState(false);
+  // Picking a section also closes the phone drawer and goes back to the top.
+  const setActiveTab = (t: AdminTab) => { setActiveTabRaw(t); setNavOpen(false); window.scrollTo({ top: 0 }); };
   const [bookings, setBookings] = useState<TBooking[]>([]);
   const [services, setServices] = useState<TService[]>([]);
   const [applications, setApplications] = useState<TApplication[]>([]);
@@ -583,46 +592,88 @@ const Admin: React.FC = () => {
   if (loading) return <div>Loading...</div>;
   if (!isAdmin) return <Navigate to="/login" replace />;
 
-  return (
-    <div className="admin-page">
-      <div className="container-fluid">
-        <header className="admin-header">
-          <div>
-            <h1>Management Console</h1>
-            <p>Control pricing, payments, and service requests.</p>
-          </div>
-          <nav className="admin-tabs">
-            <button className={activeTab === 'bookings' ? 'active' : ''} onClick={() => setActiveTab('bookings')}>Bookings</button>
-            <button className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Pricing</button>
-            <button className={activeTab === 'jobs' ? 'active' : ''} onClick={() => setActiveTab('jobs')}>Jobs</button>
-            <button className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>Users</button>
-            <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>Payment Details</button>
-            <button className={activeTab === 'applications' ? 'active' : ''} onClick={() => setActiveTab('applications')}>
-              Applications
-              {unreadApplicationsCount > 0 && (
-                <span className="admin-badge-count">{unreadApplicationsCount}</span>
-              )}
-            </button>
-            <button className={activeTab === 'ambassadors' ? 'active' : ''} onClick={() => setActiveTab('ambassadors')}>Ambassadors</button>
-            <button className={activeTab === 'artisans' ? 'active' : ''} onClick={() => setActiveTab('artisans')}>
-              Artisans
-              {artisans.filter((a) => a.status === 'pending').length > 0 && (
-                <span className="tab-badge">{artisans.filter((a) => a.status === 'pending').length}</span>
-              )}
-            </button>
-            <button className={activeTab === 'dispatch' ? 'active' : ''} onClick={() => setActiveTab('dispatch')}>
-              Applications
-              {dispatchJobs.filter((j) => j.status === 'open').length > 0 && (
-                <span className="tab-badge">{dispatchJobs.filter((j) => j.status === 'open').length}</span>
-              )}
-            </button>
-            <button className={activeTab === 'support' ? 'active' : ''} onClick={() => setActiveTab('support')}>Support</button>
-            <button className={activeTab === 'blog' ? 'active' : ''} onClick={() => setActiveTab('blog')}>Blog</button>
-          </nav>
-        </header>
+  const pendingBookings = bookings.filter((b) => b.status === 'pending' || b.status === 'awaiting_confirmation').length;
+  const navGroups: { title: string; items: { tab: AdminTab; label: string; icon: React.ReactNode; count: number }[] }[] = [
+    { title: 'Overview', items: [
+      { tab: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} />, count: 0 },
+    ] },
+    { title: 'Operations', items: [
+      { tab: 'dispatch', label: 'Service jobs', icon: <ClipboardList size={18} />, count: dispatchJobs.filter((j) => j.status === 'open').length },
+      { tab: 'bookings', label: 'Bookings & payments', icon: <CalendarCheck size={18} />, count: pendingBookings },
+      { tab: 'support', label: 'Support inbox', icon: <Headphones size={18} />, count: 0 },
+    ] },
+    { title: 'People', items: [
+      { tab: 'artisans', label: 'Artisans', icon: <HardHat size={18} />, count: artisans.filter((a) => a.status === 'pending').length },
+      { tab: 'users', label: 'Users', icon: <Users size={18} />, count: 0 },
+      { tab: 'ambassadors', label: 'Ambassadors', icon: <Award size={18} />, count: 0 },
+    ] },
+    { title: 'Careers', items: [
+      { tab: 'jobs', label: 'Job openings', icon: <Briefcase size={18} />, count: 0 },
+      { tab: 'applications', label: 'Career applications', icon: <Inbox size={18} />, count: unreadApplicationsCount },
+    ] },
+    { title: 'Setup', items: [
+      { tab: 'services', label: 'Prices', icon: <Tag size={18} />, count: 0 },
+      { tab: 'settings', label: 'Payment details', icon: <CreditCard size={18} />, count: 0 },
+      { tab: 'blog', label: 'Blog & events', icon: <Newspaper size={18} />, count: 0 },
+    ] },
+  ];
+  const sectionTitle = navGroups.flatMap((g) => g.items).find((i) => i.tab === activeTab)?.label ?? 'Dashboard';
 
-        {/* Action Required Banner */}
-        {bookings.filter(b => b.status === 'pending' || b.status === 'awaiting_confirmation').length > 0 && (
+  return (
+    <div className="adm">
+      {/* ── Sidebar: every section, grouped, with counts of what's waiting ── */}
+      <aside className={`adm-side ${navOpen ? 'open' : ''}`} aria-label="Admin sections">
+        <Link to="/" className="adm-brand">
+          <span className="adm-brand-mark"><img src="/brand/lezerv-mark-96.png" alt="" /></span>
+          <span><strong>Lezerv</strong> <small>Admin</small></span>
+        </Link>
+        <nav className="adm-nav">
+          {navGroups.map((g) => (
+            <div key={g.title} className="adm-nav-group">
+              <span className="adm-nav-title">{g.title}</span>
+              {g.items.map((it) => (
+                <button
+                  key={it.tab}
+                  type="button"
+                  className={`adm-nav-item ${activeTab === it.tab ? 'active' : ''}`}
+                  aria-current={activeTab === it.tab ? 'page' : undefined}
+                  onClick={() => setActiveTab(it.tab)}
+                >
+                  {it.icon}
+                  <span>{it.label}</span>
+                  {it.count > 0 && <span className="adm-count" aria-label={`${it.count} waiting`}>{it.count}</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="adm-side-foot">
+          {user?.email && <span className="adm-side-user">{user.email}</span>}
+          <button type="button" className="adm-nav-item" onClick={() => signOut()}><LogOut size={18} /><span>Log out</span></button>
+        </div>
+      </aside>
+      {navOpen && <button type="button" className="adm-scrim" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
+
+      <div className="adm-main">
+        <header className="adm-top">
+          <button type="button" className="adm-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={() => setNavOpen(true)}><Menu size={20} /></button>
+          <h1>{sectionTitle}</h1>
+          <Link to="/" className="adm-site-link"><ExternalLink size={16} /><span>View website</span></Link>
+        </header>
+        <main className="adm-content">
+
+        {activeTab === 'overview' && (
+          <AdminOverview
+            dispatchJobs={dispatchJobs}
+            artisans={artisans}
+            bookings={bookings}
+            unreadApplications={unreadApplicationsCount}
+            onGo={setActiveTab}
+          />
+        )}
+
+        {/* Action Required Banner (Bookings section) */}
+        {activeTab === 'bookings' && bookings.filter(b => b.status === 'pending' || b.status === 'awaiting_confirmation').length > 0 && (
           <div className="admin-alert-banner" style={{
             background: 'var(--color-tertiary-container)',
             border: '1px solid var(--color-outline-variant)',
@@ -1882,6 +1933,7 @@ const Admin: React.FC = () => {
             </div>
           </>
         )}
+        </main>
       </div>
 
       {/* Sliding Add Service Drawer Modal */}
@@ -2071,7 +2123,7 @@ const Admin: React.FC = () => {
                     <input 
                       type="text" 
                       required 
-                      placeholder="e.g. Remote, Abuja, or Lagos (Ikeja, Yaba)"
+                      placeholder="e.g. Remote, Port Harcourt, or Lagos (Ikeja, Yaba)"
                       value={newJob.location}
                       onChange={e => setNewJob({...newJob, location: e.target.value})}
                     />

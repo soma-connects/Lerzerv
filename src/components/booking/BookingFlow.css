@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 42, 66, 0.4);
+  background: rgba(19, 38, 26, 0.4);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -35,6 +35,7 @@
 }
 
 .booking-header h2 {
+  color: inherit;
   font-size: var(--font-size-h3);
   margin: 0;
 }
@@ -119,7 +120,7 @@
 .form-control:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 42, 66, 0.1);
+  box-shadow: 0 0 0 3px rgba(19, 38, 26, 0.1);
 }
 
 .booking-footer {

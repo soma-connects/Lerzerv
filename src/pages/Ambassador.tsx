@@ -269,7 +269,7 @@ const Ambassador: React.FC = () => {
             <h2>Account Suspended</h2>
             <p>
               Your ambassador account has been suspended by an administrator.
-              Please contact support at <a href="mailto:Lezervlimited@gmail.com">Lezervlimited@gmail.com</a>.
+              Please contact support at <a href="mailto:lezervlimited@gmail.com">lezervlimited@gmail.com</a>.
             </p>
           </motion.div>
         )}
@@ -287,7 +287,7 @@ const Ambassador: React.FC = () => {
             <h2>Registration Not Approved</h2>
             <p>
               Your ambassador profile is currently deactivated.
-              Please contact support at <a href="mailto:Lezervlimited@gmail.com">Lezervlimited@gmail.com</a> for help.
+              Please contact support at <a href="mailto:lezervlimited@gmail.com">lezervlimited@gmail.com</a> for help.
             </p>
           </motion.div>
         )}

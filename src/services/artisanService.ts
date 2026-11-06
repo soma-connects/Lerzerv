@@ -40,15 +40,20 @@ export const artisanService = {
     return (data || []) as IServiceCategory[];
   },
 
-  /** Public list of Lagos service areas. */
+  /** Public list of service areas (Lagos neighbourhoods, Port Harcourt, Omoku), with their city and centre. */
   fetchAreas: async (): Promise<IServiceArea[]> => {
-    const { data, error } = await supabase
-      .from('service_areas')
-      .select('slug, name')
-      .eq('is_active', true)
-      .order('sort_order');
-    if (error) return [];
-    return (data || []) as IServiceArea[];
+    // Newest columns first; if this database doesn't have them yet (lat/lng
+    // come from migration 0025), ask again for less, so the area lists never
+    // come back empty and people can always post a job.
+    for (const cols of ['slug, name, city, lat, lng', 'slug, name, city', 'slug, name']) {
+      const { data, error } = await supabase
+        .from('service_areas')
+        .select(cols)
+        .eq('is_active', true)
+        .order('sort_order');
+      if (!error) return (data || []) as unknown as IServiceArea[];
+    }
+    return [];
   },
 
   /** Create or update the current user's artisan profile. */
@@ -151,6 +156,51 @@ export const artisanService = {
     });
     if (error) { console.warn('browse failed:', error); return []; }
     return data || [];
+  },
+
+  /**
+   * Each artisan's own lowest "from" price, in naira (migration 0028's
+   * artisan_services: artisans set these themselves). With a category, only
+   * their prices for that service count. An artisan with no price listed is
+   * left out: they price after a visit. Returns null if prices can't be read
+   * (e.g. the table isn't there), so the page can simply not show prices.
+   */
+  fromPrices: async (artisanIds: string[], categorySlug?: string): Promise<Record<string, number> | null> => {
+    if (artisanIds.length === 0) return {};
+    const { data, error } = await supabase
+      .from('artisan_services')
+      .select('artisan_id, from_price_kobo, service_categories(slug)')
+      .eq('active', true)
+      .in('artisan_id', artisanIds);
+    if (error) return null;
+    type Row = { artisan_id: string; from_price_kobo: number; service_categories: { slug: string } | { slug: string }[] | null };
+    const best: Record<string, number> = {};
+    for (const row of (data || []) as unknown as Row[]) {
+      // The joined category can come back as one object or a one-item list.
+      const cat = Array.isArray(row.service_categories) ? row.service_categories[0] : row.service_categories;
+      if (categorySlug && cat?.slug !== categorySlug) continue;
+      const naira = Math.round(Number(row.from_price_kobo) / 100);
+      if (!Number.isFinite(naira) || naira <= 0) continue;
+      if (best[row.artisan_id] === undefined || naira < best[row.artisan_id]) best[row.artisan_id] = naira;
+    }
+    return best;
+  },
+
+  /**
+   * The client's start code for a job (job_private, migration 0023). Only the
+   * job's client (and admins) can read it. Jobs booked without the start-code
+   * flow have none: returns null then, or if it can't be read.
+   */
+  getStartCode: async (jobId: string): Promise<{ code: string; locked: boolean } | null> => {
+    const { data, error } = await supabase
+      .from('job_private')
+      .select('start_code, wrong_code_attempts')
+      .eq('job_id', jobId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as { start_code: string; wrong_code_attempts: number | null };
+    // 0023 locks the code after 5 wrong tries.
+    return { code: row.start_code, locked: (row.wrong_code_attempts ?? 0) >= 5 };
   },
 
   /** Geo-search for available artisans near a point. (legacy) */

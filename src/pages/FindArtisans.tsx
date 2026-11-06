@@ -1,143 +1,260 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MapPin, Star, ShieldCheck, Loader2, Hammer, ClipboardList } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { motion, MotionConfig } from 'framer-motion';
+import { BadgeCheck, ClipboardList, Loader2, MapPin, MessagesSquare, Search, Star, KeyRound, HandCoins } from 'lucide-react';
+import { LinkButton } from '../components/ui/LinkButton';
 import { artisanService } from '../services/artisanService';
 import { useSEO } from '../hooks/useSEO';
-import type { IServiceCategory, IServiceArea } from '../types/marketplace';
+import { useRegion } from '../contexts/LocationContext';
+import type { IServiceCategory } from '../types/marketplace';
 import './FindArtisans.css';
 
-const Stars: React.FC<{ rating: number }> = ({ rating }) => (
-  <span className="stars" title={`${rating.toFixed(1)} / 5`}>
-    {[1, 2, 3, 4, 5].map((n) => (
-      <Star key={n} size={14} className={n <= Math.round(rating) ? 'star filled' : 'star'} />
-    ))}
-  </span>
-);
+/** One row from browse_artisans (migration 0009). */
+interface BrowseRow {
+  id: string;
+  display_name: string;
+  bio: string | null;
+  city: string | null;
+  avatar_url: string | null;
+  years_experience: number | null;
+  is_verified: boolean;
+  avg_rating: number;
+  total_reviews: number;
+  completed_jobs: number;
+  categories: string[];
+  areas: string[];
+}
+
+type Sort = 'best' | 'jobs' | 'price';
+
+const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`;
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
 const FindArtisans: React.FC = () => {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const initialCat = params.get('category') || '';
+  const region = useRegion();
+  const areas = region.areas;
+  const [params, setParams] = useSearchParams();
+  // The chosen service lives in the address (?category=plumbing), so links
+  // from the menu, the home page and the back button all just work.
+  const activeCat = params.get('category') || '';
+
   const [categories, setCategories] = useState<IServiceCategory[]>([]);
-  const [areas, setAreas] = useState<IServiceArea[]>([]);
-  const [activeCat, setActiveCat] = useState<string>(initialCat);
-  const [activeArea, setActiveArea] = useState<string>('');
-  const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeArea, setActiveArea] = useState('');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<Sort>('best');
+  // Results remember which search they answer, so "loading" is simply
+  // "the results we have aren't for the current search yet".
+  const [data, setData] = useState<{ key: string; rows: BrowseRow[]; prices: Record<string, number> | null } | null>(null);
+  const searchKey = `${activeArea}|${activeCat}`;
+  const loading = data?.key !== searchKey;
 
-  const areaName = (slug: string) => areas.find((a) => a.slug === slug)?.name || '';
+  const areaName = (slug: string) => areas.find((a) => a.slug === slug)?.name || slug;
   const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name || '';
-
-  const displayCat = catName(activeCat) || 'Artisans, Cleaners & Plumbers';
-  const displayArea = areaName(activeArea) || 'Nigeria';
+  const placeName = activeArea ? areaName(activeArea) : region.city;
+  const catLabel = catName(activeCat);
 
   useSEO({
-    title: `Find Verified ${displayCat} in ${displayArea} | Lezerv`,
-    description: `Hire verified and background-checked ${displayCat.toLowerCase()} in ${displayArea}. Get transparent pricing, customer reviews, and trusted home service professionals on Lezerv.`,
-    keywords: `hire ${displayCat.toLowerCase()} ${displayArea}, verified ${displayCat.toLowerCase()} near me, home services ${displayArea}, lezerv ${displayCat.toLowerCase()}`
+    title: `Find Verified ${catLabel || 'Artisans'} in ${placeName || 'Nigeria'} | Lezerv`,
+    description: `Hire ID-verified ${(catLabel || 'artisans, cleaners and plumbers').toLowerCase()} in ${placeName || 'Lagos, Port Harcourt and Omoku'}. See each artisan's own prices and agree the price before work starts.`,
+    keywords: `hire ${(catLabel || 'artisan').toLowerCase()} ${placeName || 'Nigeria'}, verified ${(catLabel || 'artisans').toLowerCase()} near me, home services ${placeName || 'Nigeria'}, lezerv`,
   });
 
-  const run = useCallback(async (area: string, cat: string) => {
-    setLoading(true);
-    setResults(await artisanService.browse(area, cat));
-    setLoading(false);
+  useEffect(() => {
+    artisanService.fetchCategories().then(setCategories);
   }, []);
 
   useEffect(() => {
-    Promise.all([artisanService.fetchCategories(), artisanService.fetchAreas()]).then(([c, a]) => {
-      setCategories(c); setAreas(a);
-    });
-  }, []);
+    let alive = true;
+    (async () => {
+      const rows = (await artisanService.browse(activeArea, activeCat)) as BrowseRow[];
+      const prices = await artisanService.fromPrices(rows.map((r) => r.id), activeCat || undefined);
+      if (alive) setData({ key: searchKey, rows, prices });
+    })();
+    return () => { alive = false; };
+  }, [activeArea, activeCat, searchKey]);
 
-  // React to category changes coming from the URL (nav dropdown links)
-  useEffect(() => {
-    const cat = params.get('category') || '';
-    setActiveCat(cat);
-    run(activeArea, cat);
+  const pickCat = (slug: string) => {
+    const next = new URLSearchParams(params);
+    if (slug) next.set('category', slug); else next.delete('category');
+    setParams(next, { replace: true });
+  };
+
+  // Artisans in the visitor's city (unless a particular area is picked),
+  // matching the search box, in the chosen order.
+  const shown = useMemo(() => {
+    let rows = data?.rows ?? [];
+    if (!activeArea && region.city) {
+      const inCity = new Set(region.cityAreas.map((a) => a.slug));
+      rows = rows.filter((a) => (a.areas || []).some((slug) => inCity.has(slug)));
+    }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter((a) =>
+        `${a.display_name} ${a.bio ?? ''} ${(a.categories || []).map(catName).join(' ')}`.toLowerCase().includes(q));
+    }
+    const price = (a: BrowseRow) => data?.prices?.[a.id] ?? Infinity;
+    if (sort === 'jobs') rows = [...rows].sort((a, b) => b.completed_jobs - a.completed_jobs);
+    if (sort === 'price') rows = [...rows].sort((a, b) => price(a) - price(b));
+    return rows;
+    // catName reads `categories`, listed below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, run]);
+  }, [data, activeArea, region.city, region.cityAreas, query, sort, categories]);
 
-  const onArea = (slug: string) => { setActiveArea(slug); run(slug, activeCat); };
-  const onCat = (slug: string) => { setActiveCat(slug); run(activeArea, slug); };
+  // Area dropdown: the visitor's city first, grouped by city.
+  const areaGroups = useMemo(() => {
+    const order = region.city ? [region.city, ...region.cities.filter((c) => c !== region.city)] : region.cities;
+    return order
+      .map((c) => ({ city: c, items: areas.filter((a) => (a.city || 'Lagos') === c) }))
+      .filter((g) => g.items.length > 0);
+  }, [areas, region.cities, region.city]);
+
+  const cityAreaSlugs = new Set(region.cityAreas.map((a) => a.slug));
+  const countLabel = `${shown.length} artisan${shown.length === 1 ? '' : 's'}${catLabel ? ` for ${catLabel.toLowerCase()}` : ''}${placeName ? ` in ${placeName}` : ''}`;
 
   return (
-    <div className="find-artisans">
-      <div className="fa-hero">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="fa-hero-inner">
-          <h1>Browse verified artisans</h1>
-          <p>See trusted professionals across Lagos. Ready to hire? Request for a service and we'll match you with the right one.</p>
-          <div className="fa-bar">
-            <div className="fa-select-wrap">
-              <MapPin size={16} />
-              <select value={activeArea} onChange={(e) => onArea(e.target.value)} className="fa-select" aria-label="Area">
-                <option value="">All areas</option>
-                {areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
-              </select>
+    <MotionConfig reducedMotion="user">
+      <div className="fa">
+        <div className="container fa-wrap">
+          {/* ── City banner with search ── */}
+          <motion.section className="fa-hero" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+            <div className="fa-hero-copy">
+              <span className="fa-hero-pill"><BadgeCheck size={15} /> Every artisan ID-checked by our team</span>
+              <h1>{region.city ? `Verified artisans in ${region.city}` : 'Find a verified artisan'}</h1>
+              <p>
+                {region.city ? `Trusted professionals who work in ${region.city}.` : 'Trusted professionals in Lagos, Port Harcourt and Omoku.'}
+                {' '}Pick one yourself, or request a service and we'll match you.
+              </p>
+              <form className="fa-search" role="search" onSubmit={(e) => e.preventDefault()}>
+                <label htmlFor="fa-area" className="sr-only">Area</label>
+                <select id="fa-area" value={activeArea} onChange={(e) => setActiveArea(e.target.value)}>
+                  <option value="">{region.city ? `All of ${region.city}` : 'All areas'}</option>
+                  {areaGroups.length > 1
+                    ? areaGroups.map((g) => (
+                        <optgroup key={g.city} label={g.city}>
+                          {g.items.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+                        </optgroup>
+                      ))
+                    : areas.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+                </select>
+                <label htmlFor="fa-q" className="sr-only">What do you need?</label>
+                <input id="fa-q" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you need? e.g. borehole pump" />
+                <button type="submit" className="fa-search-btn"><Search size={17} /><span>Search</span></button>
+              </form>
             </div>
-            <Link to="/post-job" className="fa-post-cta">
-              <Button variant="primary" leftIcon={<ClipboardList size={18} />}>Request for Service</Button>
-            </Link>
-          </div>
-        </motion.div>
-      </div>
+            <div className="fa-hero-art" aria-hidden="true">
+              <svg viewBox="0 0 260 200">
+                <circle cx="130" cy="110" r="88" fill="rgba(255,255,255,0.07)" />
+                <g className="fa-sun"><circle cx="212" cy="40" r="24" fill="none" stroke="#f5c779" strokeWidth="4" strokeDasharray="4 7" /></g>
+                <circle cx="212" cy="40" r="15" fill="#f5c779" />
+                <ellipse cx="130" cy="182" rx="104" ry="9" fill="rgba(255,255,255,0.10)" />
+                <rect x="72" y="104" width="116" height="78" rx="6" fill="#fffaf0" />
+                <polygon points="60,110 130,58 200,110" fill="#062b14" />
+                <rect x="116" y="138" width="28" height="44" rx="4" fill="#c97b12" />
+                <rect x="84" y="122" width="24" height="20" rx="3" fill="#cfe8f3" />
+                <rect x="152" y="122" width="24" height="20" rx="3" fill="#cfe8f3" />
+                <ellipse className="fa-ring" cx="130" cy="56" rx="12" ry="4" fill="none" stroke="#f5a623" strokeWidth="2.5" />
+                <g className="fa-pin">
+                  <path d="M130 8c-11 0-18 8-18 17 0 12 18 27 18 27s18-15 18-27c0-9-7-17-18-17z" fill="#f5a623" />
+                  <circle cx="130" cy="25" r="7" fill="#fff" />
+                </g>
+              </svg>
+            </div>
+          </motion.section>
 
-      <div className="fa-cats-wrap">
-        <div className="fa-cats">
-          <button className={`fa-cat ${activeCat === '' ? 'active' : ''}`} onClick={() => onCat('')}>All services</button>
-          {categories.map((c) => (
-            <button key={c.slug} className={`fa-cat ${activeCat === c.slug ? 'active' : ''}`} onClick={() => onCat(c.slug)}>{c.name}</button>
-          ))}
+          {/* ── Service filter ── */}
+          <nav className="fa-chips" aria-label="Services">
+            <button type="button" className={`fa-chip ${activeCat === '' ? 'active' : ''}`} aria-pressed={activeCat === ''} onClick={() => pickCat('')}>All services</button>
+            {categories.map((c) => (
+              <button type="button" key={c.slug} className={`fa-chip ${activeCat === c.slug ? 'active' : ''}`} aria-pressed={activeCat === c.slug} onClick={() => pickCat(c.slug)}>{c.name}</button>
+            ))}
+          </nav>
+
+          {/* ── Results ── */}
+          <div className="fa-bar">
+            <h2>{loading ? 'Finding artisans…' : countLabel}</h2>
+            <label className="fa-sort">Sort by
+              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                <option value="best">Best match</option>
+                <option value="jobs">Most jobs done</option>
+                {data?.prices && <option value="price">Lowest price</option>}
+              </select>
+            </label>
+          </div>
+
+          {loading ? (
+            <div className="fa-loading"><Loader2 className="spin" size={28} /></div>
+          ) : (
+            <div className="fa-grid">
+              {shown.map((a) => {
+                const price = data?.prices?.[a.id];
+                const first = a.display_name.split(' ')[0];
+                const myAreas = (a.areas || []).filter((s) => cityAreaSlugs.has(s));
+                const areaText = (myAreas.length ? myAreas : a.areas || []).slice(0, 2).map(areaName).join(' · ');
+                return (
+                  <article key={a.id} className="fa-card">
+                    <div className="fa-card-head">
+                      <span className="fa-avatar">
+                        {a.avatar_url ? <img src={a.avatar_url} alt="" /> : initials(a.display_name)}
+                      </span>
+                      <div className="fa-card-name">
+                        <h3><Link to={`/artisan/${a.id}`} className="fa-card-link">{a.display_name}</Link></h3>
+                        {a.is_verified
+                          ? <span className="fa-verified"><BadgeCheck size={14} /> ID verified</span>
+                          : <span className="fa-new">New on Lezerv</span>}
+                      </div>
+                    </div>
+
+                    {a.bio && <p className="fa-bio">{a.bio}</p>}
+
+                    <div className="fa-tags">
+                      {areaText && <span className="fa-tag"><MapPin size={13} /> {areaText}</span>}
+                      {!!a.years_experience && <span className="fa-tag amber">{a.years_experience} year{a.years_experience === 1 ? '' : 's'}</span>}
+                      {a.total_reviews > 0 && <span className="fa-tag"><Star size={13} className="fa-star" /> {a.avg_rating.toFixed(1)} ({a.total_reviews})</span>}
+                    </div>
+
+                    {data?.prices && (
+                      <div className="fa-price">
+                        <span className="fa-price-label">
+                          <strong>Their price</strong>
+                          <small>{price !== undefined ? `Set by ${first} · confirmed before work` : 'Inspects first, then gives a firm price'}</small>
+                        </span>
+                        <span className="fa-price-value">{price !== undefined ? <><small>from</small> {naira(price)}</> : 'After a visit'}</span>
+                      </div>
+                    )}
+
+                    <div className="fa-card-foot">
+                      <span><strong>{a.completed_jobs}</strong> job{a.completed_jobs === 1 ? '' : 's'} on Lezerv</span>
+                      <LinkButton to={`/artisan/${a.id}`} variant="secondary" size="sm" aria-label={`View ${a.display_name}'s profile`}>View profile</LinkButton>
+                    </div>
+                  </article>
+                );
+              })}
+
+              <article className="fa-card fa-request">
+                <svg viewBox="0 0 120 70" width="120" height="70" aria-hidden="true">
+                  <rect x="8" y="22" width="56" height="40" rx="8" fill="#fff" />
+                  <rect x="16" y="32" width="30" height="5" rx="2.5" fill="#e3ddd2" />
+                  <rect x="16" y="43" width="40" height="5" rx="2.5" fill="#e3ddd2" />
+                  <g className="fa-plane"><path d="M70 40l40-18-14 30-8-10z" fill="#f5a623" /></g>
+                  <path className="fa-trail" d="M66 46q16 2 30-8" stroke="#c97b12" strokeWidth="2" strokeDasharray="3 4" fill="none" />
+                </svg>
+                <div>
+                  <h3>{shown.length === 0 ? `No ${catLabel ? catLabel.toLowerCase() : 'artisans'} listed${placeName ? ` in ${placeName}` : ''} yet` : 'Not sure who to pick?'}</h3>
+                  <p>Tell us what you need. We'll send it to verified artisans near you and one will take it.</p>
+                </div>
+                <LinkButton to={activeCat ? `/post-job?category=${activeCat}` : '/post-job'} leftIcon={<ClipboardList size={17} />}>Request for Service</LinkButton>
+              </article>
+            </div>
+          )}
+
+          <ul className="fa-trust">
+            <li><span><KeyRound size={20} /></span> Start code at your door</li>
+            <li><span><HandCoins size={20} /></span> Price agreed before work</li>
+            <li><span><MessagesSquare size={20} /></span> Chat in the app</li>
+          </ul>
         </div>
       </div>
-
-      <div className="fa-results">
-        {loading ? (
-          <div className="fa-empty"><Loader2 className="animate-spin" size={28} /><p>Loading…</p></div>
-        ) : results.length === 0 ? (
-          <div className="fa-empty">
-            <Hammer size={36} style={{ opacity: 0.3 }} />
-            <h3>No artisans here yet</h3>
-            <p>Try another area or service. You can still request for a service — we'll match you as artisans come on board.</p>
-            <Link to="/post-job"><Button variant="primary" leftIcon={<ClipboardList size={16} />}>Request for Service</Button></Link>
-          </div>
-        ) : (
-          <>
-            <p className="fa-count">{results.length} artisan{results.length > 1 ? 's' : ''}{activeArea ? ` in ${areaName(activeArea)}` : ''}{activeCat ? ` · ${catName(activeCat)}` : ''}</p>
-            <div className="fa-grid">
-              {results.map((a) => (
-                <motion.div key={a.id} className="artisan-card" whileHover={{ y: -4 }} onClick={() => navigate(`/artisan/${a.id}`)}>
-                  <div className="ac-top">
-                    <div className="ac-avatar">
-                      {a.avatar_url ? <img src={a.avatar_url} alt={a.display_name} /> : <span>{a.display_name.charAt(0)}</span>}
-                      {a.is_verified && <span className="ac-avatar-badge"><ShieldCheck size={12} /></span>}
-                    </div>
-                    <div className="ac-headline">
-                      <div className="ac-name">{a.display_name}</div>
-                      <div className="ac-meta">
-                        <Stars rating={a.avg_rating} />
-                        <span className="ac-reviews">{a.total_reviews > 0 ? `${a.avg_rating.toFixed(1)} (${a.total_reviews})` : 'New on Lezerv'}</span>
-                      </div>
-                      <span className="ac-jobs">{a.completed_jobs} job{a.completed_jobs === 1 ? '' : 's'} completed{a.years_experience ? ` · ${a.years_experience}y exp` : ''}</span>
-                    </div>
-                  </div>
-                  {a.bio && <p className="ac-bio">{a.bio}</p>}
-                  <div className="ac-cats">
-                    {(a.categories || []).slice(0, 3).map((slug: string) => <span key={slug} className="ac-chip">{catName(slug)}</span>)}
-                    {(a.categories || []).length > 3 && <span className="ac-chip more">+{a.categories.length - 3}</span>}
-                  </div>
-                  <div className="ac-foot">
-                    <span className="ac-areas"><MapPin size={13} /> {(a.areas || []).slice(0, 2).map(areaName).join(', ') || 'Lagos'}{(a.areas || []).length > 2 ? ` +${a.areas.length - 2}` : ''}</span>
-                    <span className="ac-cta">View profile →</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    </MotionConfig>
   );
 };
 

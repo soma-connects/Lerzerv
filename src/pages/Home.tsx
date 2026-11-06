@@ -1,273 +1,269 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight as ArrowIcon, Eraser, Zap, Droplets, Gift, ShieldCheck, MessageCircle, Lock, ChefHat, Shirt } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion, MotionConfig } from 'framer-motion';
+import {
+  ArrowRight, BadgeCheck, ChefHat, ClipboardList, Droplets, Fuel, Gift, HandCoins, HardHat,
+  Headphones, KeyRound, MessagesSquare, PlugZap, Search, Shirt, Snowflake, Sparkles, SprayCan, Sun,
+  Wrench, Zap,
+} from 'lucide-react';
+import { LinkButton } from '../components/ui/LinkButton';
+import { GiftArt, HeroScene, RequestArt, SafetyArt, StartCodeArt, ToolboxArt, VerifiedArt } from '../components/illustrations/Illustrations';
 import { useSEO } from '../hooks/useSEO';
+import { useRegion } from '../contexts/LocationContext';
 import './Home.css';
 
+// The eight most-asked-for services. Each tile opens Find Artisans already
+// filtered to that category (same slugs as the header's Services menu).
+const categories = [
+  { slug: 'cleaning', name: 'Cleaning', blurb: 'Regular, deep and post-construction cleaning.', icon: SprayCan, tone: 'green', anim: 'shake' },
+  { slug: 'plumbing', name: 'Plumbing', blurb: 'Leaks, blockages, fittings and water heaters.', icon: Wrench, tone: 'amber', anim: 'turn' },
+  { slug: 'electrical', name: 'Electrical', blurb: 'Wiring, sockets, lighting and fault finding.', icon: PlugZap, tone: 'green', anim: 'flash' },
+  { slug: 'generator-power', name: 'Generator & Power', blurb: 'Servicing, repairs and changeover set-up.', icon: Fuel, tone: 'amber', anim: 'buzz' },
+  { slug: 'ac-refrigeration', name: 'AC & Refrigeration', blurb: 'AC servicing, gas top-ups, fridge repairs.', icon: Snowflake, tone: 'green', anim: 'spin' },
+  { slug: 'solar-inverter', name: 'Solar & Inverter', blurb: 'Inverter, battery and panel installs and checks.', icon: Sun, tone: 'amber', anim: 'spin' },
+  { slug: 'laundry', name: 'Laundry', blurb: 'Washing, ironing and dry cleaning.', icon: Shirt, tone: 'green', anim: 'sway' },
+  { slug: 'cooking', name: 'Cooking', blurb: 'Home cooks for meal prep and family meals.', icon: ChefHat, tone: 'amber', anim: 'hop' },
+] as const;
+
+const popular: [string, string][] = [
+  ['cleaning', 'Cleaning'],
+  ['plumbing', 'Plumbing'],
+  ['electrical', 'Electrical'],
+  ['generator-power', 'Generator'],
+  ['ac-refrigeration', 'AC repair'],
+];
+
+const steps = [
+  { art: RequestArt, title: 'Tell us what you need', text: 'Request a service, or pick an artisan yourself. Say what needs doing and where.' },
+  { art: VerifiedArt, title: 'Get a verified artisan', text: 'An ID-checked artisan near you takes the job and agrees the price with you first.' },
+  { art: StartCodeArt, title: 'Relax while it gets done', text: 'Share your start code when they arrive, chat in the app and follow the job to the end.' },
+];
+
+// Outline icons drifting slowly behind the final call to action.
+const floaters = [
+  { icon: Wrench, cls: 'f1' }, { icon: Droplets, cls: 'f2' }, { icon: Zap, cls: 'f3' },
+  { icon: Sparkles, cls: 'f4' }, { icon: Snowflake, cls: 'f5' }, { icon: Sun, cls: 'f6' },
+];
+
+const safety = [
+  { icon: BadgeCheck, title: 'ID-checked artisans', text: 'Our team checks every artisan’s identity before they can take jobs.' },
+  { icon: HandCoins, title: 'Price agreed first', text: 'You see the estimate or firm price and accept it before any work starts.' },
+  { icon: KeyRound, title: 'Start codes', text: 'Your artisan proves they’re the right person with a code only you have.' },
+  { icon: Headphones, title: 'People who help', text: 'Something not right? Reach our team on WhatsApp or in the app.' },
+];
+
+// Fade-and-rise when a section scrolls into view (once).
+const reveal = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.2 },
+  transition: { duration: 0.5, ease: 'easeOut' as const },
+};
+
+// A believable place for the example job card, in the visitor's city.
+const sampleSpot: Record<string, string> = {
+  Lagos: 'Lekki Phase 1',
+  'Port Harcourt': 'GRA, Port Harcourt',
+  Omoku: 'Omoku',
+};
+
 const Home: React.FC = () => {
+  const { city } = useRegion();
   useSEO({
-    title: 'Lezerv | #1 Verified Home Services & Artisans in Nigeria',
-    description: "Nigeria's #1 platform for verified home services and local artisans. Hire professional cleaners, plumbers, electricians, AC technicians, generator repairers, and carpenters in Lagos and Abuja.",
-    keywords: 'home services Nigeria, cleaning services Lagos, verified cleaners Abuja, hire plumber Nigeria, electrician Lagos, generator repair Lagos, AC technician Abuja, local artisans Nigeria, professional cleaners Lagos, house cleaning Nigeria, handyman services Nigeria'
+    title: 'Lezerv | Verified Home Services & Artisans in Nigeria',
+    description: 'Hire ID-verified cleaners, plumbers, electricians, AC technicians, generator repairers and more. Request a service and Lezerv matches you with a verified artisan near you.',
+    keywords: 'home services Nigeria, cleaning services Lagos, verified cleaners Port Harcourt, hire plumber Nigeria, electrician Lagos, generator repair Lagos, AC technician Port Harcourt, home services Omoku, local artisans Nigeria, professional cleaners Lagos, house cleaning Nigeria, handyman services Nigeria',
   });
 
-  const [heroLoaded, setHeroLoaded] = useState(false);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className="home-page">
-      {/* Hero Section */}
-      <section className="hero">
-        <motion.div
-          className="hero-content"
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
-          <motion.h1 variants={itemVariants}>
-            <span className="headline-primary">Live Better.</span>{' '}
-            <span className="headline-secondary">Your Life, Our Priority.</span>
-          </motion.h1>
-          <motion.p className="hero-text" variants={itemVariants}>
-            Request for a service and we'll match you with a verified artisan or cleaner near you — plumbing, power, cooling, repairs and more. Chat and pay safely, all on Lezerv.
-          </motion.p>
-          <motion.div className="hero-actions" variants={itemVariants}>
-            <Link to="/post-job">
-              <Button variant="primary" size="lg" rightIcon={<ArrowIcon size={20} />}>Request for Service</Button>
-            </Link>
-            <Link to="/services">
-              <Button variant="outline" size="lg">Browse Services</Button>
-            </Link>
-          </motion.div>
-          <motion.div className="hero-trust" variants={itemVariants}>
-            <span><ShieldCheck size={16} /> Verified artisans</span>
-            <span><MessageCircle size={16} /> In-app chat</span>
-            <span><Lock size={16} /> Secure payments</span>
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          className={`hero-image-container ${!heroLoaded ? 'loading' : ''}`}
-          initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          <div className="hero-image-bg"></div>
-          {!heroLoaded && <div className="image-skeleton" aria-hidden="true" />}
-          <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUBCTpiyl-_anQ6YNpqMAgiaCxHJP0yOd_XFMzPnXTSMwwPD1xm7FhR5lmMpbu-a4NioT1x56TdJoOvRNLpHDZ9jieUQnoF32OOMKnBvPZ7QK4d44bZga2WivlN649WnuO3UOWTHdRtML7K9yijLaGWs1OMVEH6o8wmqY_uVjbEGhtLoNwssbsul7MwjF3RmmzaFqQBpcopsjOCgOkVrS0gC6jAO61mR7YN2_6b5Cht4hP4OIrSyuKk-YgQwq3P-Y8FdMDWfwDNTWs"
-            alt="Perfectly maintained Nigerian home"
-            className="hero-image"
-            onLoad={() => setHeroLoaded(true)}
-            style={{ opacity: heroLoaded ? 1 : 0 }}
-          />
-        </motion.div>
-      </section>
-
-      {/* Services Section */}
-      <section className="services">
-        <div className="container">
-          <div className="section-header">
-            <h2>Reliable Solutions for Local Needs</h2>
-            <p>Verified professionals ready to keep your home running smoothly.</p>
-          </div>
-
-          <div className="services-grid">
+    // reducedMotion="user": if someone turned on "reduce motion" on their
+    // device, framer-motion skips the slide-in animations for them.
+    <MotionConfig reducedMotion="user">
+      <div className="home">
+        {/* ───────────── Hero ───────────── */}
+        <section className="home-hero">
+          <div className="container home-hero-grid">
             <motion.div
-              className="service-card"
-              whileHover={{ y: -10 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              role="article"
-              aria-label="Professional Cleaning service"
-              tabIndex={0}
+              className="home-hero-copy"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              <div className="service-icon icon-primary">
-                <Eraser size={28} />
+              <span className="home-pill">
+                <BadgeCheck size={16} /> {city ? `Verified artisans in ${city}` : 'Verified artisans for your home'}
+              </span>
+              <h1>
+                Live better.
+                <span className="home-h1-accent">Your life, our priority.</span>
+              </h1>
+              <p className="home-lead">
+                Request a service and we'll match you with a verified artisan or cleaner near you — plumbing, power,
+                cooling, repairs and more. Agree the price, chat and track the job, all on Lezerv.
+              </p>
+
+              <div className="home-hero-actions">
+                <LinkButton to="/post-job" size="lg" rightIcon={<ArrowRight size={19} />}>Request for Service</LinkButton>
+                <LinkButton to="/find-artisans" size="lg" variant="outline" leftIcon={<Search size={18} />}>Find an artisan</LinkButton>
               </div>
-              <h3>Professional Cleaning</h3>
-              <p>Standard and deep cleaning for flats, duplexes, and post-construction projects.</p>
-              <Link to="/services" className="service-link">
-                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>View Pricing</Button>
-              </Link>
+
+              <div className="home-popular">
+                <span>Popular:</span>
+                {popular.map(([slug, name]) => (
+                  <Link key={slug} to={`/find-artisans?category=${slug}`} className="home-chip">{name}</Link>
+                ))}
+              </div>
             </motion.div>
 
+            {/* An illustrated home, drawn in SVG and animated (see
+                components/illustrations). aria-hidden: it's decoration. */}
             <motion.div
-              className="service-card service-card-featured"
-              whileHover={{ y: -10 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              role="article"
-              aria-label="Power and Cooling service"
-              tabIndex={0}
+              className="home-visual"
+              aria-hidden="true"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
             >
-              <div className="service-icon icon-white">
-                <Zap size={28} />
+              <HeroScene />
+              <div className="hv-float hv-float-code">
+                <KeyRound size={16} />
+                <span>Start code</span>
+                <b>4 8 2 1</b>
               </div>
-              <h3>Power & Cooling</h3>
-              <p>Generator maintenance, AC servicing, and solar system diagnostics to keep the lights on.</p>
-              <div className="service-badge">
-                <span className="dot"></span>
-                HIGH DEMAND
+              <div className="hv-float hv-float-msg">
+                <MessagesSquare size={16} />
+                <span>“I'm 10 minutes away”</span>
               </div>
-              <Link to="/services?category=power" className="featured-link">
-                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>Book Now</Button>
-              </Link>
-            </motion.div>
-
-            <motion.div
-              className="service-card"
-              whileHover={{ y: -10 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              role="article"
-              aria-label="Water Systems service"
-              tabIndex={0}
-            >
-              <div className="service-icon icon-tertiary">
-                <Droplets size={28} />
+              <div className="hv-float hv-float-status">
+                <span className="hv-dot" />
+                <span>Artisan on the way · {sampleSpot[city ?? 'Lagos'] ?? city}</span>
               </div>
-              <h3>Water Systems</h3>
-              <p>Borehole pump repairs, tank cleaning, and plumbing fixes across all major estates.</p>
-              <Link to="/services" className="service-link">
-                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>Book Artisan</Button>
-              </Link>
-            </motion.div>
-
-            <motion.div
-              className="service-card"
-              whileHover={{ y: -10 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              role="article"
-              aria-label="Cooking and catering service"
-              tabIndex={0}
-            >
-              <div className="service-icon icon-primary">
-                <ChefHat size={28} />
-              </div>
-              <h3>Cooking & Catering</h3>
-              <p>Hire professional chefs for custom meal prep, family dinners, or special home events.</p>
-              <Link to="/services" className="service-link">
-                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>View Tiers</Button>
-              </Link>
-            </motion.div>
-
-            <motion.div
-              className="service-card"
-              whileHover={{ y: -10 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              role="article"
-              aria-label="Laundry and dry cleaning service"
-              tabIndex={0}
-            >
-              <div className="service-icon icon-tertiary">
-                <Shirt size={28} />
-              </div>
-              <h3>Laundry & Pressing</h3>
-              <p>Premium laundry, dry cleaning, and ironing with convenient home pickup and delivery.</p>
-              <Link to="/services" className="service-link">
-                <Button variant="text" rightIcon={<ArrowIcon size={18} />}>View Pricing</Button>
-              </Link>
             </motion.div>
           </div>
-        </div>
-      </section>
 
-      {/* How It Works Section */}
-      <section className="how-it-works container">
-        <div className="section-header">
-          <h2>How Lezerv Works</h2>
-          <p>Get help in three simple steps.</p>
-        </div>
-        <div className="steps-grid">
-          <div className="step-card">
-            <div className="step-number">1</div>
-            <h3>Pick a Service</h3>
-            <p>Choose from cleaning, power, plumbing, and more.</p>
+          <div className="container">
+            <ul className="home-trust">
+              <li><BadgeCheck size={18} /> ID-checked artisans</li>
+              <li><HandCoins size={18} /> Agree the price before work</li>
+              <li><KeyRound size={18} /> Start code at your door</li>
+              <li><MessagesSquare size={18} /> Chat in the app</li>
+            </ul>
           </div>
-          <div className="step-card">
-            <div className="step-number">2</div>
-            <h3>Get Matched</h3>
-            <p>We connect you with a verified artisan near you.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-number">3</div>
-            <h3>Relax</h3>
-            <p>Track the job and pay securely when it's done.</p>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Ambassador Promo Section */}
-      <section className="ambassador-promo">
-        <div className="container">
-          <motion.div
-            className="promo-banner"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          >
-            <div className="promo-icon">
-              <Gift size={32} />
+        {/* ───────────── Categories ───────────── */}
+        <section className="home-section">
+          <div className="container">
+            <motion.div className="home-head" {...reveal}>
+              <span className="eyebrow">Services</span>
+              <h2>What do you need help with?</h2>
+              <p>Pick a service to see verified artisans who do it.</p>
+            </motion.div>
+
+            <div className="home-cats">
+              {categories.map((c) => (
+                <Link key={c.slug} to={`/find-artisans?category=${c.slug}`} className="home-cat">
+                  <span className={`home-cat-icon tone-${c.tone}`} data-anim={c.anim}><c.icon size={24} /></span>
+                  <span className="home-cat-name">{c.name}</span>
+                  <span className="home-cat-blurb">{c.blurb}</span>
+                  <ArrowRight size={18} className="home-cat-arrow" />
+                </Link>
+              ))}
             </div>
-            <h2>Earn Rewards as a Lezerv Ambassador</h2>
-            <p>Share Lezerv with friends and family. When they book a service, you earn points — and they get a discount on their first booking.</p>
-            <Link to="/ambassador">
-              <Button variant="secondary" size="lg">Become an Ambassador</Button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section className="testimonials container">
-        <h2>Trusted by Homeowners in Lagos & Abuja</h2>
-        <div className="testimonials-grid">
-          <div className="testimonial-card">
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFTbEcuYMATHPfQ_GDWr1GTIqkcxZ6q2rfuBe8AO_xkOVCh_yxyyrzrIkW-G2VyGn1nDDruUya0PgUg7uiQFsNBN6Htv0TYGJiGKdMBg_BvnMFf09s7MrujPpWWgYZ7faxSXxYEwxZ6oTdBfraAHSGQQEnnVfOAXFHv5RWCNNbnVDN0mV-89MO08ijUZ0yCWz-x17Nqk50P9b6BKbvNDB2cBA0JE7BaQbMZfQGe7n3LGUjKj3MUicpTAAZBpKeOYAZooHQ_eH4f8ch" alt="Olawale O." loading="lazy" />
-            <div className="testimonial-content">
-              <div className="stars" aria-label="5 star rating">★★★★★</div>
-              <p>"Lezerv is a lifesaver. Had a generator issue late at night in Lekki, and they got a verified mechanic to my place first thing in the morning."</p>
-              <cite>— Olawale O., Homeowner</cite>
+            <div className="home-cats-more">
+              <Link to="/services" className="home-more-link">See all services and prices <ArrowRight size={16} /></Link>
             </div>
           </div>
-          <div className="testimonial-card">
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCenrzdSEflAZHlhjtGA53Ju9GmKi2n9tFDI9rrvxtEPa4X5PD88vLMmTC5hAmMr0LDTAZluiQphHXIh8YWNyXRGmDuzjQwE31c3VaL97so_8nw9vIaoJDiuEle6CmlxkYmNsMHtJHLBqfjw5in6GZj1ZIKpv4YTEyaKVyOtPtt9PeD71ikC0aEioO-e_ve9Sxy8sZEIUEtNj8FudhE6GbvoseZ-JKamEhQolgKkB95oABbVaQHWON11JOQ020eB2kwWMSLq7Ff74Nz" alt="Chioma E." loading="lazy" />
-            <div className="testimonial-content">
-              <div className="stars" aria-label="5 star rating">★★★★★</div>
-              <p>"The deep cleaning service for my new apartment in Gwarinpa was exceptional. They removed every bit of paint and dust. Highly recommended!"</p>
-              <cite>— Chioma E., Property Manager</cite>
+        </section>
+
+        {/* ───────────── How it works ───────────── */}
+        <section className="home-section home-how">
+          <div className="container">
+            <motion.div className="home-head" {...reveal}>
+              <span className="eyebrow">How it works</span>
+              <h2>Help at home in three steps</h2>
+            </motion.div>
+
+            <ol className="home-steps">
+              {steps.map((s, i) => (
+                <motion.li key={s.title} className="home-step" {...reveal} transition={{ ...reveal.transition, delay: i * 0.08 }}>
+                  <div className="home-step-art"><s.art /></div>
+                  <span className="home-step-num">Step {i + 1}</span>
+                  <h3>{s.title}</h3>
+                  <p>{s.text}</p>
+                </motion.li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ───────────── Safety ───────────── */}
+        <section className="home-section">
+          <div className="container">
+            <div className="home-safety">
+              <motion.div className="home-safety-copy" {...reveal}>
+                <SafetyArt className="home-safety-art" />
+                <span className="eyebrow">Peace of mind</span>
+                <h2>Safety is built into every job</h2>
+                <p>
+                  Letting someone into your home takes trust. These checks happen on every booking, so you know who is
+                  coming, what it costs and who to call.
+                </p>
+                <LinkButton to="/services" variant="outline" rightIcon={<ArrowRight size={17} />}>How Lezerv works</LinkButton>
+              </motion.div>
+
+              <div className="home-safety-grid">
+                {safety.map((s, i) => (
+                  <motion.div key={s.title} className="home-safety-card" {...reveal} transition={{ ...reveal.transition, delay: i * 0.06 }}>
+                    <span className="home-safety-icon"><s.icon size={22} /></span>
+                    <h3>{s.title}</h3>
+                    <p>{s.text}</p>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="cta container">
-        <div className="cta-banner">
-          <h2>Ready for a stress-free Nigerian home?</h2>
-          <p>Join thousands of property owners who trust Lezerv for their daily and emergency maintenance needs.</p>
-          <div className="cta-banner-actions">
-            <Link to="/post-job"><Button variant="secondary" size="lg">Request for Service</Button></Link>
-            <Link to="/become-artisan"><Button variant="outline" size="lg" className="cta-outline-light">Work as an Artisan</Button></Link>
+        {/* ───────────── Artisans + referrals ───────────── */}
+        <section className="home-section home-section-tight">
+          <div className="container home-duo">
+            <motion.div className="home-promo home-promo-green" {...reveal}>
+              <span className="home-promo-icon"><HardHat size={26} /></span>
+              <h2>Are you an artisan?</h2>
+              <p>Get jobs from homeowners near you. Apply once, get verified, and choose the jobs you take.</p>
+              <LinkButton to="/become-artisan" variant="light" rightIcon={<ArrowRight size={17} />}>Work with Lezerv</LinkButton>
+              <ToolboxArt className="home-promo-art" />
+            </motion.div>
+
+            <motion.div className="home-promo home-promo-amber" {...reveal} transition={{ ...reveal.transition, delay: 0.08 }}>
+              <span className="home-promo-icon"><Gift size={26} /></span>
+              <h2>Refer &amp; earn</h2>
+              <p>Share Lezerv with friends and family. When they book, you earn rewards and they get a discount on their first booking.</p>
+              <LinkButton to="/ambassador" variant="primary" rightIcon={<ArrowRight size={17} />}>Become an ambassador</LinkButton>
+              <GiftArt className="home-promo-art" />
+            </motion.div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        {/* ───────────── Final call to action ───────────── */}
+        <section className="home-section home-section-tight">
+          <div className="container">
+            <motion.div className="home-final" {...reveal}>
+              <div className="home-final-floaters" aria-hidden="true">
+                {floaters.map((f) => <f.icon key={f.cls} className={`home-floater ${f.cls}`} />)}
+              </div>
+              <h2>Ready for a stress-free home?</h2>
+              <p>Tell us what needs doing and we'll find a verified artisan near you.</p>
+              <div className="home-final-actions">
+                <LinkButton to="/post-job" size="lg" variant="light" leftIcon={<ClipboardList size={18} />}>Request for Service</LinkButton>
+                <LinkButton to="/services" size="lg" variant="outline-light">Browse services</LinkButton>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      </div>
+    </MotionConfig>
   );
 };
 

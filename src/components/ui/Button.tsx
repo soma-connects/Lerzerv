@@ -2,7 +2,7 @@ import React from 'react';
 import './Button.css';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'text';
+  variant?: 'primary' | 'secondary' | 'outline' | 'text' | 'light' | 'outline-light' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   fullWidth?: boolean;
@@ -30,7 +30,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
-      className={`${baseClass} ${variantClass} ${sizeClass} ${loadingClass} ${fullWidthClass} ${className}`}
+      className={[baseClass, variantClass, sizeClass, loadingClass, fullWidthClass, className].filter(Boolean).join(' ')}
+      aria-busy={isLoading || undefined}
       disabled={disabled || isLoading}
       {...props}
     >
