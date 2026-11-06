@@ -42,13 +42,18 @@ export const artisanService = {
 
   /** Public list of service areas (Lagos neighbourhoods, Port Harcourt, Omoku), with their city and centre. */
   fetchAreas: async (): Promise<IServiceArea[]> => {
-    const { data, error } = await supabase
-      .from('service_areas')
-      .select('slug, name, city, lat, lng')
-      .eq('is_active', true)
-      .order('sort_order');
-    if (error) return [];
-    return (data || []) as IServiceArea[];
+    // Newest columns first; if this database doesn't have them yet (lat/lng
+    // come from migration 0025), ask again for less, so the area lists never
+    // come back empty and people can always post a job.
+    for (const cols of ['slug, name, city, lat, lng', 'slug, name, city', 'slug, name']) {
+      const { data, error } = await supabase
+        .from('service_areas')
+        .select(cols)
+        .eq('is_active', true)
+        .order('sort_order');
+      if (!error) return (data || []) as unknown as IServiceArea[];
+    }
+    return [];
   },
 
   /** Create or update the current user's artisan profile. */

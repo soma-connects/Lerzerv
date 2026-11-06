@@ -9,6 +9,7 @@
   padding: var(--spacing-2xl) 0 var(--spacing-xl);
   background: linear-gradient(180deg, var(--color-surface-container-lowest) 0%, var(--color-surface) 100%);
   position: relative;
+  overflow: hidden; /* trims the decorative circle that sits past the edge */
 }
 
 .contact-hero::before {
