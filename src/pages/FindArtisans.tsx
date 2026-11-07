@@ -28,7 +28,17 @@ interface BrowseRow {
 type Sort = 'best' | 'jobs' | 'price';
 
 const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`;
-const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+const TITLES = new Set(['mr', 'mrs', 'miss', 'ms', 'dr', 'engr', 'eng', 'chief', 'alhaji', 'alhaja', 'pastor', 'prince', 'princess', 'sir', 'madam', 'mama', 'baba', 'hon', 'barr', 'prof', 'arc', 'oga', 'deaconess', 'deacon', 'evang', 'rev']);
+/** "Mrs Taiwo Amu" -> "Taiwo", "OLADIMEJI ADE" -> "Oladimeji": titles skipped, shouting calmed. */
+const firstName = (name: string) => {
+  const words = name.split(/\s+/).filter(Boolean);
+  const w = words.find((x) => !TITLES.has(x.toLowerCase().replace(/\./g, ''))) ?? words[0] ?? '';
+  return w === w.toUpperCase() && w.length > 1 ? w[0] + w.slice(1).toLowerCase() : w;
+};
+const initials = (name: string) => {
+  const words = name.split(/\s+/).filter((x) => x && !TITLES.has(x.toLowerCase().replace(/\./g, '')));
+  return (words.length ? words : name.split(/\s+/)).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+};
 
 const FindArtisans: React.FC = () => {
   const region = useRegion();
@@ -44,7 +54,7 @@ const FindArtisans: React.FC = () => {
   const [sort, setSort] = useState<Sort>('best');
   // Results remember which search they answer, so "loading" is simply
   // "the results we have aren't for the current search yet".
-  const [data, setData] = useState<{ key: string; rows: BrowseRow[]; prices: Record<string, number> | null } | null>(null);
+  const [data, setData] = useState<{ key: string; rows: BrowseRow[]; prices: Record<string, { naira: number; suggested: boolean | null }> | null } | null>(null);
   const searchKey = `${activeArea}|${activeCat}`;
   const loading = data?.key !== searchKey;
 
@@ -92,7 +102,7 @@ const FindArtisans: React.FC = () => {
       rows = rows.filter((a) =>
         `${a.display_name} ${a.bio ?? ''} ${(a.categories || []).map(catName).join(' ')}`.toLowerCase().includes(q));
     }
-    const price = (a: BrowseRow) => data?.prices?.[a.id] ?? Infinity;
+    const price = (a: BrowseRow) => data?.prices?.[a.id]?.naira ?? Infinity;
     if (sort === 'jobs') rows = [...rows].sort((a, b) => b.completed_jobs - a.completed_jobs);
     if (sort === 'price') rows = [...rows].sort((a, b) => price(a) - price(b));
     return rows;
@@ -187,7 +197,13 @@ const FindArtisans: React.FC = () => {
             <div className="fa-grid">
               {shown.map((a) => {
                 const price = data?.prices?.[a.id];
-                const first = a.display_name.split(' ')[0];
+                const first = firstName(a.display_name);
+                // Honest labels: Lezerv's starter price vs a price the artisan set.
+                const priceLabel = price?.suggested === false ? 'Their price' : 'Starting price';
+                const priceNote = !price ? 'Inspects first, then gives a firm price'
+                  : price.suggested === false ? `Set by ${first} · agreed before work`
+                  : price.suggested === true ? 'Lezerv guide price · agreed before work'
+                  : 'Agreed before any work starts';
                 const myAreas = (a.areas || []).filter((s) => cityAreaSlugs.has(s));
                 const areaText = (myAreas.length ? myAreas : a.areas || []).slice(0, 2).map(areaName).join(' · ');
                 return (
@@ -215,10 +231,10 @@ const FindArtisans: React.FC = () => {
                     {data?.prices && (
                       <div className="fa-price">
                         <span className="fa-price-label">
-                          <strong>Their price</strong>
-                          <small>{price !== undefined ? `Set by ${first} · confirmed before work` : 'Inspects first, then gives a firm price'}</small>
+                          <strong>{price ? priceLabel : 'Price'}</strong>
+                          <small>{priceNote}</small>
                         </span>
-                        <span className="fa-price-value">{price !== undefined ? <><small>from</small> {naira(price)}</> : 'After a visit'}</span>
+                        <span className="fa-price-value">{price ? <><small>from</small> {naira(price.naira)}</> : 'After a visit'}</span>
                       </div>
                     )}
 

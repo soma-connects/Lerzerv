@@ -54,7 +54,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     tiers: [
       {
         name: 'Standard Clean',
-        price: '₦25,000',
+        price: '₦30,000',
         description: 'Perfect for regular maintenance and keeping your space fresh.',
         features: [
           'Dusting & Vacuuming',
@@ -89,7 +89,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     tiers: [
       {
         name: 'Minor Fixes',
-        price: '₦12,000',
+        price: '₦15,000',
         description: 'Quick repairs for leaks, taps, and bathroom fixtures.',
         features: [
           'Tap & Shower Installation',
@@ -157,7 +157,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     tiers: [
       {
         name: 'Daily Meal Prep',
-        price: '₦15,000',
+        price: '₦30,000',
         description: 'Standard cooking and meal prep for individuals or families.',
         features: [
           '3 Freshly Cooked Meals',
@@ -169,7 +169,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
       },
       {
         name: 'Premium Chef Service',
-        price: '₦40,000',
+        price: '₦100,000',
         description: 'Multi-course menu prepared by a professional chef for special events or parties.',
         recommended: true,
         features: [
@@ -192,7 +192,7 @@ const STATIC_SERVICE_CATEGORIES: Category[] = [
     tiers: [
       {
         name: 'Wash & Fold',
-        price: '₦8,000',
+        price: '₦10,000',
         description: 'Standard machine wash and fold service for regular clothes.',
         features: [
           'Up to 15kg of Laundry',

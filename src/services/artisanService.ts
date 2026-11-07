@@ -159,29 +159,40 @@ export const artisanService = {
   },
 
   /**
-   * Each artisan's own lowest "from" price, in naira (migration 0028's
-   * artisan_services: artisans set these themselves). With a category, only
-   * their prices for that service count. An artisan with no price listed is
-   * left out: they price after a visit. Returns null if prices can't be read
-   * (e.g. the table isn't there), so the page can simply not show prices.
+   * Each artisan's lowest "from" price, in naira (migration 0028's
+   * artisan_services). With a category, only their prices for that service
+   * count. `suggested` says whether that price is still Lezerv's starter
+   * price (true), one the artisan set themselves (false), or unknown (null,
+   * on a database without 0037). An artisan with no price listed is left
+   * out: they price after a visit. Returns null if prices can't be read.
    */
-  fromPrices: async (artisanIds: string[], categorySlug?: string): Promise<Record<string, number> | null> => {
+  fromPrices: async (
+    artisanIds: string[],
+    categorySlug?: string,
+  ): Promise<Record<string, { naira: number; suggested: boolean | null }> | null> => {
     if (artisanIds.length === 0) return {};
-    const { data, error } = await supabase
-      .from('artisan_services')
-      .select('artisan_id, from_price_kobo, service_categories(slug)')
-      .eq('active', true)
-      .in('artisan_id', artisanIds);
-    if (error) return null;
-    type Row = { artisan_id: string; from_price_kobo: number; service_categories: { slug: string } | { slug: string }[] | null };
-    const best: Record<string, number> = {};
-    for (const row of (data || []) as unknown as Row[]) {
+    type Row = {
+      artisan_id: string;
+      from_price_kobo: number;
+      price_is_suggested?: boolean | null;
+      service_categories: { slug: string } | { slug: string }[] | null;
+    };
+    let rows: Row[] | null = null;
+    // 0037 adds price_is_suggested; without it, ask for the rest.
+    for (const cols of ['artisan_id, from_price_kobo, price_is_suggested, service_categories(slug)', 'artisan_id, from_price_kobo, service_categories(slug)']) {
+      const { data, error } = await supabase.from('artisan_services').select(cols).eq('active', true).in('artisan_id', artisanIds);
+      if (!error) { rows = (data || []) as unknown as Row[]; break; }
+    }
+    if (!rows) return null;
+    const best: Record<string, { naira: number; suggested: boolean | null }> = {};
+    for (const row of rows) {
       // The joined category can come back as one object or a one-item list.
       const cat = Array.isArray(row.service_categories) ? row.service_categories[0] : row.service_categories;
       if (categorySlug && cat?.slug !== categorySlug) continue;
       const naira = Math.round(Number(row.from_price_kobo) / 100);
       if (!Number.isFinite(naira) || naira <= 0) continue;
-      if (best[row.artisan_id] === undefined || naira < best[row.artisan_id]) best[row.artisan_id] = naira;
+      const suggested = typeof row.price_is_suggested === 'boolean' ? row.price_is_suggested : null;
+      if (best[row.artisan_id] === undefined || naira < best[row.artisan_id].naira) best[row.artisan_id] = { naira, suggested };
     }
     return best;
   },
