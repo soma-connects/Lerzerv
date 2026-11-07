@@ -36,13 +36,14 @@ fun backendSlug(appKey: String): String = when (appKey) {
 }
 
 /**
- * Indicative Lagos "from" prices per category, matching the website's pricing page
- * (Aug 2026). Used until artisans set their own prices (artisan_services, migration B).
+ * Indicative Lagos "from" prices per category, in line with the starter prices of
+ * migration 0037 (Nov 2026) and the website's pricing page. Used until artisans set
+ * their own prices (artisan_services).
  */
 val TYPICAL_FROM = mapOf(
-    "clean" to (25000 to "per visit"), "gen" to (20000 to "call-out"), "plumb" to (15000 to "call-out"),
+    "clean" to (30000 to "per visit"), "gen" to (20000 to "call-out"), "plumb" to (15000 to "call-out"),
     "repair" to (15000 to "call-out"), "elec" to (15000 to "call-out"), "ac" to (15000 to "per unit"),
-    "cook" to (18000 to "per day"), "laundry" to (12000 to "per load"),
+    "cook" to (30000 to "per day"), "laundry" to (10000 to "per load"),
 )
 
 private fun stableHash(s: String): Int = s.fold(17) { h, c -> h * 31 + c.code }.let { abs(it) }
